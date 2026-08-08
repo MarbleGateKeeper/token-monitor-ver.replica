@@ -12,7 +12,7 @@ const { tokenRatePerSecond, tokenBurnPerMinute } = tokenRateApi;
 const reducedMotionMedia = window.matchMedia?.('(prefers-reduced-motion: reduce)');
 const clientsWithIcon = new Set([
   'claude', 'codex', 'gemini', 'cursor', 'opencode', 'openclaw', 'hermes', 'antigravity', 'cline', 'kimi', 'qwen', 'grok', 'copilot', 'pi', 'zed', 'kilocode', 'micode', 'zcode', 'kiro', 'codebuddy', 'workbuddy', 'proma',
-  'xai', 'openrouter', 'deepseek', 'meta', 'mistral', 'qwen', 'moonshot', 'zai', 'zaiteam', 'cohere', 'xiaomi', 'mimo', 'minimax', 'doubao', 'volcengine', 'qoder', 'ollama', 'thirdparty'
+  'xai', 'openrouter', 'deepseek', 'meta', 'mistral', 'qwen', 'moonshot', 'zai', 'zaiteam', 'cohere', 'xiaomi', 'mimo', 'minimax', 'doubao', 'meituan', 'tencent', 'volcengine', 'qoder', 'ollama', 'thirdparty'
 ]);
 
 function osIconFor(platform) {
@@ -1676,6 +1676,7 @@ function renderDeviceAccordion(accordionInner, deviceDetail) {
       const mark = document.createElement('span');
       if (toolIconsEnabled(state.settings?.showToolIcons) && clientsWithIcon.has(tool.client)) {
         mark.className = `device-tool-mark row-icon row-icon-${tool.client}`;
+        mark.style.color = tool.color || '';
       } else {
         mark.className = 'device-tool-mark dot';
         mark.style.background = tool.color;
@@ -1743,9 +1744,11 @@ function updateRow(row, { name, subtitle, detail, value, cost, max, color, barBa
   if (iconKind.kind === 'icon') {
     mark.className = `row-mark row-icon ${iconKind.iconClass}`;
     mark.style.background = '';
+    mark.style.color = color || '';
   } else {
     mark.className = 'row-mark dot';
     mark.style.background = color;
+    mark.style.color = '';
   }
   row.querySelector('.row-title').textContent = name;
   const subtitleEl = row.querySelector('.row-subtitle');
@@ -1849,10 +1852,12 @@ function applyHomeListMark(mark, iconKind, color) {
   if (iconKind.kind === 'icon') {
     mark.className = `home-list-mark row-icon ${iconKind.iconClass}`;
     mark.style.background = '';
+    mark.style.color = color || '';
     return;
   }
   mark.className = 'home-list-mark';
   mark.style.background = color;
+  mark.style.color = '';
 }
 
 function renderRows(rows, { incompleteHint = '' } = {}) {
@@ -4089,6 +4094,7 @@ function renderLimitProviderMark(id, color) {
   const mark = document.createElement('span');
   if (clientsWithIcon.has(id)) {
     mark.className = `limit-icon limit-icon-${id}`;
+    mark.style.color = color || '';
   } else {
     mark.className = 'dot';
     mark.style.background = color;

@@ -47,6 +47,8 @@
 
 识别规则不区分大小写，并要求 `LongCat` / `Hy3` 出现在完整的模型名分段中，避免仅因名称中偶然包含相同字符而误判。两个厂商都有独立的默认配色，也会出现在 **设置 → 外观 → 厂商颜色** 中供手动调整。
 
+模型列表会分别使用 LongCat 与 Tencent 标志，并通过 CSS 遮罩染成当前厂商颜色；因此默认显示美团黄与腾讯蓝，手动调整厂商颜色后图标会同步变化。新增 SVG 来自固定版本的 MIT 许可 [Lobe Icons](https://github.com/lobehub/lobe-icons)，来源、许可证文本和商标用途声明见 [`assets/icons/THIRD_PARTY_NOTICES.md`](assets/icons/THIRD_PARTY_NOTICES.md)。
+
 #### 3. 增加手动模型映射
 
 在 **设置 → 采集 → 模型映射** 中，可以把多个本质相同的模型 ID 合并到一个规范名称，例如：
@@ -175,6 +177,8 @@ This fork classifies both exact IDs as Kimi models, keeping vendor colors, icon 
 - The [Tencent Hy3](https://github.com/Tencent-Hunyuan/Hy3) family, including `hy3` and `hy3-fp8`, plus models carrying a `Tencent` or `Hunyuan` namespace, is classified as **Tencent**.
 
 Matching is case-insensitive and requires `LongCat` / `Hy3` to occupy a complete model-name segment, avoiding accidental substring matches. Both vendors have distinct default colors and appear under **Settings → Appearance → Vendor colors** for manual customization.
+
+Model rows use the LongCat and Tencent marks as CSS masks tinted with the active vendor color. They therefore default to Meituan yellow and Tencent blue and follow any manual vendor-color override. The added SVGs come from a fixed version of the MIT-licensed [Lobe Icons](https://github.com/lobehub/lobe-icons); source, license text, and the trademark-use notice are recorded in [`assets/icons/THIRD_PARTY_NOTICES.md`](assets/icons/THIRD_PARTY_NOTICES.md).
 
 #### 3. Manual model mappings
 

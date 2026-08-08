@@ -3334,6 +3334,8 @@ html.is-windows .settings-panel select option {
 .row-icon-mimo       { -webkit-mask-image: url(../../../assets/icons/xiaomi.svg);        mask-image: url(../../../assets/icons/xiaomi.svg); }
 .row-icon-minimax    { -webkit-mask-image: url(../../../assets/icons/minimax.svg);       mask-image: url(../../../assets/icons/minimax.svg); }
 .row-icon-doubao     { -webkit-mask-image: url(../../../assets/icons/doubao.svg);        mask-image: url(../../../assets/icons/doubao.svg); }
+.row-icon-meituan    { -webkit-mask-image: url(../../../assets/icons/meituan.svg);       mask-image: url(../../../assets/icons/meituan.svg); }
+.row-icon-tencent    { -webkit-mask-image: url(../../../assets/icons/tencent.svg);       mask-image: url(../../../assets/icons/tencent.svg); }
 .row-icon-volcengine     { -webkit-mask-image: url(../../../assets/icons/volcengine.svg);        mask-image: url(../../../assets/icons/volcengine.svg); }
 .row-icon-qoder      { -webkit-mask-image: url(../../../assets/icons/qoder.svg);         mask-image: url(../../../assets/icons/qoder.svg); }
 .row-icon-ollama     { -webkit-mask-image: url(../../../assets/icons/ollama.svg);        mask-image: url(../../../assets/icons/ollama.svg); }

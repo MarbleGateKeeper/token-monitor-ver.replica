@@ -13,6 +13,10 @@ function rendererStyles() {
   return fs.readFileSync(path.join(__dirname, '..', '..', 'src', 'electron', 'renderer', 'styles.css'), 'utf8');
 }
 
+function iconAsset(name) {
+  return fs.readFileSync(path.join(__dirname, '..', '..', 'assets', 'icons', name), 'utf8');
+}
+
 function clientLabelIds(source) {
   const match = source.match(/const clientLabels = \{([^}]+)\};/);
   assert.ok(match, 'clientLabels declaration should exist');
@@ -77,6 +81,20 @@ test('renderer wires the Doubao vendor icon for Doubao model rows', () => {
 
   assert.match(source, /clientsWithIcon = new Set\(\[[\s\S]*'doubao'[\s\S]*'volcengine'[\s\S]*'qoder'/);
   assert.match(styles, /\.row-icon-doubao\s*\{[^}]*assets\/icons\/doubao\.svg/s);
+});
+
+test('renderer wires color-tinted LongCat and Tencent vendor icons for model rows', () => {
+  const source = rendererSource();
+  const styles = rendererStyles();
+
+  assert.match(source, /clientsWithIcon = new Set\(\[[\s\S]*'doubao', 'meituan', 'tencent', 'volcengine'/);
+  assert.match(styles, /\.row-icon-meituan\s*\{[^}]*assets\/icons\/meituan\.svg/s);
+  assert.match(styles, /\.row-icon-tencent\s*\{[^}]*assets\/icons\/tencent\.svg/s);
+  assert.match(source, /if \(iconKind\.kind === 'icon'\) \{[\s\S]*?mark\.style\.color = color \|\| '';/);
+  assert.match(source, /function applyHomeListMark[\s\S]*?mark\.style\.color = color \|\| '';/);
+  assert.match(iconAsset('meituan.svg'), /<title>LongCat<\/title>/);
+  assert.match(iconAsset('tencent.svg'), /<title>Tencent<\/title>/);
+  assert.match(iconAsset('THIRD_PARTY_NOTICES.md'), /@lobehub\/icons-static-svg` 1\.90\.0/);
 });
 
 test('renderer maps MiMo provider rows to the Xiaomi brand icon', () => {

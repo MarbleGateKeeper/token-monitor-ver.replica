@@ -4,7 +4,7 @@
 
 <!-- app-update-notes:en:start -->
 ### Added
-- **LongCat and Hy3 vendor recognition:** LongCat models are now classified under Meituan and Hy3 models under Tencent, with distinct vendor colors and Appearance controls.
+- **LongCat and Hy3 vendor recognition:** LongCat models are now classified under Meituan and Hy3 models under Tencent, with color-tinted vendor icons, distinct vendor colors, and Appearance controls.
 - **Manual model mappings:** Settings > Collection can now merge exact, case-insensitive model IDs for all dashboard, history, and export views without rewriting raw usage data.
 - **Diagnostics & support:** Settings > About Token Monitor now lets you generate a redacted diagnostic report, view its preview, and copy it for issue reports. It includes app, collection, AI tool health, AI Tool Limits, Hub, workload, configuration, resources, and Cursor/Antigravity sync-failure stage, detail code, and exit code when available, without including credentials, conversations, accounts, full paths, or raw errors. (#340, #342)
 
@@ -33,7 +33,7 @@ This repository does not publish prebuilt installers or application archives. To
 
 <!-- app-update-notes:zh:start -->
 ### 新增
-- **LongCat 与 Hy3 厂商识别：** LongCat 系列模型现在识别为美团，Hy3 系列模型识别为腾讯，并提供独立厂商配色和外观设置。
+- **LongCat 与 Hy3 厂商识别：** LongCat 系列模型现在识别为美团，Hy3 系列模型识别为腾讯，并提供随厂商颜色着色的图标、独立配色和外观设置。
 - **手动模型映射：** 「设置 > 采集」现在可以按不区分大小写的精确模型 ID 合并仪表盘、历史和导出视图，且不会改写原始用量数据。
 - **诊断与支持：** 「设置 > 关于 Token Monitor」现在可以「生成报告」、查看预览并「复制报告」来反馈问题。报告包含应用、采集、AI 工具状态、AI 工具额度、Hub、工作负载、配置、资源，以及 Cursor/Antigravity 同步失败的阶段、详情代码和退出码（如有）；不包含凭证、对话、账号、完整路径或原始错误输出。（#340、#342）
 
@@ -70,7 +70,7 @@ This repository does not publish prebuilt installers or application archives. To
 
 <!-- app-update-notes:zh-TW:start -->
 ### 新增
-- **LongCat 與 Hy3 廠商識別：** LongCat 系列模型現在識別為美團，Hy3 系列模型識別為騰訊，並提供獨立廠商配色和外觀設定。
+- **LongCat 與 Hy3 廠商識別：** LongCat 系列模型現在識別為美團，Hy3 系列模型識別為騰訊，並提供隨廠商顏色著色的圖示、獨立配色和外觀設定。
 - **手動模型映射：** 「設定 > 採集」現在可以按不區分大小寫的精確模型 ID 合併儀表板、歷史和匯出檢視，且不會改寫原始用量資料。
 - **診斷與支援：** 「設定 > 關於 Token Monitor」現在可以「產生報告」、查看預覽並「複製報告」來回報問題。報告包含應用程式、採集、AI 工具狀態、AI 工具額度、Hub、工作負載、設定、資源，以及 Cursor/Antigravity 同步失敗的階段、詳情代碼及退出碼（如有）；不包含憑證、對話、帳號、完整路徑或原始錯誤輸出。（#340、#342）
 
@@ -102,7 +102,7 @@ This repository does not publish prebuilt installers or application archives. To
 
 <!-- app-update-notes:ko:start -->
 ### 추가
-- **LongCat 및 Hy3 공급업체 인식:** LongCat 모델은 Meituan으로, Hy3 모델은 Tencent로 분류되며 각각의 공급업체 색상과 모양 설정을 제공합니다.
+- **LongCat 및 Hy3 공급업체 인식:** LongCat 모델은 Meituan으로, Hy3 모델은 Tencent로 분류되며 공급업체 색상으로 표시되는 아이콘, 개별 색상 및 모양 설정을 제공합니다.
 - **수동 모델 매핑:** 「설정 > 수집」에서 대소문자를 구분하지 않는 정확한 모델 ID를 대시보드, 기록 및 내보내기 보기 전체에 병합할 수 있으며 원시 사용량 데이터는 변경하지 않습니다.
 - **진단 및 지원:** 「설정 > Token Monitor 정보」에서 「보고서 생성」 후 「보고서 보기」 또는 「보고서 복사」로 문제 신고에 사용할 수 있습니다. 보고서에는 앱, 수집, AI 도구 상태, AI 도구 한도, Hub, 작업량, 구성, 리소스와 Cursor/Antigravity 동기화 실패 단계·세부 코드·종료 코드(있는 경우)가 포함되며, 자격 증명·대화·계정·전체 경로·원시 오류는 포함되지 않습니다. (#340, #342)
 
@@ -134,7 +134,7 @@ This repository does not publish prebuilt installers or application archives. To
 
 <!-- app-update-notes:ja:start -->
 ### 追加
-- **LongCat と Hy3 のベンダー認識：** LongCat モデルを Meituan、Hy3 モデルを Tencent として分類し、それぞれのベンダーカラーと外観設定を追加しました。
+- **LongCat と Hy3 のベンダー認識：** LongCat モデルを Meituan、Hy3 モデルを Tencent として分類し、ベンダーカラーで着色されるアイコン、個別カラー、外観設定を追加しました。
 - **手動モデルマッピング：** 「設定 > 収集」で、大文字小文字を区別しない完全一致のモデル ID をダッシュボード、履歴、エクスポート表示全体で統合でき、raw 使用量データは書き換えません。
 - **診断とサポート：** 「設定 > Token Monitor について」で「レポートを作成」し、「レポートを見る」または「レポートをコピー」して問題を報告できます。レポートにはアプリ、収集、AIツールの状態、AIツール制限、Hub、ワークロード、設定、リソース、Cursor/Antigravity の同期失敗の段階・詳細コード・終了コード（利用可能な場合）が含まれ、認証情報、会話、アカウント、完全なパス、raw エラーは含まれません。（#340、#342）
 
