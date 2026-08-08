@@ -144,7 +144,7 @@ function makeFixture(t) {
         },
         nsis: { artifactName: 'Token-Monitor-Setup-${version}.${ext}' },
         portable: { artifactName: 'Token-Monitor-${version}.${ext}' },
-        publish: [{ provider: 'github', owner: 'Javis603', repo: 'token-monitor' }]
+        publish: [{ provider: 'github', owner: 'MarbleGateKeeper', repo: 'token-monitor-ver.replica' }]
       }
     })
   );
@@ -215,8 +215,8 @@ test('writes the updater config skipped by electron-builder prepackaged mode', (
   const fixture = makeFixture(t);
   writeUnsignedApplication(fixture);
   const expected = [
-    'owner: "Javis603"',
-    'repo: "token-monitor"',
+    'owner: "MarbleGateKeeper"',
+    'repo: "token-monitor-ver.replica"',
     'provider: "github"',
     'updaterCacheDirName: "token-monitor-updater"',
     'publisherName:',
@@ -277,16 +277,13 @@ test('refuses a platform publish override the prepackaged writer would ignore', 
   );
 });
 
-test('refuses prerelease versions whose update channel electron-builder would derive', (t) => {
+test('supports replica prerelease versions with GitHub default update metadata', (t) => {
   const fixture = makeFixture(t);
   const pkg = JSON.parse(fs.readFileSync(fixture.packageJsonPath, 'utf8'));
-  pkg.version = '0.31.0-beta.1';
+  pkg.version = '0.31.0-replica.1';
   fs.writeFileSync(fixture.packageJsonPath, JSON.stringify(pkg));
 
-  assert.throws(
-    () => windowsAppUpdateConfig(fixture.packageJsonPath),
-    /do not support prerelease update channels/
-  );
+  assert.match(windowsAppUpdateConfig(fixture.packageJsonPath), /provider: "github"/);
 });
 
 test('expectedWindowsArtifacts rejects unsafe output names and output-parameter versions', (t) => {

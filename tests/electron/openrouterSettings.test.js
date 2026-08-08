@@ -132,11 +132,9 @@ test('OpenRouter credits lookup keeps the mixed-version label fallback', () => {
   assert.equal(findCredits([{ ...legacyCredits, metric: 'quota' }]), null);
 });
 
-test('OpenRouter is documented with its supplied icon in every supported-tools table', () => {
+test('OpenRouter is documented with its supplied icon in the bilingual supported-tools table', () => {
   const row = /\.github\/assets\/tools-icon\/openrouter\.png" width="28" alt="OpenRouter" \/> \| OpenRouter \| OpenRouter API/;
-  for (const file of ['README.md', 'README.zh-TW.md', 'README.zh-CN.md', 'README.ja.md', 'README.ko.md']) {
-    assert.match(read(file), row, file);
-  }
+  assert.match(read('README.md'), row);
   assert.equal(fs.existsSync(path.join(root, '.github/assets/tools-icon/openrouter.png')), true);
   assert.equal(fs.existsSync(path.join(root, 'assets/icons/openrouter.svg')), true);
 });

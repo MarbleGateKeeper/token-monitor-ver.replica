@@ -68,7 +68,7 @@ each language block.
 
 ---
 
-**Full Changelog:** [vPREVIOUS...vCURRENT](https://github.com/Javis603/token-monitor/compare/vPREVIOUS...vCURRENT)
+**Full Changelog:** [PREVIOUS...vCURRENT](https://github.com/MarbleGateKeeper/token-monitor-ver.replica/compare/PREVIOUS...vCURRENT)
 
 <details>
 <summary>繁體中文 · 한국어 · 日本語</summary>

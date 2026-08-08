@@ -135,6 +135,11 @@ const {
 } = require('../shared/sessionUsageArchive');
 const { clearDailyHistoryArchive } = require('../shared/dailyHistoryArchive');
 const { aggregateDevices, aggregateHistory, applyProjectRollups } = require('../shared/usage');
+const {
+  applyModelMappingsToHistory,
+  applyModelMappingsToStats,
+  normalizeModelMappings
+} = require('../shared/modelMappings');
 const { postSyncPayload, syncPayload } = require('../shared/syncPayload');
 const { mergedLocalAllTimeSessions } = require('../shared/localSessions');
 const {
@@ -354,6 +359,7 @@ function defaultSettings() {
     serviceStatusRefreshMs: 60000,
     archivedClientUsage: { version: 1, clients: {} },
     allTimeSince: process.env.TOKEN_MONITOR_ALL_TIME_SINCE || '2024-01-01',
+    modelMappings: [],
     customModelPricing: [],
     limitsEnabled: parseBoolean(process.env.TOKEN_MONITOR_LIMITS_ENABLED, true),
     limitProviders: parseLimitProviders(process.env.TOKEN_MONITOR_LIMIT_PROVIDERS).join(','),
@@ -2023,6 +2029,7 @@ function readSettings() {
     merged.hubHostSecret = typeof merged.hubHostSecret === 'string' ? merged.hubHostSecret : '';
     merged.floatingBubbleEnabled = parseBoolean(merged.floatingBubbleEnabled ?? merged.edgeDrawerEnabled, false);
     merged.archivedClientUsage = normalizeArchivedClientUsage(merged.archivedClientUsage);
+    merged.modelMappings = normalizeModelMappings(merged.modelMappings);
     delete merged.edgeDrawerEnabled;
     merged.floatingBubbleTrigger = merged.floatingBubbleTrigger === 'hover' ? 'hover' : 'click';
     merged.floatingBubbleContent = normalizeTrayContent(merged.floatingBubbleContent, 'icon');
@@ -2278,6 +2285,25 @@ function withHistoryPreview(stats, devices) {
   stats.historyPreview = historyPreview(history);
   stats.historyRevision = historyRevision(history);
   return stats;
+}
+
+function mappedStatsForDisplay(stats) {
+  const mappings = normalizeModelMappings(settings?.modelMappings);
+  const mapped = applyModelMappingsToStats(stats, mappings);
+  if (!mapped || typeof mapped !== 'object' || !mapped.historyRevision) return mapped;
+  const baseRevision = String(mapped.historyRevision).replace(/:model-map:[0-9a-f]{8}$/, '');
+  if (mappings.length === 0) return baseRevision === mapped.historyRevision
+    ? mapped
+    : { ...mapped, historyRevision: baseRevision };
+  const mappingRevision = crypto.createHash('sha256')
+    .update(JSON.stringify(mappings))
+    .digest('hex')
+    .slice(0, 8);
+  return { ...mapped, historyRevision: `${baseRevision}:model-map:${mappingRevision}` };
+}
+
+function mappedHistoryForDisplay(history) {
+  return applyModelMappingsToHistory(history, settings?.modelMappings);
 }
 
 let mode = 'idle';
@@ -3318,26 +3344,29 @@ function injectLocalDeviceStatus(stats) {
 
 function sendPush(payload) {
   const previousHistoryRevision = statsHistoryRevision(latestStats);
+  let outgoing = payload;
   if (payload?.data?.stats) {
-    injectLocalDeviceStatus(payload.data.stats);
-    latestStats = payload.data.stats;
+    const stats = mappedStatsForDisplay(injectLocalDeviceStatus(payload.data.stats));
+    outgoing = { ...payload, data: { ...payload.data, stats } };
+    latestStats = stats;
     syncTrayCodexActiveAccount();
     updateTrayDisplay();
+    if (settings?.discordRpcEnabled) updateDiscordRpcDisplay(stats);
     if (settings.exportAutoEnabled && settings.exportDir && Date.now() - lastExportAt >= exportIntervalMs()) {
       lastExportAt = Date.now();
-      writeExportTo(settings.exportDir, payload.data.stats.periods, { skipUnchanged: true })
+      writeExportTo(settings.exportDir, stats.periods, { skipUnchanged: true })
         .catch((err) => console.warn(`[export] auto-export failed: ${err.message}`));
     }
   }
   if (mainWindow && !mainWindow.isDestroyed()) {
-    try { mainWindow.webContents.send('stats:push', payload); } catch (_) {}
+    try { mainWindow.webContents.send('stats:push', outgoing); } catch (_) {}
   }
-  if (payload?.data?.stats) {
-    const nextHistoryRevision = statsHistoryRevision(payload.data.stats);
+  if (outgoing?.data?.stats) {
+    const nextHistoryRevision = statsHistoryRevision(outgoing.data.stats);
     if (nextHistoryRevision !== previousHistoryRevision && dashboardWindow && !dashboardWindow.isDestroyed()) {
       try { dashboardWindow.webContents.send('dashboard:historyChanged'); } catch (_) {}
     }
-    maybeAdoptSharedSubscriptionRevision(payload.data.stats);
+    maybeAdoptSharedSubscriptionRevision(outgoing.data.stats);
   }
 }
 
@@ -4281,14 +4310,14 @@ async function fetchStats(options = {}) {
     });
   }
   if (mode === 'local') {
-    if (localStats) return localStats;
-    return withHistoryPreview(aggregateDevices(localDevice ? [localDevice] : [], 0), localDevice ? [localDevice] : []);
+    if (localStats) return mappedStatsForDisplay(localStats);
+    return mappedStatsForDisplay(withHistoryPreview(aggregateDevices(localDevice ? [localDevice] : [], 0), localDevice ? [localDevice] : []));
   }
   if (settings.hubMode === 'host' && embeddedHub) {
-    return injectLocalDeviceStatus(embeddedHub.hub.getStats());
+    return mappedStatsForDisplay(injectLocalDeviceStatus(embeddedHub.hub.getStats()));
   }
   const { url: hubUrl, secret } = effectiveHubConfig();
-  if (!hubUrl) return withHistoryPreview(aggregateDevices([], 0), []);
+  if (!hubUrl) return mappedStatsForDisplay(withHistoryPreview(aggregateDevices([], 0), []));
   const url = `${hubUrl.replace(/\/$/, '')}/api/stats`;
   const response = await fetch(url, { headers: secret ? { authorization: `Bearer ${secret}` } : {} });
   if (!response.ok) throw new Error(`Hub ${response.status}: ${(await response.text()).slice(0, 200)}`);
@@ -4307,7 +4336,7 @@ async function fetchStats(options = {}) {
     });
   }
   setLatestHubStatsCache(stats, 'client', requestGeneration, requestHubIdentity);
-  return injectLocalDeviceStatus(composeLocalSyncStats(stats, lastCollectedDevice));
+  return mappedStatsForDisplay(injectLocalDeviceStatus(composeLocalSyncStats(stats, lastCollectedDevice)));
 }
 
 function managedPricingSidecarPath() {
@@ -4332,6 +4361,15 @@ async function refreshAfterPricingChange() {
     }
   } catch (error) {
     console.warn(`[pricing] refresh after pricing change failed: ${error.message}`);
+  }
+}
+
+async function refreshAfterModelMappingChange() {
+  try {
+    const stats = await fetchStats();
+    if (stats) sendPush({ event: 'stats', data: { type: 'stats', reason: 'model-mapping', stats, at: new Date().toISOString() } });
+  } catch (error) {
+    console.warn(`[model-mapping] refresh failed: ${error.message}`);
   }
 }
 
@@ -4688,7 +4726,13 @@ function isAllowedExternalUrl(value) {
   if (isAllowedCodexLoginUrl(value)) return true;
   if (parsed.hostname === 'github.com' && parsed.pathname.startsWith('/junhoyeo/tokscale')) return true;
   if (parsed.hostname === 'www.npmjs.com' && parsed.pathname.startsWith('/package/@tokscale/')) return true;
-  if (parsed.hostname === 'github.com' && parsed.pathname.startsWith('/Javis603/token-monitor')) return true;
+  if (
+    parsed.hostname === 'github.com' &&
+    (
+      parsed.pathname === '/MarbleGateKeeper/token-monitor-ver.replica' ||
+      parsed.pathname.startsWith('/MarbleGateKeeper/token-monitor-ver.replica/')
+    )
+  ) return true;
   if (
     (parsed.hostname === 'javis-ai.com' || parsed.hostname === 'www.javis-ai.com')
     && (parsed.pathname === '/token-monitor' || parsed.pathname.startsWith('/token-monitor/'))
@@ -4994,15 +5038,15 @@ async function getDashboardHistory() {
     // branch reads /api/history. Forcing a full collection tick here made the
     // fetch take seconds; on a quick close/reopen the response outlived the
     // renderer and was dropped, stranding the dashboard on its empty state.
-    return aggregateHistory(localDevice ? [localDevice] : []);
+    return mappedHistoryForDisplay(aggregateHistory(localDevice ? [localDevice] : []));
   }
   if (settings.hubMode === 'host' && embeddedHub) {
     // Host mode reads its own hub store in-process, so the dashboard history
     // doesn't depend on a loopback fetch the local firewall/proxy might block.
-    return embeddedHub.hub.getHistory();
+    return mappedHistoryForDisplay(embeddedHub.hub.getHistory());
   }
   const { url: hubUrl, secret } = effectiveHubConfig();
-  if (!hubUrl) return aggregateHistory([]);
+  if (!hubUrl) return mappedHistoryForDisplay(aggregateHistory([]));
   const url = `${hubUrl.replace(/\/$/, '')}/api/history`;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15000);
@@ -5012,7 +5056,7 @@ async function getDashboardHistory() {
       signal: controller.signal
     });
     if (!response.ok) throw new Error(`Hub ${response.status}: ${(await response.text()).slice(0, 200)}`);
-    return response.json();
+    return mappedHistoryForDisplay(await response.json());
   } finally {
     clearTimeout(timeout);
   }
@@ -5145,6 +5189,7 @@ app.whenReady().then(() => {
     const previousStartAtLogin = settings.startAtLogin;
     const previousAutomaticAppUpdates = settings.automaticAppUpdates;
     const previousCustomModelPricing = JSON.stringify(settings.customModelPricing || []);
+    const previousModelMappings = JSON.stringify(settings.modelMappings || []);
     const normalizedCurrency = patch.currency !== undefined ? normalizeCurrency(patch.currency, settings.currency) : normalizeCurrency(settings.currency);
     const normalizedPatch = { ...patch, currency: normalizedCurrency };
     delete normalizedPatch.windowMaximized;
@@ -5153,6 +5198,7 @@ app.whenReady().then(() => {
     delete normalizedPatch.openrouterProfiles;
     delete normalizedPatch.thirdPartyProfiles;
     delete normalizedPatch.customModelPricing;
+    delete normalizedPatch.modelMappings;
     // Subscriptions go through subscriptions:save, which knows whether this
     // device owns the list or shares it with a hub. The explicit fields further
     // down are what actually hold the line — they are applied after the spread
@@ -5295,6 +5341,9 @@ app.whenReady().then(() => {
       qoderCookie: patch.qoderCookie !== undefined ? normalizeQoderCookie(patch.qoderCookie) : (settings.qoderCookie || ''),
       qoderSite: patch.qoderSite !== undefined ? normalizeQoderSite(patch.qoderSite) : normalizeQoderSite(settings.qoderSite || 'global'),
       ollamaCookie: patch.ollamaCookie !== undefined ? normalizeOllamaCookie(patch.ollamaCookie) : (settings.ollamaCookie || ''),
+      modelMappings: patch.modelMappings !== undefined
+        ? normalizeModelMappings(patch.modelMappings)
+        : normalizeModelMappings(settings.modelMappings),
       customModelPricing: patch.customModelPricing !== undefined
         ? normalizeCustomPricingSetting(patch.customModelPricing)
         : normalizeCustomPricingSetting(settings.customModelPricing)
@@ -5311,6 +5360,9 @@ app.whenReady().then(() => {
     if (JSON.stringify(settings.customModelPricing || []) !== previousCustomModelPricing) {
       regenerateTokscalePricing();
       refreshAfterPricingChange();
+    }
+    if (JSON.stringify(settings.modelMappings || []) !== previousModelMappings) {
+      void refreshAfterModelMappingChange();
     }
     configureWindowToggleShortcut();
     if (settings.startAtLogin !== previousStartAtLogin) {

@@ -2,6 +2,15 @@
 
 This is the single source of project guidance, shared by every coding agent (Claude Code, Codex, Cursor, …). `CLAUDE.md` is a Claude Code compatibility shim that just imports this file — edit **this** file, not `CLAUDE.md`.
 
+## Fork identity and upstream sync
+
+- The upstream project is [Javis603/token-monitor](https://github.com/Javis603/token-monitor). This repository, [MarbleGateKeeper/token-monitor-ver.replica](https://github.com/MarbleGateKeeper/token-monitor-ver.replica), is a downstream personal fork: `upstream` tracks the original project and `origin` tracks this fork. Keep the original MIT `LICENSE` and its Javis copyright notice intact; distributable builds must also carry that file.
+- Fork releases use `<upstream-version>-replica.<revision>` (for example, `0.42.0-replica.1`). Increment the replica revision for another fork release on the same upstream base. After syncing a newer upstream release, use its version and restart at `replica.1`. Do not let an upstream merge silently remove the suffix.
+- Release discovery, packaged updater metadata, repository/about links, and release downloads belong to this fork. Keep `package.json` publish/repository metadata and `src/shared/appUpdater.js` pointed at `MarbleGateKeeper/token-monitor-ver.replica`; upstream remains an attribution and synchronization source, not the fork's update provider.
+- Before changing or syncing this fork, read and follow [README.md](README.md), especially “本 fork 的功能改动 / Functional changes in this fork” and “发行与维护改动 / Distribution and maintenance changes.” The README is the canonical detailed record of persistent differences from upstream; update it whenever a divergence is added, changed, or removed instead of duplicating that detail here.
+
+When syncing upstream, fetch and review `upstream/main`, preserve the fork-specific behavior documented in README.md while resolving conflicts, then audit the diff for newly added repository/update URLs. Set the replica version only after the upstream merge is complete, keep the original license in both source and packaged resources, update README.md plus release notes/artifact names, run `npm run verify`, and build the target platform package.
+
 ## Commands
 
 ```bash

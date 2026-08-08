@@ -31,7 +31,7 @@ Token Monitor 需要 Node.js 22.13.0 或更高版本。安装前请先在 WSL �
 ```bash
 node --version
 npm --version
-git clone https://github.com/Javis603/token-monitor.git
+git clone https://github.com/MarbleGateKeeper/token-monitor-ver.replica.git
 cd token-monitor
 npm ci
 ```

@@ -622,7 +622,8 @@ body.is-windows.floating-bubble-collapsed-right .floating-bubble-tab {
 .settings-export-block > .settings-note { margin: 2px 0 4px; }
 /* The group after Data export is a .settings-group (no subgroup divider), so add the
    standard subgroup top-rule to it — closes the Data export section off from 自訂模型單價. */
-.settings-export-block + .settings-group { padding-top: 9px; border-top: 1px solid rgba(var(--line-rgb), 0.075); }
+.settings-export-block + .settings-group,
+#modelMappingAccountGroup + #customPricingAccountGroup { padding-top: 9px; border-top: 1px solid rgba(var(--line-rgb), 0.075); }
 .export-auto-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
 .export-auto-head .export-auto-toggle { flex: 1 1 auto; min-width: 0; }
 .export-status-pill { flex: 0 0 auto; }
@@ -5430,6 +5431,12 @@ html.is-windows .limit-live-badge {
 
 .custom-pricing-form input.hidden,
 .custom-pricing-form .settings-note.hidden { display: none; }
+
+.model-mapping-form input {
+  box-sizing: border-box;
+  width: 100%;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
 
 .custom-pricing-approx {
   margin-left: 8px;

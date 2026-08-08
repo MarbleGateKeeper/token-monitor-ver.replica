@@ -53,6 +53,20 @@ test('release artifact templates use GitHub-safe names', () => {
   for (const pattern of patterns) assert.doesNotMatch(pattern, /\s/);
 });
 
+test('replica releases keep fork identity and the upstream license in packaged resources', () => {
+  assert.match(rootPackage.version, /^\d+\.\d+\.\d+-replica\.\d+$/);
+  assert.deepEqual(rootPackage.build.publish, [{
+    provider: 'github',
+    owner: 'MarbleGateKeeper',
+    repo: 'token-monitor-ver.replica'
+  }]);
+  assert.deepEqual(rootPackage.build.extraResources, ['LICENSE']);
+  assert.equal(
+    rootPackage.repository.url,
+    'git+https://github.com/MarbleGateKeeper/token-monitor-ver.replica.git'
+  );
+});
+
 test('updater metadata embeds every localized release-note section', () => {
   assert.equal(rootPackage.build.releaseInfo?.releaseNotesFile, '.github/RELEASE_TEMPLATE.md');
   const releaseTemplate = fs.readFileSync(
@@ -77,6 +91,7 @@ test('mac release scripts build native Apple Silicon and Intel artifacts', () =>
   assert.match(workflow, /os: macos-15-intel\s+target: mac\s+arch: x64/);
   assert.match(workflow, /artifacts\/token-monitor-mac-arm64\/latest-mac\.yml \\\s+artifacts\/token-monitor-mac-x64\/latest-mac\.yml/);
   assert.doesNotMatch(workflow, /latest-mac-(?:arm64|x64)\.yml/);
+  assert.match(workflow, /prerelease: false\s+make_latest: true/);
 
   const releaseTemplate = fs.readFileSync(path.join(__dirname, '..', '..', '.github', 'RELEASE_TEMPLATE.md'), 'utf8');
   const intelBullets = releaseTemplate.split('\n').filter((line) => line.startsWith('- **macOS Intel**'));
@@ -86,8 +101,8 @@ test('mac release scripts build native Apple Silicon and Intel artifacts', () =>
   assert.ok(intelBullets.every((line) => line.includes(`/download/v${rootPackage.version}/`)));
   const fullChangelogLines = releaseTemplate.split('\n').filter((line) => line.startsWith('**Full Changelog:**'));
   assert.equal(fullChangelogLines.length, 1);
-  assert.match(fullChangelogLines[0], /\[v\d+\.\d+\.\d+\.\.\.v\d+\.\d+\.\d+\]/);
-  assert.match(fullChangelogLines[0], /https:\/\/github\.com\/Javis603\/token-monitor\/compare\/v\d+\.\d+\.\d+\.\.\.v\d+\.\d+\.\d+/);
+  assert.match(fullChangelogLines[0], /\[fb430ef\.\.\.v\d+\.\d+\.\d+-replica\.\d+\]/);
+  assert.match(fullChangelogLines[0], /https:\/\/github\.com\/MarbleGateKeeper\/token-monitor-ver\.replica\/compare\/fb430ef\.\.\.v\d+\.\d+\.\d+-replica\.\d+/);
   assert.ok(fullChangelogLines[0].includes(`v${rootPackage.version}`));
   assert.match(
     releaseTemplate,

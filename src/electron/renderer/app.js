@@ -162,6 +162,7 @@ const clientRescanStateApi = window.TokenMonitorClientRescanState;
 const serviceStatusPresentationApi = window.TokenMonitorServiceStatusPresentation;
 const clientDisplayPreferencesApi = window.TokenMonitorClientDisplayPreferences;
 const customPricingFormApi = window.TokenMonitorCustomPricingForm;
+const modelMappingsApi = window.TokenMonitorModelMappings;
 const viewDisplayPreferencesApi = window.TokenMonitorViewDisplayPreferences;
 const preferenceDragSortApi = window.TokenMonitorPreferenceDragSort;
 const verticalDragSortApi = window.TokenMonitorVerticalDragSort;
@@ -276,7 +277,7 @@ const SERVICE_STATUS_PLACEHOLDERS = [
   { id: 'deepseek', label: 'DeepSeek', pageUrl: 'https://status.deepseek.com' }
 ];
 const SERVICE_PROVIDER_OPTIONS = SERVICE_STATUS_PLACEHOLDERS.map((entry) => ({ id: entry.id, label: entry.label }));
-const TOKEN_MONITOR_REPOSITORY_URL = 'https://github.com/Javis603/token-monitor';
+const TOKEN_MONITOR_REPOSITORY_URL = 'https://github.com/MarbleGateKeeper/token-monitor-ver.replica';
 const TOKEN_MONITOR_ISSUES_URL = `${TOKEN_MONITOR_REPOSITORY_URL}/issues/new/choose`;
 const TOKEN_MONITOR_WEBSITE_URL = 'https://javis-ai.com/token-monitor/';
 const TOKEN_MONITOR_WSL_SQLITE_GUIDE_URL = `${TOKEN_MONITOR_REPOSITORY_URL}/blob/main/docs/wsl-sqlite-setup.md`;
@@ -293,7 +294,7 @@ function normalizeInitialViewValue(value, allowed, fallback) {
   return allowed.has(raw) ? raw : fallback;
 }
 
-const state = { period: normalizeInitialViewValue(initialViewState.period, viewPeriodValues, 'today'), appUpdate: null, breakdown: normalizeInitialViewValue(initialViewState.breakdown, viewBreakdownValues, 'home'), viewSwitcherOpen: false, viewSwitcherHasOpened: false, limitDetailTooltipHasOpened: false, limitDetailTooltipActive: false, limitDetailTooltipRenderPending: false, settings: null, stats: null, homeHistory: null, homeHistoryBusy: false, homeHistoryRequested: false, homeHistorySignature: '', homeHistoryRetries: 0, homeHistoryRetryTimer: null, homeActivityScrollLeft: null, homeActivityFollowEnd: true, homeActivityResizeObserver: null, serviceStatus: null, serviceStatusBusy: false, serviceProvidersExpanded: false, trendSettingsExpanded: false, trendsActivating: false, homeSettingsExpanded: false, homeLimitSettingsExpanded: false, limitProviderSettingsExpanded: '', clientHealthExpanded: '', clientSources: clientSourceCacheApi.createClientSourceCache(), clientSourcesKey: '', clientSourcesRequest: 0, subscriptionEditingId: '', subscriptionTopUps: [], subscriptionFormBase: null, subscriptionEditorTransitionId: 0, serviceStatusTicker: null, refreshTimer: null, refreshBusy: false, refreshFeedbackTimer: null, currentTotal: 0, rowSignature: '', streamConnected: false, streamFailure: null, mode: 'idle', appInfo: null, tokscaleStatus: null, tokscaleCheck: null, tokscaleBusy: false, hubInfo: null, cursorAccount: { status: null, error: '' }, cursorAccountExpanded: false, codexAccountExpanded: false, codexAccountError: '', codexSignInBusy: false, codexSignInFlowId: '', codexLoginUrl: '', codexLoginStatus: '', codexLoginOutput: '', codexWorkspaceChoices: [], codexWorkspaceId: '', codexActiveAccount: null, codexPendingActiveAccount: null, codexPendingActiveAccountUntil: 0, codexPendingActiveAccountTimer: null, codexSystemSwitchingAccountId: '', codexSystemSwitchErrorAccountId: '', codexSystemSwitchError: '', codexSwitchPopoverHasOpened: false, codexSwitchPopoverActive: false, codexSwitchPopoverRenderPending: false, customPricingExpanded: false, claudeAccountExpanded: false, claudePendingCheckSince: 0, opencodeProfileCount: 0, opencodeCookieExpanded: false, openrouterProfileCount: 0, openrouterAccountExpanded: false, thirdPartyProfileCount: 0, thirdPartyAccountExpanded: false, deepseekAccountExpanded: false, deepseekPendingCheckSince: 0, minimaxAccountExpanded: false, minimaxPendingCheckSince: 0, zaiAccountExpanded: false, zaiPendingCheckSince: 0, zaiteamAccountExpanded: false, zaiteamPendingCheckSince: 0, volcengineAccountExpanded: false, volcenginePendingCheckSince: 0, qoderAccountExpanded: false, qoderPendingCheckSince: 0, kimiAccountExpanded: false, kimiPendingCheckSince: 0, ollamaAccountExpanded: false, ollamaPendingCheckSince: 0, mimoAccountExpanded: false, mimoAccountError: '', copilotAccountExpanded: false, copilotManualExpanded: false, copilotPendingCheckSince: 0, copilotSignInBusy: false, copilotSignInCancelable: false, copilotSignInFlowId: '', copilotAuthorizeMessage: '', copilotLoginStatus: '', copilotErrorMessage: '', floatingBubble: initialFloatingBubble, suppressInitialNumberAnimation: window.__TOKEN_MONITOR_SUPPRESS_INITIAL_NUMBER_ANIMATION__ === true, openSession: null, detailSort: 'time', recordingWindowShortcut: false, windowShortcutInvalid: false };
+const state = { period: normalizeInitialViewValue(initialViewState.period, viewPeriodValues, 'today'), appUpdate: null, breakdown: normalizeInitialViewValue(initialViewState.breakdown, viewBreakdownValues, 'home'), viewSwitcherOpen: false, viewSwitcherHasOpened: false, limitDetailTooltipHasOpened: false, limitDetailTooltipActive: false, limitDetailTooltipRenderPending: false, settings: null, stats: null, homeHistory: null, homeHistoryBusy: false, homeHistoryRequested: false, homeHistorySignature: '', homeHistoryRetries: 0, homeHistoryRetryTimer: null, homeActivityScrollLeft: null, homeActivityFollowEnd: true, homeActivityResizeObserver: null, serviceStatus: null, serviceStatusBusy: false, serviceProvidersExpanded: false, trendSettingsExpanded: false, trendsActivating: false, homeSettingsExpanded: false, homeLimitSettingsExpanded: false, limitProviderSettingsExpanded: '', clientHealthExpanded: '', clientSources: clientSourceCacheApi.createClientSourceCache(), clientSourcesKey: '', clientSourcesRequest: 0, subscriptionEditingId: '', subscriptionTopUps: [], subscriptionFormBase: null, subscriptionEditorTransitionId: 0, serviceStatusTicker: null, refreshTimer: null, refreshBusy: false, refreshFeedbackTimer: null, currentTotal: 0, rowSignature: '', streamConnected: false, streamFailure: null, mode: 'idle', appInfo: null, tokscaleStatus: null, tokscaleCheck: null, tokscaleBusy: false, hubInfo: null, cursorAccount: { status: null, error: '' }, cursorAccountExpanded: false, codexAccountExpanded: false, codexAccountError: '', codexSignInBusy: false, codexSignInFlowId: '', codexLoginUrl: '', codexLoginStatus: '', codexLoginOutput: '', codexWorkspaceChoices: [], codexWorkspaceId: '', codexActiveAccount: null, codexPendingActiveAccount: null, codexPendingActiveAccountUntil: 0, codexPendingActiveAccountTimer: null, codexSystemSwitchingAccountId: '', codexSystemSwitchErrorAccountId: '', codexSystemSwitchError: '', codexSwitchPopoverHasOpened: false, codexSwitchPopoverActive: false, codexSwitchPopoverRenderPending: false, modelMappingExpanded: false, customPricingExpanded: false, claudeAccountExpanded: false, claudePendingCheckSince: 0, opencodeProfileCount: 0, opencodeCookieExpanded: false, openrouterProfileCount: 0, openrouterAccountExpanded: false, thirdPartyProfileCount: 0, thirdPartyAccountExpanded: false, deepseekAccountExpanded: false, deepseekPendingCheckSince: 0, minimaxAccountExpanded: false, minimaxPendingCheckSince: 0, zaiAccountExpanded: false, zaiPendingCheckSince: 0, zaiteamAccountExpanded: false, zaiteamPendingCheckSince: 0, volcengineAccountExpanded: false, volcenginePendingCheckSince: 0, qoderAccountExpanded: false, qoderPendingCheckSince: 0, kimiAccountExpanded: false, kimiPendingCheckSince: 0, ollamaAccountExpanded: false, ollamaPendingCheckSince: 0, mimoAccountExpanded: false, mimoAccountError: '', copilotAccountExpanded: false, copilotManualExpanded: false, copilotPendingCheckSince: 0, copilotSignInBusy: false, copilotSignInCancelable: false, copilotSignInFlowId: '', copilotAuthorizeMessage: '', copilotLoginStatus: '', copilotErrorMessage: '', floatingBubble: initialFloatingBubble, suppressInitialNumberAnimation: window.__TOKEN_MONITOR_SUPPRESS_INITIAL_NUMBER_ANIMATION__ === true, openSession: null, detailSort: 'time', recordingWindowShortcut: false, windowShortcutInvalid: false };
 state.clientRescans = clientRescanStateApi.createClientRescanState({
   onChange: (clientId) => {
     if (state.clientHealthExpanded === clientId) refillOpenClientHealthPanel();
@@ -7737,6 +7738,7 @@ function syncSettingsForm() {
   renderTokscaleStatus();
   renderSettingsAppUpdateRow();
   renderCodexAccounts();
+  renderModelMappings();
   renderCustomPricing();
   renderCursorStatus();
   applyFloatingBubbleState(state.floatingBubble);
@@ -13160,6 +13162,134 @@ function setCursorCheckboxesEnabled(enabled) {
   }
 }
 
+let openModelMappingForm = null;
+
+function renderModelMappings() {
+  const listEl = document.getElementById('modelMappingList');
+  const statusEl = document.getElementById('modelMappingStatus');
+  if (!listEl) return;
+  const mappings = modelMappingsApi.normalizeModelMappings(state.settings?.modelMappings);
+  if (statusEl) {
+    statusEl.textContent = mappings.length
+      ? t('settings.modelMapping.count', { count: mappings.length })
+      : t('settings.modelMapping.none');
+  }
+  listEl.replaceChildren();
+  if (mappings.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'settings-note';
+    empty.textContent = t('settings.modelMapping.empty');
+    listEl.append(empty);
+    return;
+  }
+
+  for (const mapping of mappings) {
+    const row = document.createElement('div');
+    row.className = 'managed-account-row custom-pricing-row model-mapping-row';
+    const main = document.createElement('button');
+    main.type = 'button';
+    main.className = 'managed-account-main custom-pricing-edit';
+    main.title = t('settings.modelMapping.edit');
+    main.addEventListener('click', () => { if (openModelMappingForm) openModelMappingForm(mapping); });
+    const source = document.createElement('div');
+    source.className = 'managed-account-email';
+    source.textContent = mapping.source;
+    const target = document.createElement('div');
+    target.className = 'managed-account-meta';
+    target.textContent = `→ ${mapping.target}`;
+    main.append(source, target);
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'managed-account-remove custom-pricing-remove';
+    remove.textContent = t('settings.modelMapping.remove');
+    remove.addEventListener('click', async () => {
+      const next = modelMappingsApi.removeModelMapping(state.settings?.modelMappings, mapping.source);
+      await saveSettings({ modelMappings: next });
+      renderModelMappings();
+    });
+    row.append(main, remove);
+    listEl.append(row);
+  }
+}
+
+function setupModelMappingUI() {
+  const toggle = document.getElementById('modelMappingSettingsToggle');
+  if (!toggle) return;
+  toggle.addEventListener('click', () => setAccountGroupExpanded('modelMapping', !state.modelMappingExpanded, 'modelMappingExpanded'));
+  setAccountGroupExpanded('modelMapping', false, 'modelMappingExpanded');
+
+  const form = document.getElementById('modelMappingForm');
+  const addButton = document.getElementById('modelMappingAddButton');
+  const sourceInput = document.getElementById('modelMappingSourceInput');
+  const targetInput = document.getElementById('modelMappingTargetInput');
+  const options = document.getElementById('modelMappingModelOptions');
+  const errorEl = document.getElementById('modelMappingError');
+  const saveButton = document.getElementById('modelMappingSaveButton');
+  const cancelButton = document.getElementById('modelMappingCancelButton');
+  let editingSource = '';
+
+  const showError = (key) => {
+    errorEl.textContent = key ? t(`settings.modelMapping.error.${key}`) : '';
+    errorEl.classList.toggle('hidden', !key);
+  };
+  const populateOptions = () => {
+    const ids = new Set(modelMappingsApi.inUseModelIds(state.stats));
+    for (const mapping of modelMappingsApi.normalizeModelMappings(state.settings?.modelMappings)) {
+      ids.add(mapping.source);
+      ids.add(mapping.target);
+    }
+    options.replaceChildren();
+    for (const id of [...ids].sort()) {
+      const option = document.createElement('option');
+      option.value = id;
+      options.append(option);
+    }
+  };
+  const closeForm = () => {
+    editingSource = '';
+    sourceInput.value = '';
+    targetInput.value = '';
+    showError('');
+    form.classList.add('hidden');
+    addButton.classList.remove('hidden');
+  };
+  openModelMappingForm = (mapping) => {
+    populateOptions();
+    editingSource = mapping?.source || '';
+    sourceInput.value = mapping?.source || '';
+    targetInput.value = mapping?.target || '';
+    showError('');
+    form.classList.remove('hidden');
+    addButton.classList.add('hidden');
+    sourceInput.focus();
+  };
+
+  addButton.addEventListener('click', () => openModelMappingForm());
+  cancelButton.addEventListener('click', closeForm);
+  for (const input of [sourceInput, targetInput]) {
+    input.addEventListener('input', () => showError(''));
+    input.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter') return;
+      event.preventDefault();
+      saveButton.click();
+    });
+  }
+  saveButton.addEventListener('click', async () => {
+    const entry = { source: sourceInput.value, target: targetInput.value };
+    const error = modelMappingsApi.validateModelMapping(state.settings?.modelMappings, entry, editingSource);
+    if (error) {
+      showError(error);
+      return;
+    }
+    const next = modelMappingsApi.upsertModelMapping(state.settings?.modelMappings, entry, editingSource);
+    await saveSettings({ modelMappings: next });
+    closeForm();
+    renderModelMappings();
+  });
+
+  renderModelMappings();
+}
+
 let openCustomPricingForm = null;
 
 function customPricingMeta(ov) {
@@ -14483,5 +14613,6 @@ function initSettingsAnimationWrappers() {
 initSettingsAnimationWrappers();
 setupSettingsSections();
 setupCursorAccountUI();
+setupModelMappingUI();
 setupCustomPricingUI();
 init();

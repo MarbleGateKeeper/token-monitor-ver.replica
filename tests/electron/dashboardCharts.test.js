@@ -37,6 +37,8 @@ test('modelVendorFor maps families and modelColor falls back deterministically',
   assert.equal(modelVendorFor('claude-sonnet-4'), 'claude');
   assert.equal(modelVendorFor('gpt-5'), 'codex');
   assert.equal(modelVendorFor('kimi-k2'), 'kimi');
+  assert.equal(modelVendorFor('k3'), 'kimi');
+  assert.equal(modelVendorFor('k3-256'), 'kimi');
   assert.equal(modelVendorFor('moonshot-v1'), 'kimi');
   assert.equal(modelVendorFor('doubao-seed-1.6'), 'doubao');
   assert.equal(modelColor('claude-opus'), clientColors.claude);

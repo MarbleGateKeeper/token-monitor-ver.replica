@@ -474,6 +474,36 @@
                 </div>
               </div>
             </div>
+            <div id="modelMappingAccountGroup" class="settings-group cursor-account-group">
+              <button id="modelMappingSettingsToggle" class="settings-group-header cursor-settings-toggle" type="button" aria-expanded="false" aria-controls="modelMappingSettingsDetails">
+                <span data-i18n="settings.modelMapping.title">Model aliases</span>
+                <span class="cursor-settings-summary">
+                  <span id="modelMappingStatus" class="cursor-status-pill"></span>
+                  <span class="cursor-disclosure-icon" aria-hidden="true"></span>
+                </span>
+              </button>
+              <div id="modelMappingSettingsDetails" class="cursor-settings-details hidden">
+                <p class="settings-note" data-i18n="settings.modelMapping.note">Combine an exact model ID under another name. Tokens and costs are summed across local and synced devices without changing the stored source data.</p>
+                <div id="modelMappingList" class="managed-account-list"></div>
+                <div class="settings-actions">
+                  <button id="modelMappingAddButton" type="button" data-i18n="settings.modelMapping.add">Add alias</button>
+                </div>
+                <div id="modelMappingForm" class="custom-pricing-form model-mapping-form hidden">
+                  <label><span data-i18n="settings.modelMapping.source">Source model ID</span>
+                    <input id="modelMappingSourceInput" type="text" list="modelMappingModelOptions" autocomplete="off" placeholder="model-id-to-merge" data-i18n-placeholder="settings.modelMapping.sourcePlaceholder" />
+                  </label>
+                  <label><span data-i18n="settings.modelMapping.target">Unified name</span>
+                    <input id="modelMappingTargetInput" type="text" list="modelMappingModelOptions" autocomplete="off" placeholder="canonical-model-id" data-i18n-placeholder="settings.modelMapping.targetPlaceholder" />
+                  </label>
+                  <datalist id="modelMappingModelOptions"></datalist>
+                  <div id="modelMappingError" class="settings-note error hidden"></div>
+                  <div class="settings-actions">
+                    <button id="modelMappingSaveButton" type="button" data-i18n="settings.modelMapping.save">Save</button>
+                    <button id="modelMappingCancelButton" type="button" data-i18n="settings.modelMapping.cancel">Cancel</button>
+                  </div>
+                </div>
+              </div>
+            </div>
             <div id="customPricingAccountGroup" class="settings-group cursor-account-group">
               <button id="customPricingSettingsToggle" class="settings-group-header cursor-settings-toggle" type="button" aria-expanded="false" aria-controls="customPricingSettingsDetails">
                 <span data-i18n="settings.customPricing.title">Custom model pricing</span>
@@ -1441,6 +1471,7 @@
     <script src="statsRenderScheduler.js"></script>
     <script src="deviceBreakdown.js"></script>
     <script src="../../shared/projectKey.js"></script>
+    <script src="../../shared/modelMappings.js"></script>
     <script src="projectRows.js"></script>
     <script src="sessionDetail.js"></script>
     <script src="customPricingForm.js"></script>

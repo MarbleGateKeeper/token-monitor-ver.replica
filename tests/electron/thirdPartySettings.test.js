@@ -249,23 +249,16 @@ test('third-party fallback stays last after named providers across product surfa
   assert.ok(providerContract, 'docs/API.md must document the limits provider enum');
   assert.ok(providerContract.lastIndexOf('`thirdparty`') > providerContract.lastIndexOf('`ollama`'));
 
-  for (const file of ['README.md', 'README.zh-TW.md', 'README.zh-CN.md', 'README.ja.md', 'README.ko.md']) {
-    const content = read(file);
-    assert.ok(
-      content.indexOf('tools-icon/newapi.png') > content.indexOf('tools-icon/ollama.png'),
-      file
-    );
-  }
+  const readme = read('README.md');
+  assert.ok(readme.indexOf('tools-icon/newapi.png') > readme.indexOf('tools-icon/ollama.png'));
 });
 
 test('third-party adapters document New API compatibility, Custom, assets, and environment variables', () => {
-  for (const file of ['README.md', 'README.zh-TW.md', 'README.zh-CN.md', 'README.ja.md', 'README.ko.md']) {
-    const content = read(file);
-    assert.match(content, /\.github\/assets\/tools-icon\/newapi\.png"/, file);
-    assert.match(content, /Third-party APIs|第三方 API|サードパーティAPI|서드파티 API/, file);
-    assert.match(content, /Custom|自訂|自定义|カスタム|사용자 지정/, file);
-    assert.match(content, /One API/, file);
-  }
+  const readme = read('README.md');
+  assert.match(readme, /\.github\/assets\/tools-icon\/newapi\.png"/);
+  assert.match(readme, /Third-party APIs/);
+  assert.match(readme, /Custom/);
+  assert.match(readme, /One API/);
   const env = read('.env.example');
   assert.match(env, /TOKEN_MONITOR_NEWAPI_BASE_URL=/);
   assert.match(env, /TOKEN_MONITOR_NEWAPI_ACCESS_TOKEN=/);

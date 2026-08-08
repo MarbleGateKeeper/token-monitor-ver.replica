@@ -846,7 +846,7 @@ function setupGitHubStars() {
     }
   } catch (e) {}
 
-  window.fetch("https://api.github.com/repos/Javis603/token-monitor", {
+  window.fetch("https://api.github.com/repos/MarbleGateKeeper/token-monitor-ver.replica", {
     headers: { Accept: "application/vnd.github+json" }
   }).then(function (response) {
     if (!response.ok) throw new Error("GitHub returned " + response.status);
@@ -870,8 +870,8 @@ function setupSmartDownloads() {
   var buttons = document.querySelectorAll("[data-smart-download]");
   if (!buttons.length) return;
 
-  var releasePage = "https://github.com/Javis603/token-monitor/releases/latest";
-  var apiUrl = "https://api.github.com/repos/Javis603/token-monitor/releases/latest";
+  var releasePage = "https://github.com/MarbleGateKeeper/token-monitor-ver.replica/releases/latest";
+  var apiUrl = "https://api.github.com/repos/MarbleGateKeeper/token-monitor-ver.replica/releases/latest";
   var cacheKey = "token-monitor-latest-release-v1";
   var cacheMaxAge = 60 * 60 * 1000;
   var platform = detectPlatform();

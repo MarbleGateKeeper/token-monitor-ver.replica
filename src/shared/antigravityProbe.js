@@ -319,7 +319,7 @@ async function listeningPorts(pid, deps = {}) {
 }
 
 const LS_SERVICE = 'exa.language_server_pb.LanguageServerService';
-const USER_AGENT = `token-monitor/${appVersion()} (+https://github.com/Javis603/token-monitor)`;
+const USER_AGENT = `token-monitor/${appVersion()} (+https://github.com/MarbleGateKeeper/token-monitor-ver.replica)`;
 
 function statusFromHttpCode(code) {
   if (code === 401 || code === 403) return 'unauthorized';

@@ -100,7 +100,7 @@ function expectedWindowsArtifacts(packageJsonPath) {
 }
 
 function windowsAppUpdateConfig(packageJsonPath) {
-  const { pkg, version } = signingPackageMetadata(packageJsonPath);
+  const { pkg } = signingPackageMetadata(packageJsonPath);
   const build = pkg.build;
   const win = build?.win;
   if (Object.hasOwn(win || {}, 'publish')) {
@@ -138,13 +138,10 @@ function windowsAppUpdateConfig(packageJsonPath) {
   ) {
     throw new Error('Windows prepackaged builds require a GitHub publish owner and repo');
   }
-  const versionWithoutBuildMetadata = version.split('+', 1)[0];
-  if (versionWithoutBuildMetadata.includes('-')) {
-    throw new Error(
-      'Windows prepackaged builds do not support prerelease update channels; ' +
-        'keep this writer aligned with electron-builder before publishing a prerelease'
-    );
-  }
+  // GitHub publish configurations keep electron-builder's latest*.yml names
+  // even for SemVer prereleases. electron-updater selects the matching release
+  // tag and falls back to those default metadata names, so replica suffixes do
+  // not require another field in this hand-written prepackaged config.
   const packageName = pkg.name;
   if (typeof packageName !== 'string' || !/^[A-Za-z0-9._-]+$/.test(packageName)) {
     throw new Error(`Unsupported package name for updater cache: ${String(packageName)}`);
