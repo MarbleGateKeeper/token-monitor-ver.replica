@@ -4,7 +4,12 @@
 
 <!-- app-update-notes:en:start -->
 ### Improved
-- **Distinct default vendor colors:** OpenAI/Codex, Zhipu GLM/Z.ai/ZCode, Kimi/Moonshot, Grok/xAI, and OpenCode now use clearly differentiated default colors across charts, lists, and limit entries. Saved vendor-color overrides remain unchanged. The OpenAI mark stays monochrome while its statistical data uses blue.
+- **Tokscale 4.12 and custom pricing:** Free models can now use explicit zero prices, while malformed, negative, non-finite, or wrong-typed values reject the complete row instead of silently applying a partial override. Updated model aliases and pricing safeguards from Tokscale 4.12 are included. (#355)
+- **Cold-start totals:** A valid collector anchor now seeds the widget and tray with the last full scan while the first new scan runs, instead of temporarily showing zero usage. (#339)
+- **Upstream baseline:** Synced through `upstream/main` commit `43ebd1e` after v0.42.1 while preserving this fork's replica-only, notification-only release channel; no downloader or installer was restored.
+
+### Fixed
+- **Reliable exit:** Quitting no longer waits for large watcher trees or in-flight embedded Hub requests, preventing the application from hanging on exit. (#337)
 <!-- app-update-notes:en:end -->
 
 ## Build from source
@@ -19,7 +24,12 @@ This repository does not publish prebuilt installers or application archives. To
 
 <!-- app-update-notes:zh:start -->
 ### 改进
-- **区分厂商默认配色：** OpenAI/Codex、智谱 GLM/Z.ai/ZCode、Kimi/Moonshot、Grok/xAI 和 OpenCode 现在会在图表、列表和额度入口中使用彼此可区分的默认颜色。已经保存的厂商颜色覆盖值保持不变；OpenAI 标志保持黑白，仅统计数据使用蓝色。
+- **Tokscale 4.12 与自定义单价：** 免费模型现在可以显式填写零价格；格式错误、负数、非有限值或类型错误会拒绝整行，不再静默应用部分覆盖。同时包含 Tokscale 4.12 更新的模型别名与计价保护。（#355）
+- **冷启动总量：** 有效的采集锚点现在会在首次新扫描期间，用上一次完整扫描填充组件和托盘，不再暂时显示零用量。（#339）
+- **上游基线：** 已同步至 `v0.42.1` 后的 `upstream/main` 提交 `43ebd1e`，并保留本 fork 仅接受 replica tag、只提示不下载或安装的发行通道。
+
+### 修复
+- **可靠退出：** 退出时不再等待大型监听目录树或仍在进行的内置 Hub 请求，避免应用卡在退出流程。（#337）
 <!-- app-update-notes:zh:end -->
 
 ## 从源码构建
@@ -28,7 +38,7 @@ This repository does not publish prebuilt installers or application archives. To
 
 ---
 
-**Full Changelog:** [v0.42.0-replica.2...v0.42.0-replica.3](https://github.com/MarbleGateKeeper/token-monitor-ver.replica/compare/v0.42.0-replica.2...v0.42.0-replica.3)
+**Full Changelog:** [0.42.0-replica.3...v0.42.1-replica.1](https://github.com/MarbleGateKeeper/token-monitor-ver.replica/compare/0.42.0-replica.3...v0.42.1-replica.1)
 
 <details>
 <summary>繁體中文 · 한국어 · 日本語</summary>
@@ -42,7 +52,12 @@ This repository does not publish prebuilt installers or application archives. To
 
 <!-- app-update-notes:zh-TW:start -->
 ### 改進
-- **區分供應商預設配色：** OpenAI/Codex、智譜 GLM/Z.ai/ZCode、Kimi/Moonshot、Grok/xAI 和 OpenCode 現在會在圖表、清單及額度入口中使用彼此可區分的預設顏色。已儲存的供應商顏色覆寫值保持不變；OpenAI 標誌維持黑白，只有統計資料使用藍色。
+- **Tokscale 4.12 與自訂單價：** 免費模型現在可以明確填寫零價格；格式錯誤、負數、非有限值或類型錯誤會拒絕整列，不再靜默套用部分覆寫。同時包含 Tokscale 4.12 更新的模型別名與計價保護。（#355）
+- **冷啟動總量：** 有效的採集錨點現在會在首次新掃描期間，以上一次完整掃描填入小工具和系統匣，不再暫時顯示零用量。（#339）
+- **上游基線：** 已同步至 `v0.42.1` 之後的 `upstream/main` 提交 `43ebd1e`，並保留本 fork 僅接受 replica tag、只提示而不下載或安裝的發行通道。
+
+### 修復
+- **可靠退出：** 結束時不再等待大型監看目錄樹或仍在進行的內建 Hub 請求，避免應用程式卡在結束流程。（#337）
 <!-- app-update-notes:zh-TW:end -->
 
 ## 從原始碼建置
@@ -60,7 +75,12 @@ This repository does not publish prebuilt installers or application archives. To
 
 <!-- app-update-notes:ko:start -->
 ### 개선
-- **구분되는 기본 공급업체 색상:** OpenAI/Codex, Zhipu GLM/Z.ai/ZCode, Kimi/Moonshot, Grok/xAI 및 OpenCode가 이제 차트, 목록 및 한도 항목에서 서로 구분되는 기본 색상을 사용합니다. 저장된 공급업체 색상 재정의는 그대로 유지되며 OpenAI 마크는 단색으로 표시되고 통계 데이터에만 파란색을 사용합니다.
+- **Tokscale 4.12 및 사용자 지정 가격:** 무료 모델에 명시적인 0 가격을 사용할 수 있으며, 형식 오류, 음수, 유한하지 않은 값 또는 잘못된 형식은 일부만 적용하지 않고 행 전체를 거부합니다. Tokscale 4.12의 갱신된 모델 별칭과 가격 보호도 포함됩니다. (#355)
+- **콜드 스타트 합계:** 유효한 수집기 앵커가 첫 번째 새 스캔이 실행되는 동안 위젯과 트레이를 마지막 전체 스캔으로 채워, 사용량이 일시적으로 0으로 표시되지 않습니다. (#339)
+- **업스트림 기준:** v0.42.1 이후의 `upstream/main` 커밋 `43ebd1e`까지 동기화하면서 replica tag만 허용하고 알림만 제공하는 이 fork의 릴리스 채널을 유지했습니다. 다운로드나 설치 기능은 복원하지 않았습니다.
+
+### 수정
+- **안정적인 종료:** 종료할 때 대규모 감시 디렉터리 트리나 진행 중인 내장 Hub 요청을 기다리지 않아 애플리케이션이 종료 중 멈추지 않습니다. (#337)
 <!-- app-update-notes:ko:end -->
 
 ## 소스에서 빌드
@@ -78,7 +98,12 @@ This repository does not publish prebuilt installers or application archives. To
 
 <!-- app-update-notes:ja:start -->
 ### 改善
-- **識別しやすい既定ベンダーカラー：** OpenAI/Codex、Zhipu GLM/Z.ai/ZCode、Kimi/Moonshot、Grok/xAI、OpenCode が、チャート、一覧、制限項目で互いに識別しやすい既定色を使用するようになりました。保存済みのベンダーカラー上書きは維持され、OpenAI マークはモノクロのまま、統計データだけに青色を使用します。
+- **Tokscale 4.12 とカスタム価格：** 無料モデルに明示的なゼロ価格を設定できるようになり、形式不正、負数、非有限値、型の誤りがある場合は一部だけ適用せず行全体を拒否します。Tokscale 4.12 の更新されたモデルエイリアスと価格保護も含まれます。（#355）
+- **コールドスタート時の合計：** 有効なコレクターアンカーから、最初の新しいスキャン中に直前の完全スキャンをウィジェットとトレイへ表示し、使用量が一時的にゼロになるのを防ぎます。（#339）
+- **アップストリーム基準：** v0.42.1 後の `upstream/main` コミット `43ebd1e` まで同期しつつ、replica tag のみを対象に通知だけを行う本 fork のリリースチャネルを維持しました。ダウンロードやインストール機能は復元していません。
+
+### 修正
+- **安定した終了：** 終了時に大規模な監視ディレクトリツリーや処理中の内蔵 Hub リクエストを待たず、アプリが終了処理で停止しないようになりました。（#337）
 <!-- app-update-notes:ja:end -->
 
 ## ソースからビルド

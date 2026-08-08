@@ -7,7 +7,7 @@
   </p>
   <p>
     <a href="https://github.com/MarbleGateKeeper/token-monitor-ver.replica/releases"><img src="https://img.shields.io/github/v/release/MarbleGateKeeper/token-monitor-ver.replica?include_prereleases&style=flat-square&label=replica&color=22c55e" alt="Replica release"></a>
-    <img src="https://img.shields.io/badge/version-0.42.0--replica.3-64748b?style=flat-square" alt="Version 0.42.0-replica.3">
+    <img src="https://img.shields.io/badge/version-0.42.1--replica.1-64748b?style=flat-square" alt="Version 0.42.1-replica.1">
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-A855F7?style=flat-square" alt="MIT License"></a>
   </p>
   <img src=".github/assets/demo.gif" alt="Token Monitor demo">
@@ -25,7 +25,7 @@
 - **上游项目：** [Javis603/token-monitor](https://github.com/Javis603/token-monitor)，提供 Token Monitor 的主体架构、采集器、桌面组件、多设备 Hub、AI 工具额度和绝大多数功能。
 - **本仓库：** [MarbleGateKeeper/token-monitor-ver.replica](https://github.com/MarbleGateKeeper/token-monitor-ver.replica)，用于保留个人需要但尚未进入上游的修复与功能。
 - **Git 远程：** 通常以 `upstream` 跟踪原项目，以 `origin` 跟踪本 fork。同步上游时应先审阅差异，再保留下文列出的 fork 功能。
-- **版本规则：** 使用 `<上游版本>-replica.<修订号>`，例如当前版本 `0.42.0-replica.3`。同一上游版本继续发布时递增修订号；同步到新的上游版本后从 `replica.1` 重新开始。
+- **版本规则：** 使用 `<上游版本>-replica.<修订号>`，例如当前版本 `0.42.1-replica.1`。同一上游版本继续发布时递增修订号；同步到新的上游版本后从 `replica.1` 重新开始。
 - **更新来源：** 应用只把本 fork 的 `*-replica.N` Release 当作可用版本；同时独立查询上游最新 Release，用于提醒维护者何时需要同步上游。两类提醒都只打开对应 Release 页面，不会下载或安装更新。
 - **许可与署名：** 代码继续使用上游的 MIT 许可证，保留原作者 Javis 的版权声明；打包产物会携带完整 `LICENSE`。
 
@@ -170,7 +170,7 @@ npm run dist:linux    # Linux x64 AppImage
 - **Upstream:** [Javis603/token-monitor](https://github.com/Javis603/token-monitor) provides the core architecture, collectors, desktop widget, multi-device Hub, AI Tool Limits, and most product functionality.
 - **This repository:** [MarbleGateKeeper/token-monitor-ver.replica](https://github.com/MarbleGateKeeper/token-monitor-ver.replica) carries personal fixes and features that have not been incorporated upstream.
 - **Git remotes:** `upstream` normally tracks the original project and `origin` tracks this fork. Review upstream changes before merging and preserve the fork behavior documented below.
-- **Versioning:** releases use `<upstream-version>-replica.<revision>`, currently `0.42.0-replica.3`. Increment the replica revision on the same upstream base; restart at `replica.1` after adopting a new upstream version.
+- **Versioning:** releases use `<upstream-version>-replica.<revision>`, currently `0.42.1-replica.1`. Increment the replica revision on the same upstream base; restart at `replica.1` after adopting a new upstream version.
 - **Updates:** only this fork's `*-replica.N` Releases enter the fork update channel. The app also checks upstream independently to tell maintainers when the fork needs syncing. Both channels only open their matching Release page and never download or install updates.
 - **License and credit:** the upstream MIT license and Javis copyright notice are preserved, and packaged applications include the complete `LICENSE`.
 
