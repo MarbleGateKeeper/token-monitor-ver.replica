@@ -38,9 +38,16 @@
 - `k3`
 - `k3-256`
 
-本 fork 在模型供应商分类中将这两个精确 ID 识别为 Kimi，因此模型颜色、图表分组和相关展示与其他 Kimi 模型保持一致。
+本 fork 在模型供应商分类中将这两个精确 ID 识别为 Kimi，因此模型配色、图标选择和相关展示与其他 Kimi 模型保持一致。
 
-#### 2. 增加手动模型映射
+#### 2. 补齐 LongCat 与 Hy3 的厂商识别
+
+- [美团 LongCat](https://github.com/meituan-longcat) 系列（例如 `LongCat-Flash-Chat`、`LongCat-Flash-Thinking-2601`、`LongCat-2.0`）识别为 **Meituan**。
+- [腾讯 Hy3](https://github.com/Tencent-Hunyuan/Hy3) 系列（例如 `hy3`、`hy3-fp8`）以及带 `Tencent` / `Hunyuan` 命名空间的模型识别为 **Tencent**。
+
+识别规则不区分大小写，并要求 `LongCat` / `Hy3` 出现在完整的模型名分段中，避免仅因名称中偶然包含相同字符而误判。两个厂商都有独立的默认配色，也会出现在 **设置 → 外观 → 厂商颜色** 中供手动调整。
+
+#### 3. 增加手动模型映射
 
 在 **设置 → 采集 → 模型映射** 中，可以把多个本质相同的模型 ID 合并到一个规范名称，例如：
 
@@ -152,9 +159,16 @@ Upstream recognizes `kimi-k3` as Kimi, but the official Kimi Code tool can repor
 - `k3`
 - `k3-256`
 
-This fork classifies both exact IDs as Kimi models, keeping vendor colors, chart grouping, and related presentation consistent with other Kimi models.
+This fork classifies both exact IDs as Kimi models, keeping vendor colors, icon selection, and related presentation consistent with other Kimi models.
 
-#### 2. Manual model mappings
+#### 2. LongCat and Hy3 vendor recognition
+
+- The [Meituan LongCat](https://github.com/meituan-longcat) family, including names such as `LongCat-Flash-Chat`, `LongCat-Flash-Thinking-2601`, and `LongCat-2.0`, is classified as **Meituan**.
+- The [Tencent Hy3](https://github.com/Tencent-Hunyuan/Hy3) family, including `hy3` and `hy3-fp8`, plus models carrying a `Tencent` or `Hunyuan` namespace, is classified as **Tencent**.
+
+Matching is case-insensitive and requires `LongCat` / `Hy3` to occupy a complete model-name segment, avoiding accidental substring matches. Both vendors have distinct default colors and appear under **Settings → Appearance → Vendor colors** for manual customization.
+
+#### 3. Manual model mappings
 
 Use **Settings → Collection → Model mappings** to merge equivalent model IDs into one canonical name:
 

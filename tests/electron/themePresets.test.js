@@ -257,3 +257,12 @@ test('Kimi usage and limits share one vendor color entry', () => {
   assert.equal(VENDOR_ORDER.filter((id) => id === 'kimi').length, 1);
   assert.equal(clientColors.kimi, '#16191e');
 });
+
+test('LongCat and Hy3 vendors expose brand colors and labels', () => {
+  assert.equal(VENDOR_ORDER.filter((id) => id === 'meituan').length, 1);
+  assert.equal(VENDOR_ORDER.filter((id) => id === 'tencent').length, 1);
+  assert.equal(VENDOR_LABELS.meituan, 'Meituan');
+  assert.equal(VENDOR_LABELS.tencent, 'Tencent');
+  assert.equal(clientColors.meituan, '#FFD100');
+  assert.equal(clientColors.tencent, '#0052D9');
+});
