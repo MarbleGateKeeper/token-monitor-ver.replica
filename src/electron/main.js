@@ -41,7 +41,7 @@ const {
 installSafeStdout();
 const electronClaudeWebFetch = createClaudeWebFetch(net);
 const { DEFAULT_CLIENTS, KNOWN_CLIENTS, clientsCsvForSetting } = require('../shared/clientTracking');
-const { clientDiagnosticRoots, lookupModelPricing, normalizeHistoryIntervalMs } = require('../shared/collector');
+const { clientDiagnosticRoots, lookupModelPricing, normalizeHistoryIntervalMs, visibleDiagnosticRoots } = require('../shared/collector');
 const { createDeviceRuntime } = require('../shared/deviceRuntime');
 const { createDiagnosticJournal } = require('../shared/diagnosticJournal');
 const { createDiagnosticReportGenerator } = require('./diagnostics');
@@ -5635,7 +5635,7 @@ app.whenReady().then(() => {
     if (!KNOWN_CLIENTS.split(',').includes(client) || !tracked.has(client)) return null;
     try {
       const seen = new Set();
-      const all = (clientDiagnosticRoots(client)[client] || [])
+      const all = (visibleDiagnosticRoots(client)[client] || [])
         .filter((root) => {
           const key = `${root.id}\0${root.dir}`;
           return !seen.has(key) && seen.add(key);
@@ -5657,6 +5657,13 @@ app.whenReady().then(() => {
       const roots = clientDiagnosticRoots(client)[client] || [];
       const target = roots.find((root) => root.exists);
       if (!target) return false;
+      // An exact-file source would otherwise be handed to openPath, which opens
+      // the file in whatever app claims .db/.jsonl. Select it in its folder
+      // instead — the user asked where the data lives, not to open it.
+      if (target.sourcePath) {
+        shell.showItemInFolder(target.sourcePath);
+        return true;
+      }
       return await shell.openPath(target.dir) === '';
     } catch (_) {
       return false;

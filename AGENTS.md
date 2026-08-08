@@ -77,14 +77,16 @@ The default client CSV lives in **one** place: `DEFAULT_CLIENTS` in `src/shared/
 | Touch point | Where |
 |---|---|
 | Default client list | `DEFAULT_CLIENTS` in `src/shared/clientTracking.js` |
-| Watch paths | the `add(...)` call in `clientWatchCandidates()` (`src/shared/collector.js`) |
+| Source roots | the `add(...)` call in `clientSourceRoots()` (`src/shared/collector.js`) — one `[checkId, dir]`, or `[checkId, watchDir, sourcePath]` when tokscale reads one exact file. `clientWatchCandidates()` is only a projection of this table; nothing is declared there |
+| Source check ids | every `checkId` above must be in `CLIENT_SOURCE_CHECK_IDS` (`src/shared/clientHealth.js`), kept alphabetical, then `npm run sync:worker` for the Worker copy. An id missing from that allowlist makes `normalizeClientHealth` drop the client's whole `checks` array, not just the unknown entry |
+| XDG vs home-relative | mirror tokscale, do not guess: a root is XDG-derived only if `clients.rs` declares it `PathRoot::XdgData` or `scanner.rs` resolves it through the `dirs` crate. Those `dirs` lookups are invisible to `strings` on the binary and to `tokscale clients`, so read the Rust at the version tag (`tmp/tokscale`). Roots spelled as home-relative literals upstream must stay home-relative here |
 | Name normalization | the `normalizeClientName()` branch in `src/shared/usage.js` |
 | Renderer maps | `clientLabels` / `clientsWithIcon` / `KNOWN_CLIENTS` in `src/electron/renderer/app.js`; provider artwork in `src/electron/renderer/trayProviderIcons.js`; `VENDOR_ORDER` / `VENDOR_LABELS` in `themePresets.js`; `clientColors` in `usageCharts.js` |
 | Discord RPC | `KNOWN_CLIENT_ASSETS` / `CLIENT_LABELS` in `src/electron/discordRpc.js` |
 | Row icon CSS | the `.row-icon-<id>` rule in `src/electron/renderer/styles.css` |
 | Icon assets | `assets/icons/<id>.svg` + `.github/assets/tools-icon/<id>.png` |
 | WSL discovery | marker(s) in `WSL_DATA_MARKERS` **and** the marker→id mapping in `MARKER_CLIENTS` (`src/shared/wslUsage.js`) — use the exact roots tokscale reads, including alternate roots. A marker without a `MARKER_CLIENTS` entry attributes to nothing, so a WSL home holding only that client's data would be skipped |
-| Docs & env examples | the supported-tools table in `README.md` and its translations (`README.*.md`) + the client CSV in `.env.example`. Every locale's prose tool/provider counts must match its own table — `tests/docs/readmeConsistency.test.js` fails on a stale count or a table that drifts between locales |
+| Docs & env examples | the bilingual supported-tools table in `README.md` + the client CSV in `.env.example`. Its Chinese and English prose counts must match the table — `tests/docs/readmeConsistency.test.js` fails on a stale count or a translated README copy being reintroduced |
 | Guard tests | the expected-client lists in `tests/shared/clientTracking.test.js` |
 
 One caveat on top of the table:
