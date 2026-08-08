@@ -27,11 +27,11 @@ test('App Updates includes an inline release-note disclosure and full-release ac
 test('footer update pill opens an accessible release-note popover', () => {
   const html = read('index.html');
   assert.match(html, /id="appUpdatePillAction"[^>]*class="update-pill-action"/);
-  assert.match(html, /id="appUpdatePillRestart"[^>]*class="update-pill-restart hidden"[\s\S]*id="appUpdatePillRestartLabel"/);
+  assert.doesNotMatch(html, /appUpdatePillRestart|update-pill-restart/);
   assert.doesNotMatch(html, /id="appUpdatePillAction"[^>]*aria-haspopup/);
   assert.match(html, /id="appUpdatePopover"[^>]*popover="auto"[^>]*role="dialog"/);
   assert.match(html, /id="appUpdatePopoverAction"/);
-  assert.match(html, /id="appUpdatePopoverRelease"[\s\S]*settings\.appUpdate\.viewFullRelease/);
+  assert.doesNotMatch(html, /id="appUpdatePopoverRelease"/);
 });
 
 test('footer update pill yields its space while utility actions are disclosed', () => {
@@ -66,21 +66,17 @@ test('release notes render as text nodes and auto-open once for a new version', 
   assert.match(renderer, /setSettingsAccordionExpanded\(els\.appUpdateNotes, els\.appUpdateNotesToggle, els\.appUpdateNotesDetails, true\)/);
 });
 
-test('ready footer pill keeps release notes and restart as separate actions', () => {
+test('footer pill shows release notes and opens the release as its only action', () => {
   const app = read('app.js');
-  const notesHandler = app.slice(
+  const handler = app.slice(
     app.indexOf("els.appUpdatePillAction.addEventListener"),
-    app.indexOf("els.appUpdatePillRestart.addEventListener")
-  );
-  const restartHandler = app.slice(
-    app.indexOf("els.appUpdatePillRestart.addEventListener"),
     app.indexOf("els.appUpdatePillDismiss.addEventListener")
   );
-  assert.match(notesHandler, /renderAppUpdatePopover\(state\.appUpdate\)/);
-  assert.match(notesHandler, /positionAppUpdatePopover\(\)/);
-  assert.match(notesHandler, /showPopover\(\)/);
-  assert.match(notesHandler, /appUpdatePopoverAction\.focus\(\)/);
-  assert.match(restartHandler, /await runAppUpdateAction\(\)/);
+  assert.match(handler, /renderAppUpdatePopover\(state\.appUpdate\)/);
+  assert.match(handler, /positionAppUpdatePopover\(\)/);
+  assert.match(handler, /showPopover\(\)/);
+  assert.match(handler, /appUpdatePopoverAction\.focus\(\)/);
+  assert.doesNotMatch(handler, /restart|install|download/i);
 });
 
 test('footer pill separates dismissed notices from available settings actions', () => {
@@ -90,15 +86,8 @@ test('footer pill separates dismissed notices from available settings actions', 
     app.indexOf('function releaseNoteGroupsForCurrentLocale')
   );
   assert.match(renderer, /!s\.showUpdateNotice/);
-  assert.match(renderer, /mode === 'install' \|\| s\.installBusy/);
-  assert.match(renderer, /appUpdatePillRestart\.classList\.toggle\('hidden', mode !== 'install'\)/);
-  assert.match(renderer, /appUpdatePillLabel\.textContent = mode === 'install'[\s\S]*`v\$\{version\}`/);
-  assert.match(renderer, /t\('settings\.appUpdate\.restartShort'\)/);
-});
-
-test('ready footer pill collapses only the restart text at minimum width', () => {
-  const css = read('styles.css');
-  assert.match(css, /@media \(max-width: 300px\)[\s\S]*\.update-pill-restart-label \{ display: none; \}/);
+  assert.match(renderer, /appUpdatePillLabel\.textContent = `↑ v\$\{version\}`/);
+  assert.doesNotMatch(renderer, /install|download|restart/i);
 });
 
 test('footer pill only exposes dialog semantics when release notes are available', () => {

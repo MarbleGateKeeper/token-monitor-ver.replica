@@ -22,10 +22,9 @@ This file documents the stable Markdown shape of that release body.
   translated update heading.
 - Keep the locale marker content inside the matching language block. The app
   updater reads these five marker pairs: `en`, `zh`, `zh-TW`, `ko`, and `ja`.
-- Keep each language's download content with its corresponding release-note
-  section. The English and Simplified Chinese sections may retain their
-  existing first-launch and other-notes details; keep translated downloads for
-  the additional languages inside their own nested `<details>` blocks.
+- Keep a source-build notice with every language section. Releases in this fork
+  never attach project-built installers, archives, updater metadata, or
+  blockmaps. GitHub's automatic source-code archives may still appear.
 
 The outer summary is plain text rather than an anchor-navigation row. Do not
 add a visible `其他語言` heading or duplicate the Full Changelog link inside
@@ -50,6 +49,10 @@ each language block.
 - ...
 <!-- app-update-notes:en:end -->
 
+## Build from source
+
+No prebuilt binaries are attached. Download or clone the source and follow the README build instructions.
+
 ## 更新内容
 
 <!-- app-update-notes:zh:start -->
@@ -65,6 +68,10 @@ each language block.
 ### 修复
 - ...
 <!-- app-update-notes:zh:end -->
+
+## 从源码构建
+
+不附加预构建二进制文件。请下载或克隆源码，并按照 README 构建说明操作。
 
 ---
 
@@ -94,6 +101,10 @@ each language block.
 - ...
 <!-- app-update-notes:zh-TW:end -->
 
+## 從原始碼建置
+
+不附加預先建置的二進位檔案。請下載或複製原始碼，並依照 README 建置說明操作。
+
 </details>
 
 <details>
@@ -117,6 +128,10 @@ each language block.
 - ...
 <!-- app-update-notes:ko:end -->
 
+## 소스에서 빌드
+
+미리 빌드한 바이너리는 첨부하지 않습니다. 소스를 다운로드하거나 복제한 뒤 README 빌드 안내를 따르세요.
+
 </details>
 
 <details>
@@ -139,6 +154,10 @@ each language block.
 ### 修正
 - ...
 <!-- app-update-notes:ja:end -->
+
+## ソースからビルド
+
+ビルド済みバイナリは添付しません。ソースをダウンロードまたは clone し、README のビルド手順に従ってください。
 
 </details>
 

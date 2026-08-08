@@ -4761,39 +4761,13 @@ html.is-windows .limit-live-badge {
   padding: 3px 4px 3px 8px;
   cursor: pointer;
 }
-.update-pill-action:hover,
-.update-pill-restart:hover { background: rgba(115, 189, 245, 0.1); }
-.update-pill-action:focus-visible,
-.update-pill-restart:focus-visible {
+.update-pill-action:hover { background: rgba(115, 189, 245, 0.1); }
+.update-pill-action:focus-visible {
   outline: 1px solid rgba(115, 189, 245, 0.72);
   outline-offset: 1px;
 }
-.update-pill-action:disabled,
-.update-pill-restart:disabled { cursor: default; opacity: 0.55; }
-.update-pill.is-ready .update-pill-action { padding-right: 7px; }
+.update-pill-action:disabled { cursor: default; opacity: 0.55; }
 .update-pill-label { letter-spacing: 0.02em; }
-.update-pill-restart {
-  appearance: none;
-  align-self: stretch;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 8px 3px 7px;
-  border: 0;
-  border-left: 1px solid rgba(115, 189, 245, 0.28);
-  border-radius: 0 999px 999px 0;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-  font: inherit;
-  font-weight: 600;
-  line-height: 1;
-}
-.update-pill-restart.hidden { display: none; }
-@media (max-width: 300px) {
-  .update-pill-restart { gap: 0; padding-inline: 7px; }
-  .update-pill-restart-label { display: none; }
-}
 .update-pill-dismiss {
   appearance: none;
   background: transparent;

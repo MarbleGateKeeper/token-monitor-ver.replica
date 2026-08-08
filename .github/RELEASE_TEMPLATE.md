@@ -9,6 +9,7 @@
 - **Diagnostics & support:** Settings > About Token Monitor now lets you generate a redacted diagnostic report, view its preview, and copy it for issue reports. It includes app, collection, AI tool health, AI Tool Limits, Hub, workload, configuration, resources, and Cursor/Antigravity sync-failure stage, detail code, and exit code when available, without including credentials, conversations, accounts, full paths, or raw errors. (#340, #342)
 
 ### Improved
+- **Source-only releases:** The app now checks this repository for newer release tags and opens the release page, but never downloads or installs an update. Tagged releases publish notes only, with no project-built binaries attached.
 - **Live collection sources:** Watch roots now match Tokscale 4.11 sources, including Codex archives, Cline local sessions, Grok unified logs, Copilot's database, and ZCode SQLite. Overlapping custom roots now keep the union of every source instead of depending on declaration order. (#352, #353)
 - **Tool source diagnostics:** Missing optional Codex headless-capture roots are hidden, while configured or active roots remain visible; exact-file sources reveal the file in its folder. (#354)
 - **MiMo Code usage:** Tracking now watches the SQLite database files and WAL/SHM sidecars it uses instead of recursively watching rotating log trees, reducing redundant refreshes and keeping the app responsive during log rotation. (#338)
@@ -20,41 +21,9 @@
 - **Kimi weekly quota:** Kimi now shows the 7-day used/limit from the Kimi console instead of letting a membership percentage replace it when both sources provide data. (#344)
 <!-- app-update-notes:en:end -->
 
-## Download
+## Build from source
 
-- **macOS Apple Silicon** — [Token-Monitor-0.42.0-replica.1-arm64.dmg](https://github.com/MarbleGateKeeper/token-monitor-ver.replica/releases/download/v0.42.0-replica.1/Token-Monitor-0.42.0-replica.1-arm64.dmg)
-- **macOS Intel** — [Token-Monitor-0.42.0-replica.1-x64.dmg](https://github.com/MarbleGateKeeper/token-monitor-ver.replica/releases/download/v0.42.0-replica.1/Token-Monitor-0.42.0-replica.1-x64.dmg)
-- **Windows Installer** — [Token-Monitor-Setup-0.42.0-replica.1.exe](https://github.com/MarbleGateKeeper/token-monitor-ver.replica/releases/download/v0.42.0-replica.1/Token-Monitor-Setup-0.42.0-replica.1.exe) (recommended)
-- **Windows Portable** — [Token-Monitor-0.42.0-replica.1.exe](https://github.com/MarbleGateKeeper/token-monitor-ver.replica/releases/download/v0.42.0-replica.1/Token-Monitor-0.42.0-replica.1.exe) (no install required)
-- **Linux x64** — [Token-Monitor-0.42.0-replica.1.AppImage](https://github.com/MarbleGateKeeper/token-monitor-ver.replica/releases/download/v0.42.0-replica.1/Token-Monitor-0.42.0-replica.1.AppImage)
-
-<details>
-<summary><strong>First launch and other notes</strong></summary>
-
-### First launch
-
-**macOS:** the app is Developer ID-signed and notarized by Apple. Open the `.dmg`, then drag Token Monitor to Applications.
-
-**Windows:** both executables are signed ([how to verify](https://github.com/MarbleGateKeeper/token-monitor-ver.replica/blob/main/docs/code-signing.md#verify-a-download)).
-
-**Linux:** mark the AppImage executable, then run it:
-
-```bash
-chmod +x "Token Monitor"*.AppImage
-./"Token Monitor"*.AppImage
-```
-
-### Other notes
-
-Other platforms are not pre-built — run from source per the [README](https://github.com/MarbleGateKeeper/token-monitor-ver.replica#readme). The macOS `.zip` is the same app repackaged; ignore it unless you specifically need it.
-
-### tokscale dependency
-
-Tokscale is bundled with this app. See **Settings → Tokscale** for the exact version
-and the option to download a newer version directly from npm. Tokscale is MIT,
-open-source: https://github.com/junhoyeo/tokscale
-
-</details>
+This repository does not publish prebuilt installers or application archives. To use this version, download or clone the source and follow the [README build instructions](https://github.com/MarbleGateKeeper/token-monitor-ver.replica#run-and-build-from-source) on the target operating system. GitHub may still show its automatically generated source-code archives; those are source snapshots, not ready-to-run applications.
 
 ---
 
@@ -69,6 +38,7 @@ open-source: https://github.com/junhoyeo/tokscale
 - **诊断与支持：** 「设置 > 关于 Token Monitor」现在可以「生成报告」、查看预览并「复制报告」来反馈问题。报告包含应用、采集、AI 工具状态、AI 工具额度、Hub、工作负载、配置、资源，以及 Cursor/Antigravity 同步失败的阶段、详情代码和退出码（如有）；不包含凭证、对话、账号、完整路径或原始错误输出。（#340、#342）
 
 ### 改进
+- **仅源码发行：** 应用现在只检查本仓库是否有较新的 Release tag 并打开 Release 页面，不会下载或安装更新。tag 触发的 Release 只发布说明，不附加本项目构建的二进制文件。
 - **实时采集源：** 监听路径现在与 Tokscale 4.11 的实际数据源保持一致，包括 Codex 归档会话、Cline 本地会话、Grok 统一日志、Copilot 数据库和 ZCode SQLite；重叠的自定义路径会保留所有来源的并集，不再受声明顺序影响。（#352、#353）
 - **工具源诊断：** 不存在且未启用的 Codex headless 采集目录不再显示为缺失；已配置或已有数据的目录仍会显示，精确文件来源会在所属文件夹中定位。（#354）
 - **MiMo Code 用量：** 用量追踪现在只监控其使用的 SQLite 数据库及其 WAL/SHM 伴随文件，不再递归监控轮转日志目录；日志轮转时会减少重复刷新，让应用保持响应。（#338）
@@ -80,41 +50,9 @@ open-source: https://github.com/junhoyeo/tokscale
 - **Kimi 每周额度：** 当两个来源都返回数据时，现在优先显示 Kimi 控制台中的 7 天已用/上限，不再被会员比例覆盖。（#344）
 <!-- app-update-notes:zh:end -->
 
-## 下载
+## 从源码构建
 
-- **macOS Apple Silicon** — [Token-Monitor-0.42.0-replica.1-arm64.dmg](https://github.com/MarbleGateKeeper/token-monitor-ver.replica/releases/download/v0.42.0-replica.1/Token-Monitor-0.42.0-replica.1-arm64.dmg)
-- **macOS Intel** — [Token-Monitor-0.42.0-replica.1-x64.dmg](https://github.com/MarbleGateKeeper/token-monitor-ver.replica/releases/download/v0.42.0-replica.1/Token-Monitor-0.42.0-replica.1-x64.dmg)
-- **Windows 安装版** — [Token-Monitor-Setup-0.42.0-replica.1.exe](https://github.com/MarbleGateKeeper/token-monitor-ver.replica/releases/download/v0.42.0-replica.1/Token-Monitor-Setup-0.42.0-replica.1.exe)（推荐）
-- **Windows 便携版** — [Token-Monitor-0.42.0-replica.1.exe](https://github.com/MarbleGateKeeper/token-monitor-ver.replica/releases/download/v0.42.0-replica.1/Token-Monitor-0.42.0-replica.1.exe)（免安装）
-- **Linux x64** — [Token-Monitor-0.42.0-replica.1.AppImage](https://github.com/MarbleGateKeeper/token-monitor-ver.replica/releases/download/v0.42.0-replica.1/Token-Monitor-0.42.0-replica.1.AppImage)
-
-<details>
-<summary><strong>首次启动与其他说明</strong></summary>
-
-### 首次启动
-
-**macOS：** 应用已使用 Developer ID 签名并通过 Apple 公证。打开 `.dmg`，然后把 Token Monitor 拖到 Applications。
-
-**Windows：** 两个可执行文件均已签名（[查看验证方法](https://github.com/MarbleGateKeeper/token-monitor-ver.replica/blob/main/docs/code-signing.md#verify-a-download)）。
-
-**Linux：** 先给 AppImage 执行权限，然后运行：
-
-```bash
-chmod +x "Token Monitor"*.AppImage
-./"Token Monitor"*.AppImage
-```
-
-### 其他说明
-
-其他平台暂不提供预构建版本，请参考 [README](https://github.com/MarbleGateKeeper/token-monitor-ver.replica#readme) 从源码运行。macOS 的 `.zip` 只是同一个 app 的重新打包版本，除非你明确需要，否则可以忽略。
-
-### tokscale 依赖
-
-Tokscale 已随应用内置。你可以在 **设置 → Tokscale** 查看确切版本，
-也可以直接从 npm 下载更新版本。Tokscale 是 MIT 开源项目：
-https://github.com/junhoyeo/tokscale
-
-</details>
+本仓库不发布预构建安装包或应用压缩包。如需使用，请下载或克隆源码，并在目标操作系统上按照 [README 构建说明](https://github.com/MarbleGateKeeper/token-monitor-ver.replica#从源码运行与构建) 操作。GitHub 页面仍可能显示平台自动生成的源码压缩包；它们只是源码快照，不是可直接运行的应用。
 
 ---
 
@@ -137,6 +75,7 @@ https://github.com/junhoyeo/tokscale
 - **診斷與支援：** 「設定 > 關於 Token Monitor」現在可以「產生報告」、查看預覽並「複製報告」來回報問題。報告包含應用程式、採集、AI 工具狀態、AI 工具額度、Hub、工作負載、設定、資源，以及 Cursor/Antigravity 同步失敗的階段、詳情代碼及退出碼（如有）；不包含憑證、對話、帳號、完整路徑或原始錯誤輸出。（#340、#342）
 
 ### 改進
+- **僅原始碼發行：** 應用程式現在只檢查本倉庫是否有較新的 Release tag 並開啟 Release 頁面，不會下載或安裝更新。tag 觸發的 Release 只發布說明，不附加本專案建置的二進位檔案。
 - **即時採集來源：** 監看路徑現在與 Tokscale 4.11 的實際資料來源一致，包括 Codex 封存工作階段、Cline 本機工作階段、Grok 統一記錄檔、Copilot 資料庫和 ZCode SQLite；重疊的自訂路徑會保留所有來源的聯集，不再受宣告順序影響。（#352、#353）
 - **工具來源診斷：** 不存在且未啟用的 Codex headless 採集目錄不再顯示為缺失；已設定或已有資料的目錄仍會顯示，精確檔案來源會在所屬資料夾中定位。（#354）
 - **MiMo Code 用量：** 用量追蹤現在只監控其使用的 SQLite 資料庫及其 WAL/SHM 伴隨檔案，不再遞迴監控輪轉記錄檔目錄；記錄檔輪轉時會減少重複重新整理，讓應用程式保持回應。（#338）
@@ -148,13 +87,9 @@ https://github.com/junhoyeo/tokscale
 - **Kimi 每週額度：** 當兩個來源都返回資料時，現在優先顯示 Kimi 控制台中的 7 天已用/上限，不再被會員比例覆蓋。（#344）
 <!-- app-update-notes:zh-TW:end -->
 
-## 下載
+## 從原始碼建置
 
-- **macOS Apple Silicon** — [Token-Monitor-0.42.0-replica.1-arm64.dmg](https://github.com/MarbleGateKeeper/token-monitor-ver.replica/releases/download/v0.42.0-replica.1/Token-Monitor-0.42.0-replica.1-arm64.dmg)
-- **macOS Intel** — [Token-Monitor-0.42.0-replica.1-x64.dmg](https://github.com/MarbleGateKeeper/token-monitor-ver.replica/releases/download/v0.42.0-replica.1/Token-Monitor-0.42.0-replica.1-x64.dmg)
-- **Windows 安裝版** — [Token-Monitor-Setup-0.42.0-replica.1.exe](https://github.com/MarbleGateKeeper/token-monitor-ver.replica/releases/download/v0.42.0-replica.1/Token-Monitor-Setup-0.42.0-replica.1.exe)（推薦）
-- **Windows 便攜版** — [Token-Monitor-0.42.0-replica.1.exe](https://github.com/MarbleGateKeeper/token-monitor-ver.replica/releases/download/v0.42.0-replica.1/Token-Monitor-0.42.0-replica.1.exe)（免安裝）
-- **Linux x64** — [Token-Monitor-0.42.0-replica.1.AppImage](https://github.com/MarbleGateKeeper/token-monitor-ver.replica/releases/download/v0.42.0-replica.1/Token-Monitor-0.42.0-replica.1.AppImage)
+本倉庫不發布預先建置的安裝程式或應用程式封裝。如需使用，請下載或複製原始碼，並在目標作業系統上依照 [README 建置說明](https://github.com/MarbleGateKeeper/token-monitor-ver.replica#從源码运行与构建) 操作。GitHub 自動產生的原始碼封裝只是快照，不是可直接執行的應用程式。
 
 </details>
 
@@ -172,6 +107,7 @@ https://github.com/junhoyeo/tokscale
 - **진단 및 지원:** 「설정 > Token Monitor 정보」에서 「보고서 생성」 후 「보고서 보기」 또는 「보고서 복사」로 문제 신고에 사용할 수 있습니다. 보고서에는 앱, 수집, AI 도구 상태, AI 도구 한도, Hub, 작업량, 구성, 리소스와 Cursor/Antigravity 동기화 실패 단계·세부 코드·종료 코드(있는 경우)가 포함되며, 자격 증명·대화·계정·전체 경로·원시 오류는 포함되지 않습니다. (#340, #342)
 
 ### 개선
+- **소스 전용 릴리스:** 앱은 이제 이 저장소의 새 Release tag만 확인하고 Release 페이지를 엽니다. 업데이트를 다운로드하거나 설치하지 않습니다. tag로 생성되는 Release에는 설명만 게시되며 프로젝트에서 빌드한 바이너리는 첨부되지 않습니다.
 - **실시간 수집 소스:** 감시 경로가 Codex 보관 세션, Cline 로컬 세션, Grok 통합 로그, Copilot 데이터베이스, ZCode SQLite를 포함한 Tokscale 4.11의 실제 소스와 일치합니다. 겹치는 사용자 지정 경로는 선언 순서와 관계없이 모든 소스의 합집합을 유지합니다. (#352, #353)
 - **도구 소스 진단:** 존재하지 않는 선택적 Codex headless 캡처 경로는 숨기고, 구성되었거나 사용 중인 경로는 계속 표시합니다. 정확한 파일 소스는 해당 폴더에서 파일을 선택합니다. (#354)
 - **MiMo Code 사용량:** 이제 사용하는 SQLite 데이터베이스와 WAL/SHM 사이드카만 감시하고 회전하는 로그 트리는 재귀적으로 감시하지 않아, 로그가 회전할 때 불필요한 새로 고침을 줄이고 앱의 응답성을 유지합니다. (#338)
@@ -183,13 +119,9 @@ https://github.com/junhoyeo/tokscale
 - **Kimi 주간 한도:** 두 소스가 모두 데이터를 제공할 때 이제 Kimi 콘솔에 표시되는 7일 사용량/한도를 우선 표시하며, 멤버십 비율로 덮어쓰지 않습니다. (#344)
 <!-- app-update-notes:ko:end -->
 
-## 다운로드
+## 소스에서 빌드
 
-- **macOS Apple Silicon** — [Token-Monitor-0.42.0-replica.1-arm64.dmg](https://github.com/MarbleGateKeeper/token-monitor-ver.replica/releases/download/v0.42.0-replica.1/Token-Monitor-0.42.0-replica.1-arm64.dmg)
-- **macOS Intel** — [Token-Monitor-0.42.0-replica.1-x64.dmg](https://github.com/MarbleGateKeeper/token-monitor-ver.replica/releases/download/v0.42.0-replica.1/Token-Monitor-0.42.0-replica.1-x64.dmg)
-- **Windows 설치 버전** — [Token-Monitor-Setup-0.42.0-replica.1.exe](https://github.com/MarbleGateKeeper/token-monitor-ver.replica/releases/download/v0.42.0-replica.1/Token-Monitor-Setup-0.42.0-replica.1.exe) (권장)
-- **Windows 포터블 버전** — [Token-Monitor-0.42.0-replica.1.exe](https://github.com/MarbleGateKeeper/token-monitor-ver.replica/releases/download/v0.42.0-replica.1/Token-Monitor-0.42.0-replica.1.exe) (설치 필요 없음)
-- **Linux x64** — [Token-Monitor-0.42.0-replica.1.AppImage](https://github.com/MarbleGateKeeper/token-monitor-ver.replica/releases/download/v0.42.0-replica.1/Token-Monitor-0.42.0-replica.1.AppImage)
+이 저장소는 미리 빌드한 설치 파일이나 앱 아카이브를 게시하지 않습니다. 사용하려면 소스를 다운로드하거나 복제한 뒤 대상 운영 체제에서 [README 빌드 안내](https://github.com/MarbleGateKeeper/token-monitor-ver.replica#run-and-build-from-source)를 따르세요. GitHub가 자동 생성하는 소스 아카이브는 실행 가능한 앱이 아니라 소스 스냅샷입니다.
 
 </details>
 
@@ -207,6 +139,7 @@ https://github.com/junhoyeo/tokscale
 - **診断とサポート：** 「設定 > Token Monitor について」で「レポートを作成」し、「レポートを見る」または「レポートをコピー」して問題を報告できます。レポートにはアプリ、収集、AIツールの状態、AIツール制限、Hub、ワークロード、設定、リソース、Cursor/Antigravity の同期失敗の段階・詳細コード・終了コード（利用可能な場合）が含まれ、認証情報、会話、アカウント、完全なパス、raw エラーは含まれません。（#340、#342）
 
 ### 改善
+- **ソース専用リリース：** アプリはこのリポジトリの新しい Release tag のみを確認して Release ページを開き、更新をダウンロードまたはインストールしません。tag から作成される Release には説明だけが掲載され、プロジェクトでビルドしたバイナリは添付されません。
 - **リアルタイム収集ソース：** 監視パスを、Codex のアーカイブ、Cline のローカルセッション、Grok の統合ログ、Copilot データベース、ZCode SQLite を含む Tokscale 4.11 の実際のソースに合わせました。重複するカスタムパスは宣言順に依存せず、すべてのソースの和集合を保持します。（#352、#353）
 - **ツールソース診断：** 存在しない任意の Codex headless キャプチャルートは非表示にし、設定済みまたは使用中のルートは表示します。完全なファイルソースは所属フォルダー内で選択されます。（#354）
 - **MiMo Code の使用量：** 使用する SQLite データベースと WAL/SHM サイドカーだけを監視し、ローテーションするログツリーを再帰的に監視しなくなりました。ログのローテーション中も不要な再更新を減らし、アプリの応答性を保ちます。（#338）
@@ -218,13 +151,9 @@ https://github.com/junhoyeo/tokscale
 - **Kimi の週間制限：** 2つのソースが両方ともデータを返す場合、メンバーシップの割合で置き換えず、Kimi コンソールに表示される 7 日間の使用量/上限を優先して表示します。（#344）
 <!-- app-update-notes:ja:end -->
 
-## ダウンロード
+## ソースからビルド
 
-- **macOS Apple Silicon** — [Token-Monitor-0.42.0-replica.1-arm64.dmg](https://github.com/MarbleGateKeeper/token-monitor-ver.replica/releases/download/v0.42.0-replica.1/Token-Monitor-0.42.0-replica.1-arm64.dmg)
-- **macOS Intel** — [Token-Monitor-0.42.0-replica.1-x64.dmg](https://github.com/MarbleGateKeeper/token-monitor-ver.replica/releases/download/v0.42.0-replica.1/Token-Monitor-0.42.0-replica.1-x64.dmg)
-- **Windows インストーラー** — [Token-Monitor-Setup-0.42.0-replica.1.exe](https://github.com/MarbleGateKeeper/token-monitor-ver.replica/releases/download/v0.42.0-replica.1/Token-Monitor-Setup-0.42.0-replica.1.exe)（推奨）
-- **Windows ポータブル版** — [Token-Monitor-0.42.0-replica.1.exe](https://github.com/MarbleGateKeeper/token-monitor-ver.replica/releases/download/v0.42.0-replica.1/Token-Monitor-0.42.0-replica.1.exe)（インストール不要）
-- **Linux x64** — [Token-Monitor-0.42.0-replica.1.AppImage](https://github.com/MarbleGateKeeper/token-monitor-ver.replica/releases/download/v0.42.0-replica.1/Token-Monitor-0.42.0-replica.1.AppImage)
+このリポジトリでは、ビルド済みのインストーラーやアプリのアーカイブを公開しません。使用する場合はソースをダウンロードまたは clone し、対象 OS で [README のビルド手順](https://github.com/MarbleGateKeeper/token-monitor-ver.replica#run-and-build-from-source)に従ってください。GitHub が自動生成するソースアーカイブは実行可能なアプリではなく、ソースのスナップショットです。
 
 </details>
 

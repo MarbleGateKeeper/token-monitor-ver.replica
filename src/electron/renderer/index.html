@@ -61,13 +61,7 @@
             </div>
             <div class="settings-subgroup maintenance-section app-update-settings">
               <div class="settings-group-header maintenance-header"><span data-i18n="settings.appUpdate.title">App Updates</span><span data-i18n="settings.appUpdate.source">GitHub releases</span></div>
-              <label id="automaticAppUpdatesRow" class="checkbox-label settings-item">
-                <span class="settings-item-text">
-                  <span class="settings-item-title" data-i18n="settings.appUpdate.automatic">Download updates automatically</span>
-                </span>
-                <input id="automaticAppUpdatesInput" type="checkbox" aria-describedby="automaticAppUpdatesNote" />
-                <span id="automaticAppUpdatesNote" class="settings-note settings-item-desc" data-i18n="settings.appUpdate.automaticDescription">Download new versions in the background. You'll be prompted to restart when ready.</span>
-              </label>
+              <p class="settings-note" data-i18n="settings.appUpdate.notificationOnly">Checks for new release tags and shows a notice. Downloads and installation are never automatic.</p>
               <div class="maintenance-version-grid app-update-version-grid">
                 <div class="maintenance-version-item"><span data-i18n="settings.appUpdate.installed">Installed</span><strong id="appUpdateInstalled">—</strong></div>
                 <div class="maintenance-version-item"><span data-i18n="settings.appUpdate.latest">Latest</span><strong id="appUpdateLatest" data-i18n="settings.common.notChecked">Not checked</strong></div>
@@ -1413,10 +1407,6 @@
           <button id="appUpdatePillAction" type="button" class="update-pill-action">
             <span id="appUpdatePillLabel" class="update-pill-label"></span>
           </button>
-          <button id="appUpdatePillRestart" type="button" class="update-pill-restart hidden">
-            <span aria-hidden="true">↻</span>
-            <span id="appUpdatePillRestartLabel" class="update-pill-restart-label"></span>
-          </button>
           <button id="appUpdatePillDismiss" type="button" class="update-pill-dismiss" data-i18n-title="settings.appUpdate.dismiss" data-i18n-aria-label="settings.appUpdate.dismiss" title="Dismiss this version" aria-label="Dismiss this version">×</button>
         </div>
         <span id="footerActionSlot">
@@ -1434,7 +1424,6 @@
         <div id="appUpdatePopoverBody" class="app-update-notes-body"></div>
         <div class="app-update-popover-actions">
           <button id="appUpdatePopoverAction" type="button" class="app-update-popover-primary"></button>
-          <button id="appUpdatePopoverRelease" type="button" class="inline-link" data-i18n="settings.appUpdate.viewFullRelease">View full release</button>
         </div>
       </div>
     </main>

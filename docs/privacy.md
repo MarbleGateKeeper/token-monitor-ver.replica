@@ -6,7 +6,7 @@ Token Monitor is local-first. It processes AI-tool usage logs on the device and 
 
 Token Monitor makes network requests only for documented or user-enabled features:
 
-- Packaged builds check GitHub Releases for updates.
+- The widget checks this fork's latest GitHub Release for a newer version tag and release notes. It never downloads an executable or update package.
 - Exchange-rate and service-status views fetch their public data sources.
 - Enabled AI Tool Limits integrations contact the corresponding provider. Credentials are sent only to that provider.
 - Discord Rich Presence sends the selected activity details to Discord when explicitly enabled.

@@ -14,7 +14,7 @@
 </div>
 
 > [!IMPORTANT]
-> 本仓库是 [Javis603/token-monitor](https://github.com/Javis603/token-monitor) 的下游 fork，不是上游官方发行版。本 fork 的源码、问题反馈、发行包和更新提示均位于 [MarbleGateKeeper/token-monitor-ver.replica](https://github.com/MarbleGateKeeper/token-monitor-ver.replica)。
+> 本仓库是 [Javis603/token-monitor](https://github.com/Javis603/token-monitor) 的下游 fork，不是上游官方发行版。本 fork 的源码、问题反馈、Release 和更新提示均位于 [MarbleGateKeeper/token-monitor-ver.replica](https://github.com/MarbleGateKeeper/token-monitor-ver.replica)；Release 不提供预构建应用。
 >
 > This repository is a downstream fork of [Javis603/token-monitor](https://github.com/Javis603/token-monitor), not an official upstream distribution. Source, issues, releases, and update notices for this variant belong to [MarbleGateKeeper/token-monitor-ver.replica](https://github.com/MarbleGateKeeper/token-monitor-ver.replica).
 
@@ -26,7 +26,7 @@
 - **本仓库：** [MarbleGateKeeper/token-monitor-ver.replica](https://github.com/MarbleGateKeeper/token-monitor-ver.replica)，用于保留个人需要但尚未进入上游的修复与功能。
 - **Git 远程：** 通常以 `upstream` 跟踪原项目，以 `origin` 跟踪本 fork。同步上游时应先审阅差异，再保留下文列出的 fork 功能。
 - **版本规则：** 使用 `<上游版本>-replica.<修订号>`，例如当前版本 `0.42.0-replica.1`。同一上游版本继续发布时递增修订号；同步到新的上游版本后从 `replica.1` 重新开始。
-- **更新来源：** 应用内更新检查、发行说明、下载链接、关于页面和打包元数据都指向本 fork，不会把本 fork 用户引导到上游安装包。
+- **更新来源：** 应用只查询本 fork 最新 GitHub Release 的 tag 和发行说明；发现新版本时提示并可打开 Release 页面，不会下载或安装更新。
 - **许可与署名：** 代码继续使用上游的 MIT 许可证，保留原作者 Javis 的版权声明；打包产物会携带完整 `LICENSE`。
 
 ### 本 fork 的功能改动
@@ -64,12 +64,17 @@ k3-256   → kimi-k3
 - 合并仪表盘、设备、模型、会话、成本、缓存、输出 token、历史趋势和导出中的模型维度数据。
 - 不改写采集器原始数据、Hub 设备记录或保留的原始统计快照；删除映射后即可恢复原始模型拆分。
 
+#### 4. 仅提示新 tag，不自动更新
+
+应用启动后和手动检查时会查询本仓库最新的 GitHub Release。只有 tag 版本高于当前版本时才显示提示；提示可查看发行说明并打开 Release 页面。项目不再包含应用更新器，不会在后台下载安装包，也没有“重启安装”流程。旧版本设置中残留的自动下载偏好会被忽略并清理。
+
 ### 本 fork 的发行与维护改动
 
 - 应用和 Worker 版本统一使用 `replica` 后缀。
-- GitHub 更新源、仓库链接、站点下载入口和发行模板全部指向本 fork。
-- GitHub Release 会明确发布为本仓库的 latest release，使源码模式和打包模式都能找到更新。
-- Windows 预打包签名脚本支持 `replica` SemVer 后缀，同时保留更新包签名校验。
+- GitHub 仓库链接、更新提示和发行模板全部指向本 fork。
+- 推送 `v*` tag 时，GitHub Actions 只创建 latest Release 并使用仓库内的发行说明；不构建或上传安装包、应用压缩包、更新元数据和 blockmap。
+- GitHub 自动显示的 “Source code (zip/tar.gz)” 是平台生成的源码快照，不是可直接运行的应用。
+- 由于仓库不发布二进制更新，发行流程不需要 Windows/macOS 代码签名凭证。
 - 根 MIT 许可证作为可见的 `resources/LICENSE` 随桌面应用分发。
 - 仓库只维护这一份中英双语主 README，不再同步多份语言副本。
 
@@ -86,13 +91,13 @@ Token Monitor 是一个本地优先的 Electron 桌面组件，用于汇总 AI �
 
 ### 安装与更新
 
-从本 fork 的 [GitHub Releases](https://github.com/MarbleGateKeeper/token-monitor-ver.replica/releases) 下载对应平台的发行包。Windows 提供安装版和便携版；其他平台是否提供预构建包，以具体 Release 的附件为准。
+本 fork 不提供预构建应用。如需使用，请下载或克隆仓库源码，在目标操作系统上按照下方“从源码运行与构建”操作。[GitHub Releases](https://github.com/MarbleGateKeeper/token-monitor-ver.replica/releases) 只用于版本 tag、发行说明和源码快照。
 
 需要注意：
 
 - 本 fork 与上游沿用相同应用 ID 和数据目录，因此安装时会被系统视为同一个 Token Monitor，而不是并排安装。
 - 自行本地构建的 Windows EXE 默认没有 Authenticode 签名，Windows 可能显示 SmartScreen 警告。
-- 应用仍校验自动更新包的签名。要发布可自动安装的更新，fork 维护者必须配置自己的 Windows/macOS 签名凭证；不要通过关闭签名校验来发布不受信任的更新。
+- 应用只提示新版本并打开 Release 页面，不会自动下载或安装；更新时请自行获取新源码并重新构建。
 
 首次启动默认进入本地模式，无需 Hub 或配置文件。打开 **设置 → 采集** 选择要跟踪的工具；账号额度、凭证和登录入口位于 **AI 工具额度（提供方选择、额度与凭据）**。
 
@@ -135,7 +140,7 @@ npm run dist:mac:x64  # macOS Intel x64
 npm run dist:linux    # Linux x64 AppImage
 ```
 
-输出位于 `dist/`。macOS 正式包需要 Developer ID 签名；Windows 本地构建若没有证书则为未签名包。
+输出位于 `dist/`，仅保留在本机，不会被 Release 工作流上传。默认本地构建不要求签名：Windows 可能显示 SmartScreen 警告，macOS 也可能因未签名、未公证而触发 Gatekeeper；如需对外分发，请自行配置相应平台的签名与公证。
 
 ---
 
@@ -147,7 +152,7 @@ npm run dist:linux    # Linux x64 AppImage
 - **This repository:** [MarbleGateKeeper/token-monitor-ver.replica](https://github.com/MarbleGateKeeper/token-monitor-ver.replica) carries personal fixes and features that have not been incorporated upstream.
 - **Git remotes:** `upstream` normally tracks the original project and `origin` tracks this fork. Review upstream changes before merging and preserve the fork behavior documented below.
 - **Versioning:** releases use `<upstream-version>-replica.<revision>`, currently `0.42.0-replica.1`. Increment the replica revision on the same upstream base; restart at `replica.1` after adopting a new upstream version.
-- **Updates:** in-app release checks, release notes, downloads, About links, and packaged updater metadata all point to this fork.
+- **Updates:** the app queries this fork's latest GitHub Release for its tag and notes. A newer version produces a notice and link only; the app never downloads or installs an update.
 - **License and credit:** the upstream MIT license and Javis copyright notice are preserved, and packaged applications include the complete `LICENSE`.
 
 ### Functional changes in this fork
@@ -185,12 +190,17 @@ Mapping behavior:
 - Model dimensions are combined across dashboards, devices, models, sessions, costs, cache metrics, output tokens, history, trends, and exports.
 - Collector output, Hub device records, and retained raw snapshots are not rewritten, so removing a mapping restores the original split.
 
+#### 4. New-tag notices without automatic updates
+
+On startup and on manual checks, the app queries this repository's latest GitHub Release. It shows a notice only when that tag is newer than the running version, with release notes and a link to the Release page. The application updater, background downloads, and restart-to-install flow have been removed. Any legacy automatic-download preference is ignored and cleaned from saved settings.
+
 ### Distribution and maintenance changes
 
 - App and Worker versions share the `replica` suffix.
-- GitHub update providers, repository links, website downloads, and release templates point to this fork.
-- Releases are explicitly marked as this repository's latest release for both source and packaged update checks.
-- The Windows prepackaged signing path accepts replica SemVer suffixes while retaining update signature verification.
+- Repository links, update notices, and release templates point to this fork.
+- Pushing a `v*` tag makes GitHub Actions create a latest Release from the checked-in notes only; it does not build or upload installers, app archives, updater metadata, or blockmaps.
+- GitHub's automatic “Source code (zip/tar.gz)” entries are source snapshots, not ready-to-run applications.
+- Because no binary updates are published, the release workflow needs no Windows or macOS signing credentials.
 - The root MIT license ships visibly as `resources/LICENSE`.
 - The repository maintains this single bilingual README instead of multiple translated copies.
 
@@ -207,13 +217,13 @@ Token Monitor is a local-first Electron widget for AI coding-tool tokens, cost, 
 
 ### Install and update
 
-Download releases from this fork's [GitHub Releases](https://github.com/MarbleGateKeeper/token-monitor-ver.replica/releases). Windows releases may include setup and portable executables; availability for other platforms depends on the assets attached to each release.
+This fork does not provide prebuilt applications. Download or clone the repository source and follow “Run and build from source” below on the target operating system. [GitHub Releases](https://github.com/MarbleGateKeeper/token-monitor-ver.replica/releases) provide version tags, release notes, and source snapshots only.
 
 Important details:
 
 - This fork retains the upstream app ID and data directory, so the operating system treats it as the same Token Monitor installation rather than a side-by-side variant.
 - Locally built Windows executables are unsigned unless you configure an Authenticode certificate, and Windows may show a SmartScreen warning.
-- Automatic update packages are still signature-verified. A fork maintainer must configure Windows/macOS signing credentials before publishing installable automatic updates; do not disable verification to ship untrusted artifacts.
+- The app only reports a newer version and opens its Release page. It never downloads or installs an update; obtain the new source and rebuild it yourself.
 
 The first launch uses local mode and needs no Hub or config file. Choose tracked tools under **Settings → Collection**. Provider accounts and credentials remain under **AI Tool Limits (provider selection, limits, and credentials)**.
 
@@ -247,7 +257,7 @@ npm run dist:mac:x64  # macOS Intel x64
 npm run dist:linux    # Linux x64 AppImage
 ```
 
-Artifacts are written to `dist/`. Production macOS artifacts require Developer ID signing; local Windows artifacts remain unsigned without a configured certificate.
+Artifacts are written to `dist/` and remain local; the Release workflow does not upload them. Local builds do not require signing by default. Windows may show SmartScreen warnings, and unsigned or unnotarized macOS builds may trigger Gatekeeper. Configure platform signing and notarization yourself before distributing a build.
 
 ---
 
@@ -298,7 +308,6 @@ The third-party Custom adapter reads declared numeric fields from one GET balanc
 - [Hub API](docs/API.md)
 - [导出 / Export](docs/export.md)
 - [隐私 / Privacy](docs/privacy.md)
-- [Windows 代码签名 / Windows code signing](docs/code-signing.md)
 - [Cloudflare Worker](worker/README.md)
 
 ## 致谢与许可证 / Credits and license

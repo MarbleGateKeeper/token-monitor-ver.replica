@@ -6,21 +6,15 @@ const path = require('node:path');
 const test = require('node:test');
 
 const {
-  appUpdateInstallSupport,
   checkLatestRelease,
   classifyAppUpdateError,
   deriveAppUpdateAvailability,
-  downloadedAppUpdateMatchesLatest,
   extractReleaseNotes,
-  extractUpdaterReleaseNotes,
-  latestFromUpdaterInfo,
   mergeLatestReleaseMetadata,
   parseLatestReleasePayload,
   parseTag,
-  providerUpdateCheckAvailability,
   RELEASES_LATEST_URL,
   resolveAppUpdateCheckError,
-  shouldDownloadAutomaticAppUpdate,
   shouldSkipAppUpdateCheck
 } = require('../../src/shared/appUpdater');
 
@@ -78,19 +72,6 @@ test('parseTag returns null for invalid or empty input', () => {
   assert.equal(parseTag(123), null);
 });
 
-test('appUpdateInstallSupport only enables packaged auto-updatable targets', () => {
-  assert.deepEqual(appUpdateInstallSupport({ isPackaged: false, platform: 'darwin' }), { supported: false, reason: 'unpackaged' });
-  assert.deepEqual(appUpdateInstallSupport({ isPackaged: true, platform: 'darwin' }), { supported: true, reason: '' });
-  assert.deepEqual(appUpdateInstallSupport({ isPackaged: true, platform: 'win32', env: {} }), { supported: true, reason: '' });
-  assert.deepEqual(appUpdateInstallSupport({
-    isPackaged: true,
-    platform: 'win32',
-    env: { PORTABLE_EXECUTABLE_FILE: 'C:\\Downloads\\Token-Monitor.exe' }
-  }), { supported: false, reason: 'windows-portable' });
-  assert.deepEqual(appUpdateInstallSupport({ isPackaged: true, platform: 'linux', env: {} }), { supported: false, reason: 'linux-not-appimage' });
-  assert.deepEqual(appUpdateInstallSupport({ isPackaged: true, platform: 'linux', env: { APPIMAGE: '/tmp/Token Monitor.AppImage' } }), { supported: true, reason: '' });
-});
-
 test('shouldSkipAppUpdateCheck refreshes cached update prompts sooner than the normal cooldown', () => {
   const nowMs = Date.parse('2026-07-02T18:30:00Z');
   const twoHoursAgo = '2026-07-02T16:30:00Z';
@@ -125,88 +106,15 @@ test('shouldSkipAppUpdateCheck uses normal cooldown for dismissed cached updates
   }), true);
 });
 
-test('downloadedAppUpdateMatchesLatest only trusts the downloaded latest version', () => {
-  assert.equal(downloadedAppUpdateMatchesLatest({
-    phase: 'downloaded',
-    downloadedVersion: '0.19.0',
-    latest: { version: '0.19.0' }
-  }), true);
-
-  assert.equal(downloadedAppUpdateMatchesLatest({
-    phase: 'downloaded',
-    downloadedVersion: '0.18.0',
-    latest: { version: '0.19.0' }
-  }), false);
-
-  assert.equal(downloadedAppUpdateMatchesLatest({
-    phase: 'downloading',
-    downloadedVersion: '0.19.0',
-    latest: { version: '0.19.0' }
-  }), false);
-
-  assert.equal(downloadedAppUpdateMatchesLatest({
-    phase: 'downloaded',
-    downloadedVersion: '0.19.0',
-    latest: null
-  }), false);
-});
-
-test('shouldDownloadAutomaticAppUpdate covers the automatic-download state matrix', () => {
-  const ready = {
-    hasUpdate: true,
-    installSupported: true,
-    latest: { version: '0.28.1' },
-    dismissedVersion: null,
-    downloaded: false,
-    installBusy: false
-  };
-  const cases = [
-    ['enabled and ready', true, ready, true],
-    ['preference disabled', false, ready, false],
-    ['no update', true, { ...ready, hasUpdate: false }, false],
-    ['unsupported build', true, { ...ready, installSupported: false }, false],
-    ['latest version dismissed', true, { ...ready, dismissedVersion: '0.28.1' }, false],
-    ['older version dismissed', true, { ...ready, dismissedVersion: '0.28.0' }, true],
-    ['already downloaded', true, { ...ready, downloaded: true }, false],
-    ['check or download already in flight', true, { ...ready, installBusy: true }, false],
-    ['missing update state', true, null, false]
-  ];
-
-  for (const [name, automaticAppUpdates, updateState, expected] of cases) {
-    assert.equal(
-      shouldDownloadAutomaticAppUpdate({ automaticAppUpdates, updateState }),
-      expected,
-      name
-    );
-  }
-});
-
 test('deriveAppUpdateAvailability keeps availability separate from notification dismissal', () => {
   assert.deepEqual(deriveAppUpdateAvailability({
     currentVersion: '0.28.0',
     latest: { version: '0.28.1' },
-    dismissedVersion: '0.28.1',
-    phase: 'idle'
+    dismissedVersion: '0.28.1'
   }), {
     hasUpdate: true,
     dismissed: true,
-    downloaded: false,
     showUpdateNotice: false
-  });
-});
-
-test('deriveAppUpdateAvailability always surfaces a downloaded matching update', () => {
-  assert.deepEqual(deriveAppUpdateAvailability({
-    currentVersion: '0.28.0',
-    latest: { version: '0.28.1' },
-    dismissedVersion: '0.28.1',
-    phase: 'downloaded',
-    downloadedVersion: '0.28.1'
-  }), {
-    hasUpdate: true,
-    dismissed: true,
-    downloaded: true,
-    showUpdateNotice: true
   });
 });
 
@@ -384,64 +292,6 @@ ${added}
   assert.match(notes.en[0].items[0], /…$/);
 });
 
-test('extractUpdaterReleaseNotes reads the locale sections present in GitHub Atom HTML', () => {
-  const html = `
-<h1>English</h1><h2>What's changed</h2><h3>Security</h3><ul><li>Uses the public provider. (<a href="https://example.com">#183</a>)</li></ul><h2>Download</h2><ul><li>Installer</li></ul>
-<h1>中文</h1><h2>更新内容</h2><h3>修复</h3><ul><li>使用公开 provider。（<a href="https://example.com">#183</a>）</li></ul><h2>下载</h2><ul><li>安装包</li></ul>
-`;
-
-  assert.deepEqual(extractUpdaterReleaseNotes(html, '0.40.0'), {
-    en: [{ title: 'Security', items: ['Uses the public provider.'] }],
-    zh: [{ title: '修复', items: ['使用公开 provider。'] }]
-  });
-});
-
-test('extractUpdaterReleaseNotes cannot emit nested HTML or comment markup', () => {
-  const notes = extractUpdaterReleaseNotes([
-    '<h1>English</h1>',
-    '<h2>Changes</h2>',
-    '<h3>Fixed</h3>',
-    '<ul><li>Safe <scr<script>ipt>alert(1)</script> text <!-- <script>hidden()</script> --></li></ul>',
-    '<h2>Download</h2>'
-  ].join(''), '0.40.0');
-
-  assert.equal(notes.en[0].title, 'Fixed');
-  assert.doesNotMatch(notes.en[0].items[0], /</);
-  assert.doesNotMatch(notes.en[0].items[0], /hidden/);
-});
-
-test('extractUpdaterReleaseNotes preserves literal and encoded greater-than signs', () => {
-  const notes = extractUpdaterReleaseNotes([
-    '<h1>English</h1>',
-    '<h2>Changes</h2>',
-    '<h3>Fixed</h3>',
-    '<ul><li>Cost comparison 5 &gt; 2 remains stable -> ready.</li></ul>',
-    '<h2>Download</h2>'
-  ].join(''), '0.40.0');
-
-  assert.equal(notes.en[0].items[0], 'Cost comparison 5 > 2 remains stable -> ready.');
-});
-
-test('extractUpdaterReleaseNotes recognizes closing tags with ASCII whitespace', () => {
-  const notes = extractUpdaterReleaseNotes([
-    '<h1>English</h1>',
-    '<h2>Changes</h2>',
-    '<h3>Fixed</h3>',
-    '<ul>',
-    '<li>Adjacent<strong>space</strong > remains.</li>',
-    '<li>Adjacent<strong>tab</strong\t> remains.</li>',
-    '<li>Adjacent<strong>newline</strong\n> remains.</li>',
-    '</ul>',
-    '<h2>Download</h2>'
-  ].join(''), '0.40.0');
-
-  assert.deepEqual(notes.en[0].items, [
-    'Adjacentspace remains.',
-    'Adjacenttab remains.',
-    'Adjacentnewline remains.'
-  ]);
-});
-
 test('release-note text preserves literal, encoded, unclosed, and inline-code less-than signs', () => {
   const notes = extractReleaseNotes(`
 <!-- app-update-notes:en:start -->
@@ -492,17 +342,6 @@ test('release-note text ignores false closing tags in comments and quoted markup
     'Compare x<a and later > here',
     'Compare x<a and later > here label.'
   ]);
-});
-
-test('extractUpdaterReleaseNotes selects the matching full-changelog entry', () => {
-  const matching = '<h1>English</h1><h2>Changes</h2><h3>Fixed</h3><ul><li>Matching release.</li></ul>';
-  const older = '<h1>English</h1><h2>Changes</h2><h3>Fixed</h3><ul><li>Older release.</li></ul>';
-  assert.deepEqual(extractUpdaterReleaseNotes([
-    { version: '0.39.0', note: older },
-    { version: 'v0.40.0', note: matching }
-  ], '0.40.0'), {
-    en: [{ title: 'Fixed', items: ['Matching release.'] }]
-  });
 });
 
 test('release template exposes marked summaries for every bundled locale', () => {
@@ -585,21 +424,21 @@ test('release template exposes marked summaries for every bundled locale', () =>
     /<details>\s*<summary>繁體中文 · 한국어 · 日本語<\/summary>[\s\S]*<details>\s*<summary><strong>繁體中文<\/strong><\/summary>[\s\S]*<details>\s*<summary><strong>한국어<\/strong><\/summary>[\s\S]*<details>\s*<summary><strong>日本語<\/strong><\/summary>/
   );
   assert.doesNotMatch(template, /其他語言|user-content-release-notes-/);
-  assert.match(template, /## 繁體中文[\s\S]*## 下載/);
-  assert.match(template, /## 한국어[\s\S]*## 다운로드/);
-  assert.match(template, /## 日本語[\s\S]*## ダウンロード/);
+  assert.match(template, /## 繁體中文[\s\S]*## 從原始碼建置/);
+  assert.match(template, /## 한국어[\s\S]*## 소스에서 빌드/);
+  assert.match(template, /## 日本語[\s\S]*## ソースからビルド/);
   assert.match(template, /\(#\d+(?:, #\d+)*\)/);
   assert.match(template, /（#\d+(?:、#\d+)*）/);
 });
 
-test('mergeLatestReleaseMetadata preserves notes when native updater metadata omits them', () => {
+test('mergeLatestReleaseMetadata preserves notes when refreshed metadata omits them', () => {
   const releaseNotes = { en: [{ title: 'Fixed', items: ['An updater fix.'] }] };
   assert.deepEqual(
     mergeLatestReleaseMetadata(
       { version: '0.28.0', name: 'GitHub release', releaseNotes },
-      { version: '0.28.0', name: 'Native updater' }
+      { version: '0.28.0', name: 'Refreshed release' }
     ),
-    { version: '0.28.0', name: 'Native updater', releaseNotes }
+    { version: '0.28.0', name: 'Refreshed release', releaseNotes }
   );
   assert.deepEqual(
     mergeLatestReleaseMetadata(
@@ -662,60 +501,6 @@ test('parseLatestReleasePayload builds a trusted release URL from the validated 
   assert.equal(parseLatestReleasePayload({
     tag_name: 'v0.1.3'
   }).htmlUrl, 'https://github.com/MarbleGateKeeper/token-monitor-ver.replica/releases/tag/v0.1.3');
-});
-
-test('latestFromUpdaterInfo normalizes provider metadata and release notes', () => {
-  assert.deepEqual(latestFromUpdaterInfo({
-    version: '0.40.0',
-    tag: 'v0.40.0',
-    releaseName: 'Token Monitor 0.40.0',
-    releaseDate: '2026-08-03T08:00:00Z',
-    releaseNotes: '<h1>English</h1><h2>Changes</h2><h3>Fixed</h3><ul><li>Updater fix. (<a href="https://example.com">#183</a>)</li></ul>'
-  }), {
-    version: '0.40.0',
-    tag: 'v0.40.0',
-    name: 'Token Monitor 0.40.0',
-    htmlUrl: 'https://github.com/MarbleGateKeeper/token-monitor-ver.replica/releases/tag/v0.40.0',
-    publishedAt: '2026-08-03T08:00:00Z',
-    releaseNotes: { en: [{ title: 'Fixed', items: ['Updater fix.'] }] }
-  });
-});
-
-test('providerUpdateCheckAvailability rejects newer versions excluded by the provider', () => {
-  const result = providerUpdateCheckAvailability({
-    isUpdateAvailable: false,
-    updateInfo: {
-      version: '0.40.0',
-      releaseName: 'Rollout release'
-    }
-  }, '0.39.0');
-
-  assert.deepEqual(result, {
-    valid: true,
-    newer: false,
-    latest: null,
-    clearLatest: true
-  });
-});
-
-test('providerUpdateCheckAvailability accepts eligible updates and current metadata', () => {
-  const eligible = providerUpdateCheckAvailability({
-    isUpdateAvailable: true,
-    updateInfo: { version: '0.40.0' }
-  }, '0.39.0');
-  const current = providerUpdateCheckAvailability({
-    isUpdateAvailable: false,
-    updateInfo: { version: '0.39.0' }
-  }, '0.39.0');
-
-  assert.equal(eligible.valid, true);
-  assert.equal(eligible.newer, true);
-  assert.equal(eligible.latest.version, '0.40.0');
-  assert.equal(eligible.clearLatest, false);
-  assert.equal(current.valid, true);
-  assert.equal(current.newer, false);
-  assert.equal(current.latest.version, '0.39.0');
-  assert.equal(current.clearLatest, false);
 });
 
 test('classifyAppUpdateError separates actionable failures including nested causes', () => {

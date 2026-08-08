@@ -5,7 +5,6 @@ const crypto = require('node:crypto');
 const os = require('node:os');
 const path = require('node:path');
 const { app, BrowserWindow, clipboard, dialog, globalShortcut, ipcMain, nativeImage, net, Notification, screen, session, shell } = require('electron');
-const { autoUpdater } = require('electron-updater');
 const { defaultDeviceId, generateHubSecret, lanIpv4Addresses, loadDotEnv, pidFilePath, sharedDataDir } = require('../shared/config');
 const {
   CredentialStore,
@@ -96,16 +95,11 @@ const {
   resetToBundled
 } = require('../shared/tokscaleUpdater');
 const {
-  appUpdateInstallSupport,
   classifyAppUpdateError,
   checkLatestRelease,
   deriveAppUpdateAvailability,
-  downloadedAppUpdateMatchesLatest,
-  latestFromUpdaterInfo,
   mergeLatestReleaseMetadata,
-  providerUpdateCheckAvailability,
   resolveAppUpdateCheckError,
-  shouldDownloadAutomaticAppUpdate,
   shouldSkipAppUpdateCheck
 } = require('../shared/appUpdater');
 const cursorAuth = require('../shared/cursorAuth');
@@ -394,7 +388,6 @@ function defaultSettings() {
     currency: normalizeCurrency(process.env.TOKEN_MONITOR_CURRENCY || 'USD'),
     currencyRates: {},
     startAtLogin: false,
-    automaticAppUpdates: false,
     language: 'auto',
     claudeWebCookie: '',
     opencodeCookie: '',
@@ -1976,7 +1969,9 @@ function readSettings() {
     merged.showHomeLimitBars = parseBoolean(merged.showHomeLimitBars, false);
     merged.showHomeLimitProviderNames = parseBoolean(merged.showHomeLimitProviderNames, false);
     merged.windowMaximized = parseBoolean(merged.windowMaximized, false);
-    merged.automaticAppUpdates = parseBoolean(merged.automaticAppUpdates, false);
+    // Removed in the source-only release channel. Ignore legacy preferences so
+    // old settings files cannot re-enable the retired download/install path.
+    delete merged.automaticAppUpdates;
     if (saved.homeLimitProviderOrder !== undefined) {
       merged.homeLimitProviderOrder = migrateHomeLimitProviderOrder(saved.homeLimitProviderOrder);
     }
@@ -4425,20 +4420,10 @@ let appUpdateCheckPromise = null;
 let appUpdateLastError = null;
 let appUpdateLastAttemptAt = null;
 let appUpdateBackgroundTimer = null;
-let appUpdateNativeBusy = false;
-let appUpdateNativeConfigured = false;
-let appUpdateNativeState = {
-  phase: 'idle',
-  version: null,
-  progress: null,
-  error: null
-};
 
-function rememberSuccessfulAppUpdateCheck(latest, checkedAt = new Date().toISOString(), { clearLatest = false } = {}) {
-  if (!latest && !clearLatest) return null;
-  const remembered = latest
-    ? mergeLatestReleaseMetadata(settings?.appUpdate?.lastKnownLatest, latest)
-    : null;
+function rememberSuccessfulAppUpdateCheck(latest, checkedAt = new Date().toISOString()) {
+  if (!latest) return null;
+  const remembered = mergeLatestReleaseMetadata(settings?.appUpdate?.lastKnownLatest, latest);
   settings.appUpdate = {
     ...(settings.appUpdate || {}),
     lastCheckedAt: checkedAt,
@@ -4450,63 +4435,10 @@ function rememberSuccessfulAppUpdateCheck(latest, checkedAt = new Date().toISOSt
   return remembered;
 }
 
-function setNativeAppUpdateState(patch = {}) {
-  appUpdateNativeState = { ...appUpdateNativeState, ...patch };
-  sendAppUpdatePush();
-}
-
-function configureNativeAppUpdater() {
-  if (appUpdateNativeConfigured) return;
-  appUpdateNativeConfigured = true;
-  autoUpdater.autoDownload = false;
-  autoUpdater.autoInstallOnAppQuit = false;
-  autoUpdater.logger = console;
-  autoUpdater.on('download-progress', (progress) => {
-    setNativeAppUpdateState({
-      phase: 'downloading',
-      progress: Number.isFinite(progress?.percent) ? Math.max(0, Math.min(100, progress.percent)) : null,
-      error: null
-    });
-  });
-  autoUpdater.on('update-downloaded', (info) => {
-    appUpdateNativeBusy = false;
-    const latest = latestFromUpdaterInfo(info);
-    setNativeAppUpdateState({ phase: 'downloaded', version: latest?.version || info?.version || appUpdateNativeState.version || null, progress: 100, error: null });
-  });
-  autoUpdater.on('error', (error) => {
-    // Availability checks use the same provider but report through
-    // appUpdateLastError. Only a real download attempt owns installError.
-    if (!appUpdateNativeBusy) return;
-    appUpdateNativeBusy = false;
-    setNativeAppUpdateState({ phase: 'error', progress: null, error: error?.message || String(error || 'Update failed') });
-  });
-}
-
 async function checkAppUpdateProvider() {
-  if (!app.isPackaged) return checkLatestRelease(app.getVersion());
-  const checkedAt = new Date().toISOString();
-  configureNativeAppUpdater();
-  const result = await autoUpdater.checkForUpdates();
-  const availability = providerUpdateCheckAvailability(result, app.getVersion());
-  if (!availability.valid) {
-    return {
-      ok: false,
-      newer: false,
-      latest: null,
-      error: 'Update metadata missing or invalid',
-      errorKind: 'metadata',
-      checkedAt
-    };
-  }
-  return {
-    ok: true,
-    newer: availability.newer,
-    latest: availability.latest,
-    clearLatest: availability.clearLatest,
-    error: null,
-    errorKind: null,
-    checkedAt
-  };
+  // Releases in this fork contain notes only. Packaged and source runs use the
+  // same public tag check and never look for platform updater metadata/assets.
+  return checkLatestRelease(app.getVersion());
 }
 
 function deriveAppUpdateState() {
@@ -4514,13 +4446,10 @@ function deriveAppUpdateState() {
   const currentVersion = app.getVersion();
   const latest = block.lastKnownLatest || null;
   const dismissedVersion = block.dismissedVersion || null;
-  const installSupport = appUpdateInstallSupport({ isPackaged: app.isPackaged, platform: process.platform, env: process.env });
   const availability = deriveAppUpdateAvailability({
     currentVersion,
     latest,
-    dismissedVersion,
-    phase: appUpdateNativeState.phase,
-    downloadedVersion: appUpdateNativeState.version
+    dismissedVersion
   });
   return {
     currentVersion,
@@ -4532,15 +4461,7 @@ function deriveAppUpdateState() {
     lastAttemptAt: appUpdateLastAttemptAt,
     checking: appUpdateCheckInFlight,
     lastError: appUpdateLastError?.message || null,
-    lastErrorKind: appUpdateLastError?.kind || null,
-    installSupported: installSupport.supported,
-    installSupportReason: installSupport.reason,
-    installPhase: appUpdateNativeState.phase,
-    installProgress: appUpdateNativeState.progress,
-    installVersion: appUpdateNativeState.version,
-    installError: appUpdateNativeState.error,
-    downloaded: availability.downloaded,
-    installBusy: appUpdateNativeBusy || appUpdateNativeState.phase === 'checking' || appUpdateNativeState.phase === 'downloading'
+    lastErrorKind: appUpdateLastError?.kind || null
   };
 }
 
@@ -4560,7 +4481,7 @@ function sendAppUpdatePush() {
   mainWindow.webContents.send('appUpdate:push', deriveAppUpdateState());
 }
 
-async function runAppUpdateCheck({ force = false, bypassCooldown = false } = {}) {
+async function runAppUpdateCheck({ force = false } = {}) {
   if (appUpdateCheckPromise) {
     if (force) sendAppUpdatePush();
     const activeResult = await appUpdateCheckPromise;
@@ -4572,17 +4493,17 @@ async function runAppUpdateCheck({ force = false, bypassCooldown = false } = {})
       }
       sendAppUpdatePush();
     }
-    return maybeDownloadAutomaticAppUpdate(deriveAppUpdateState());
+    return deriveAppUpdateState();
   }
   const block = settings?.appUpdate || {};
-  if (!bypassCooldown && shouldSkipAppUpdateCheck({
+  if (shouldSkipAppUpdateCheck({
     force,
     lastCheckedAt: block.lastCheckedAt,
     latest: block.lastKnownLatest,
     dismissedVersion: block.dismissedVersion,
     currentVersion: app.getVersion()
   })) {
-    return maybeDownloadAutomaticAppUpdate(deriveAppUpdateState());
+    return deriveAppUpdateState();
   }
   const checkTask = (async () => {
     appUpdateCheckInFlight = true;
@@ -4593,7 +4514,7 @@ async function runAppUpdateCheck({ force = false, bypassCooldown = false } = {})
       result = await checkAppUpdateProvider();
       appUpdateLastAttemptAt = result.checkedAt || appUpdateLastAttemptAt;
       if (result.ok) {
-        rememberSuccessfulAppUpdateCheck(result.latest, result.checkedAt, { clearLatest: result.clearLatest });
+        rememberSuccessfulAppUpdateCheck(result.latest, result.checkedAt);
         if (force && result.newer) restoreDismissedAppUpdate(result.latest?.version);
       } else {
         appUpdateLastError = resolveAppUpdateCheckError(appUpdateLastError, result, { force });
@@ -4627,15 +4548,7 @@ async function runAppUpdateCheck({ force = false, bypassCooldown = false } = {})
   } finally {
     if (appUpdateCheckPromise === checkTask) appUpdateCheckPromise = null;
   }
-  return maybeDownloadAutomaticAppUpdate(deriveAppUpdateState());
-}
-
-async function maybeDownloadAutomaticAppUpdate(updateState) {
-  if (!shouldDownloadAutomaticAppUpdate({
-    automaticAppUpdates: settings?.automaticAppUpdates,
-    updateState
-  })) return updateState;
-  return downloadAndPrepareAppUpdate();
+  return deriveAppUpdateState();
 }
 
 function maybeRunBackgroundUpdateCheck() {
@@ -4656,63 +4569,6 @@ function dismissAppUpdateVersion(version) {
   };
   saveSettings();
   sendAppUpdatePush();
-  return deriveAppUpdateState();
-}
-
-async function downloadAndPrepareAppUpdate() {
-  const support = appUpdateInstallSupport({ isPackaged: app.isPackaged, platform: process.platform, env: process.env });
-  if (!support.supported) {
-    setNativeAppUpdateState({ phase: 'error', error: support.reason || 'unsupported-platform', progress: null });
-    return deriveAppUpdateState();
-  }
-  if (appUpdateCheckPromise) await appUpdateCheckPromise;
-  if (appUpdateNativeBusy) return deriveAppUpdateState();
-  const latest = settings?.appUpdate?.lastKnownLatest || null;
-  if (downloadedAppUpdateMatchesLatest({
-    phase: appUpdateNativeState.phase,
-    downloadedVersion: appUpdateNativeState.version,
-    latest
-  })) return deriveAppUpdateState();
-  configureNativeAppUpdater();
-  appUpdateNativeBusy = true;
-  setNativeAppUpdateState({ phase: 'checking', progress: null, error: null });
-  try {
-    const result = await autoUpdater.checkForUpdates();
-    const availability = providerUpdateCheckAvailability(result, app.getVersion());
-    if (!availability.valid) throw new Error('Update metadata missing or invalid');
-    const checkedAt = new Date().toISOString();
-    const latestFromCheck = rememberSuccessfulAppUpdateCheck(
-      availability.latest,
-      checkedAt,
-      { clearLatest: availability.clearLatest }
-    );
-    const version = latestFromCheck?.version || null;
-    if (!availability.newer || !version) {
-      appUpdateNativeBusy = false;
-      setNativeAppUpdateState({ phase: 'idle', version, progress: null, error: null });
-      return deriveAppUpdateState();
-    }
-    restoreDismissedAppUpdate(version);
-    setNativeAppUpdateState({ phase: 'downloading', version, progress: 0, error: null });
-    await autoUpdater.downloadUpdate();
-  } catch (error) {
-    appUpdateNativeBusy = false;
-    setNativeAppUpdateState({ phase: 'error', progress: null, error: error?.message || String(error) });
-  }
-  return deriveAppUpdateState();
-}
-
-function installDownloadedAppUpdate() {
-  const latest = settings?.appUpdate?.lastKnownLatest || null;
-  if (!downloadedAppUpdateMatchesLatest({
-    phase: appUpdateNativeState.phase,
-    downloadedVersion: appUpdateNativeState.version,
-    latest
-  })) return deriveAppUpdateState();
-  quitRequested = true;
-  // isSilent: skip the NSIS installer UI on Windows so the update feels seamless
-  // (per-user install needs no elevation); isForceRunAfter relaunches the app.
-  autoUpdater.quitAndInstall(true, true);
   return deriveAppUpdateState();
 }
 
@@ -5187,7 +5043,6 @@ app.whenReady().then(() => {
     const previousCompactTokenUnits = settings.compactTokenUnits;
     const previousLanguage = settings.language;
     const previousStartAtLogin = settings.startAtLogin;
-    const previousAutomaticAppUpdates = settings.automaticAppUpdates;
     const previousCustomModelPricing = JSON.stringify(settings.customModelPricing || []);
     const previousModelMappings = JSON.stringify(settings.modelMappings || []);
     const normalizedCurrency = patch.currency !== undefined ? normalizeCurrency(patch.currency, settings.currency) : normalizeCurrency(settings.currency);
@@ -5199,6 +5054,7 @@ app.whenReady().then(() => {
     delete normalizedPatch.thirdPartyProfiles;
     delete normalizedPatch.customModelPricing;
     delete normalizedPatch.modelMappings;
+    delete normalizedPatch.automaticAppUpdates;
     // Subscriptions go through subscriptions:save, which knows whether this
     // device owns the list or shares it with a hub. The explicit fields further
     // down are what actually hold the line — they are applied after the spread
@@ -5322,7 +5178,6 @@ app.whenReady().then(() => {
       currencyRates: patch.currencyRates !== undefined ? normalizeCurrencyOverrides(patch.currencyRates) : normalizeCurrencyOverrides(settings.currencyRates),
       language: patch.language !== undefined ? normalizeLanguageSetting(patch.language, settings.language) : normalizeLanguageSetting(settings.language),
       startAtLogin: loginItemEnabledHere() ? parseBoolean(patch.startAtLogin ?? settings.startAtLogin, false) : false,
-      automaticAppUpdates: parseBoolean(patch.automaticAppUpdates ?? settings.automaticAppUpdates, false),
       claudeWebCookie: patch.claudeWebCookie !== undefined
         ? normalizeClaudeWebCookie(patch.claudeWebCookie)
         : (settings.claudeWebCookie || ''),
@@ -5348,6 +5203,7 @@ app.whenReady().then(() => {
         ? normalizeCustomPricingSetting(patch.customModelPricing)
         : normalizeCustomPricingSetting(settings.customModelPricing)
     }, normalizedPatch);
+    delete settings.automaticAppUpdates;
     settings.archivedClientUsage = normalizeArchivedClientUsage(settings.archivedClientUsage);
     if (settings.clients !== previousClients) updateArchivedClientUsage(previousClients, settings.clients);
     delete settings.edgeDrawerEnabled;
@@ -5368,9 +5224,6 @@ app.whenReady().then(() => {
     if (settings.startAtLogin !== previousStartAtLogin) {
       settings.startAtLogin = applyLoginItem(settings.startAtLogin);
       saveSettings({ throwOnError: true });
-    }
-    if (settings.automaticAppUpdates && !previousAutomaticAppUpdates) {
-      runAppUpdateCheck({ bypassCooldown: true }).catch(() => {});
     }
     if (patch.zoomFactor !== undefined) applyZoomFactor();
     if (settings.discordRpcEnabled && !previousDiscordRpcEnabled) {
@@ -5708,8 +5561,6 @@ app.whenReady().then(() => {
   });
   ipcMain.handle('appUpdate:getState', () => deriveAppUpdateState());
   ipcMain.handle('appUpdate:checkNow', () => runAppUpdateCheck({ force: true }));
-  ipcMain.handle('appUpdate:download', () => downloadAndPrepareAppUpdate());
-  ipcMain.handle('appUpdate:install', () => installDownloadedAppUpdate());
   ipcMain.handle('appUpdate:dismiss', (_event, version) => dismissAppUpdateVersion(version));
   ipcMain.handle('cursor:loginManual', async (_event, raw) => {
     const token = normalizeManualCookie(raw);

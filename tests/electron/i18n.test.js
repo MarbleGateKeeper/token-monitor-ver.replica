@@ -63,16 +63,14 @@ test('translate falls back to English and interpolates values', () => {
   assert.equal(translate('zh-TW', 'missing.key'), 'missing.key');
 });
 
-test('automatic app update copy describes background downloads, not update checks', () => {
-  assert.equal(translate('en', 'settings.appUpdate.automatic'), 'Download updates automatically');
+test('app update copy clearly describes notification-only release checks', () => {
   assert.equal(
-    translate('en', 'settings.appUpdate.automaticDescription'),
-    "Download new versions in the background. You'll be prompted to restart when ready."
+    translate('en', 'settings.appUpdate.notificationOnly'),
+    'Checks for new release tags and shows a notice. Downloads and installation are never automatic.'
   );
-  assert.equal(translate('zh-TW', 'settings.appUpdate.automatic'), '自動下載更新');
   assert.equal(
-    translate('zh-TW', 'settings.appUpdate.automaticUnsupportedWindowsPortable'),
-    'Portable 版本不支援自動下載，請透過「查看 release」手動更新。'
+    translate('zh-TW', 'settings.appUpdate.notificationOnly'),
+    '僅檢查新的 release tag 並顯示提示，不會自動下載或安裝。'
   );
 });
 

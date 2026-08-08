@@ -376,19 +376,13 @@ Object.assign(els, {
   appUpdatePill: document.getElementById('appUpdatePill'),
   appUpdatePillAction: document.getElementById('appUpdatePillAction'),
   appUpdatePillLabel: document.getElementById('appUpdatePillLabel'),
-  appUpdatePillRestart: document.getElementById('appUpdatePillRestart'),
-  appUpdatePillRestartLabel: document.getElementById('appUpdatePillRestartLabel'),
   appUpdatePillDismiss: document.getElementById('appUpdatePillDismiss'),
   appUpdatePopover: document.getElementById('appUpdatePopover'),
   appUpdatePopoverTitle: document.getElementById('appUpdatePopoverTitle'),
   appUpdatePopoverBody: document.getElementById('appUpdatePopoverBody'),
   appUpdatePopoverAction: document.getElementById('appUpdatePopoverAction'),
-  appUpdatePopoverRelease: document.getElementById('appUpdatePopoverRelease'),
   appUpdatePopoverClose: document.getElementById('appUpdatePopoverClose'),
   appUpdateInstalled: document.getElementById('appUpdateInstalled'),
-  automaticAppUpdatesRow: document.getElementById('automaticAppUpdatesRow'),
-  automaticAppUpdatesInput: document.getElementById('automaticAppUpdatesInput'),
-  automaticAppUpdatesNote: document.getElementById('automaticAppUpdatesNote'),
   appUpdateLatest: document.getElementById('appUpdateLatest'),
   appUpdateCheckButton: document.getElementById('appUpdateCheckButton'),
   appUpdateViewReleaseButton: document.getElementById('appUpdateViewReleaseButton'),
@@ -921,11 +915,7 @@ function versionText(value) {
   return value ? `v${value}` : 'unknown';
 }
 function appUpdateActionMode(s) {
-  if (!s) return '';
-  if (s.downloaded) return 'install';
-  if (!s.hasUpdate) return '';
-  if (s.installSupported) return 'download';
-  return s.latest?.htmlUrl ? 'release' : '';
+  return s?.hasUpdate && s.latest?.htmlUrl ? 'release' : '';
 }
 function setAppUpdatePillDisclosure(available) {
   const action = els.appUpdatePillAction;
@@ -944,49 +934,29 @@ function renderAppUpdatePill() {
   const pill = els.appUpdatePill;
   if (!pill) return;
   const mode = appUpdateActionMode(s);
-  const version = s?.latest?.version || s?.installVersion || '';
+  const version = s?.latest?.version || '';
   if (!s || !mode || !version || !s.showUpdateNotice) {
     pill.classList.add('hidden');
-    pill.classList.remove('is-ready');
     pill.setAttribute('title', '');
     els.appUpdatePillLabel.textContent = '';
     els.appUpdatePillAction.removeAttribute('title');
     els.appUpdatePillAction.removeAttribute('aria-label');
     els.appUpdatePillAction.disabled = false;
-    els.appUpdatePillRestart.classList.add('hidden');
-    els.appUpdatePillRestartLabel.textContent = '';
-    els.appUpdatePillRestart.disabled = false;
-    els.appUpdatePillRestart.removeAttribute('title');
-    els.appUpdatePillRestart.removeAttribute('aria-label');
     setAppUpdatePillDisclosure(false);
     return;
   }
   const hasReleaseNotes = releaseNoteGroupsForCurrentLocale(s.latest).length > 0;
   setAppUpdatePillDisclosure(hasReleaseNotes);
   pill.classList.remove('hidden');
-  pill.classList.toggle('is-ready', mode === 'install');
-  els.appUpdatePillDismiss.classList.toggle('hidden', mode === 'install' || s.installBusy);
+  els.appUpdatePillDismiss.classList.remove('hidden');
   pill.setAttribute('title', '');
   const releaseLabel = hasReleaseNotes
     ? t('settings.appUpdate.whatsNew', { version })
     : (s.latest?.name || `v${version}`);
   els.appUpdatePillAction.setAttribute('title', releaseLabel);
   els.appUpdatePillAction.setAttribute('aria-label', releaseLabel);
-  els.appUpdatePillAction.disabled = mode === 'install' && !hasReleaseNotes && !s.latest?.htmlUrl;
-  els.appUpdatePillRestart.classList.toggle('hidden', mode !== 'install');
-  els.appUpdatePillRestart.disabled = Boolean(s.installBusy);
-  els.appUpdatePillRestartLabel.textContent = mode === 'install'
-    ? t('settings.appUpdate.restartShort')
-    : '';
-  els.appUpdatePillRestart.setAttribute('title', t('settings.appUpdate.ready'));
-  els.appUpdatePillRestart.setAttribute('aria-label', t('settings.appUpdate.restart'));
-  if (s.installPhase === 'downloading' && Number.isFinite(s.installProgress)) {
-    els.appUpdatePillLabel.textContent = `${Math.round(s.installProgress)}%`;
-  } else {
-    els.appUpdatePillLabel.textContent = mode === 'install'
-      ? `v${version}`
-      : `↑ v${version}`;
-  }
+  els.appUpdatePillAction.disabled = false;
+  els.appUpdatePillLabel.textContent = `↑ v${version}`;
 }
 function releaseNoteGroupsForCurrentLocale(latest) {
   return appUpdatePresentationApi.releaseNoteGroupsForLocale(latest?.releaseNotes, currentLocale());
@@ -1020,13 +990,8 @@ function renderAppUpdatePopover(s) {
   }
   els.appUpdatePopoverTitle.textContent = t('settings.appUpdate.whatsNew', { version });
   els.appUpdatePopoverBody.replaceChildren(...buildAppUpdateNoteGroupNodes(groups));
-  els.appUpdatePopoverAction.textContent = mode === 'install'
-    ? t('settings.appUpdate.restart')
-    : mode === 'download'
-      ? t('settings.appUpdate.download')
-      : t('settings.appUpdate.viewRelease');
-  els.appUpdatePopoverAction.disabled = Boolean(s.installBusy);
-  els.appUpdatePopoverRelease.classList.toggle('hidden', !s.latest?.htmlUrl);
+  els.appUpdatePopoverAction.textContent = t('settings.appUpdate.viewRelease');
+  els.appUpdatePopoverAction.disabled = false;
   return true;
 }
 function positionAppUpdatePopover() {
@@ -1083,12 +1048,8 @@ function renderSettingsAppUpdateRow() {
       : `v${displayVersion}`;
     const actionMode = appUpdateActionMode(s);
     els.appUpdateViewReleaseButton.classList.toggle('hidden', !actionMode);
-    els.appUpdateViewReleaseButton.disabled = Boolean(s.installBusy);
-    els.appUpdateViewReleaseButton.textContent = actionMode === 'install'
-      ? t('settings.appUpdate.restart')
-      : actionMode === 'download'
-        ? t('settings.appUpdate.download')
-        : t('settings.appUpdate.viewRelease');
+    els.appUpdateViewReleaseButton.disabled = false;
+    els.appUpdateViewReleaseButton.textContent = t('settings.appUpdate.viewRelease');
   } else {
     els.appUpdateLatest.textContent = s.lastError
       ? t('settings.appUpdate.unavailable')
@@ -1097,20 +1058,10 @@ function renderSettingsAppUpdateRow() {
         : t('settings.common.notChecked');
     els.appUpdateViewReleaseButton.classList.add('hidden');
   }
-  els.appUpdateCheckButton.disabled = Boolean(s.checking || s.installBusy);
+  els.appUpdateCheckButton.disabled = Boolean(s.checking);
   els.appUpdateCheckButton.textContent = s.checking ? t('settings.appUpdate.checking') : t('settings.appUpdate.check');
   renderAppUpdateNotes(s);
-  if (s.installPhase === 'downloading') {
-    const percent = Number.isFinite(s.installProgress) ? Math.round(s.installProgress) : 0;
-    els.appUpdateMessage.textContent = t('settings.appUpdate.downloading', { percent });
-    els.appUpdateMessage.classList.remove('error');
-  } else if (s.downloaded) {
-    els.appUpdateMessage.textContent = t('settings.appUpdate.ready');
-    els.appUpdateMessage.classList.remove('error');
-  } else if (s.installError) {
-    els.appUpdateMessage.textContent = t('settings.appUpdate.installError');
-    els.appUpdateMessage.classList.add('error');
-  } else if (s.lastError) {
+  if (s.lastError) {
     const error = t(presentation.errorKey);
     const age = compactAge(presentation.lastSuccessfulCheckAt);
     els.appUpdateMessage.textContent = age
@@ -1120,20 +1071,6 @@ function renderSettingsAppUpdateRow() {
   } else {
     els.appUpdateMessage.textContent = '';
     els.appUpdateMessage.classList.remove('error');
-  }
-}
-
-function renderAutomaticAppUpdateControl() {
-  if (!els.automaticAppUpdatesInput) return;
-  const control = appUpdatePresentationApi.automaticAppUpdateControlState({
-    preferenceEnabled: state.settings?.automaticAppUpdates,
-    updateState: state.appUpdate
-  });
-  els.automaticAppUpdatesInput.checked = control.checked;
-  els.automaticAppUpdatesInput.disabled = control.disabled;
-  els.automaticAppUpdatesRow?.classList.toggle('is-disabled', control.unavailable);
-  if (els.automaticAppUpdatesNote) {
-    els.automaticAppUpdatesNote.textContent = t(control.descriptionKey);
   }
 }
 
@@ -7646,7 +7583,6 @@ function syncSettingsForm() {
   }
   if (els.wslScanInput) els.wslScanInput.checked = state.settings.wslScanEnabled !== false;
   if (els.sessionUsageArchiveInput) els.sessionUsageArchiveInput.checked = state.settings.sessionUsageArchiveEnabled !== false;
-  renderAutomaticAppUpdateControl();
   renderSessionUsageArchiveStatus();
   const exportAutoOn = Boolean(state.settings.exportAutoEnabled);
   const exportDir = state.settings.exportDir || '';
@@ -9917,7 +9853,6 @@ async function init() {
     state.appUpdate = payload;
     renderAppUpdatePill();
     renderSettingsAppUpdateRow();
-    renderAutomaticAppUpdateControl();
     if (els.appUpdatePopover.matches(':popover-open')) renderAppUpdatePopover(payload);
   });
   if (state.appInfo?.loginItemSupported) {
@@ -10345,7 +10280,6 @@ els.showTrayProviderBadgeInput.addEventListener('change', () => {
 els.windowToggleShortcutValue?.addEventListener('click', startWindowShortcutRecording);
 els.windowToggleShortcutClearButton?.addEventListener('click', () => setWindowToggleShortcut('').catch(() => {}));
 els.startAtLoginInput?.addEventListener('change', () => saveSettings({ startAtLogin: els.startAtLoginInput.checked }));
-els.automaticAppUpdatesInput?.addEventListener('change', () => saveSettings({ automaticAppUpdates: els.automaticAppUpdatesInput.checked }));
 els.glassInput.addEventListener('change', saveAppearanceFromControls);
 els.blurInput.addEventListener('change', saveAppearanceFromControls);
 els.zoomInput.addEventListener('change', saveAppearanceFromControls);
@@ -10397,38 +10331,22 @@ els.floatingBubbleTab.addEventListener('keydown', (event) => {
 
 async function runAppUpdateAction() {
   const mode = appUpdateActionMode(state.appUpdate);
-  if (mode === 'install') {
-    state.appUpdate = await window.tokenMonitor.installAppUpdate();
-  } else if (mode === 'download') {
-    state.appUpdate = await window.tokenMonitor.downloadAppUpdate();
-  } else if (mode === 'release') {
-    const latest = state.appUpdate?.latest;
-    if (!latest?.htmlUrl) return;
-    await window.tokenMonitor.openExternal(latest.htmlUrl);
-  } else {
-    return;
-  }
+  if (mode !== 'release') return;
+  const latest = state.appUpdate?.latest;
+  if (!latest?.htmlUrl) return;
+  await window.tokenMonitor.openExternal(latest.htmlUrl);
   renderAppUpdatePill();
   renderSettingsAppUpdateRow();
 }
 
 els.appUpdatePillAction.addEventListener('click', async () => {
   if (!renderAppUpdatePopover(state.appUpdate) || typeof els.appUpdatePopover.showPopover !== 'function') {
-    if (appUpdateActionMode(state.appUpdate) === 'install') {
-      const url = state.appUpdate?.latest?.htmlUrl;
-      if (url) await window.tokenMonitor.openExternal(url);
-      return;
-    }
     await runAppUpdateAction();
     return;
   }
   positionAppUpdatePopover();
   els.appUpdatePopover.showPopover();
   els.appUpdatePopoverAction.focus();
-});
-
-els.appUpdatePillRestart.addEventListener('click', async () => {
-  await runAppUpdateAction();
 });
 
 els.appUpdatePillDismiss.addEventListener('click', async () => {
@@ -10459,11 +10377,6 @@ els.appUpdatePopover.addEventListener('toggle', (event) => {
 els.appUpdatePopoverAction.addEventListener('click', async () => {
   els.appUpdatePopover.hidePopover();
   await runAppUpdateAction();
-});
-
-els.appUpdatePopoverRelease.addEventListener('click', async () => {
-  const url = state.appUpdate?.latest?.htmlUrl;
-  if (url) await window.tokenMonitor.openExternal(url);
 });
 
 window.addEventListener('resize', () => {

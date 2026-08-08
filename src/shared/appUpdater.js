@@ -24,24 +24,6 @@ const RELEASE_NOTE_HTML_TAGS = new Set([
 ]);
 const RELEASE_NOTE_VOID_HTML_TAGS = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr']);
 
-function appUpdateInstallSupport({
-  isPackaged = false,
-  platform = process.platform,
-  env = process.env
-} = {}) {
-  if (!isPackaged) return { supported: false, reason: 'unpackaged' };
-  if (platform === 'darwin') return { supported: true, reason: '' };
-  if (platform === 'win32') {
-    return env?.PORTABLE_EXECUTABLE_FILE
-      ? { supported: false, reason: 'windows-portable' }
-      : { supported: true, reason: '' };
-  }
-  if (platform === 'linux') {
-    return env?.APPIMAGE ? { supported: true, reason: '' } : { supported: false, reason: 'linux-not-appimage' };
-  }
-  return { supported: false, reason: 'unsupported-platform' };
-}
-
 function parseTag(tag) {
   if (typeof tag !== 'string') return null;
   const trimmed = tag.trim();
@@ -286,74 +268,6 @@ function extractReleaseNotes(value) {
   return notes;
 }
 
-function parseHtmlReleaseNoteGroups(section) {
-  const groups = [];
-  let itemCount = 0;
-  const headings = Array.from(section.matchAll(/<h3\b[^>]*>([\s\S]*?)<\/h3>/gi));
-  for (let index = 0; index < headings.length && groups.length < MAX_RELEASE_NOTE_GROUPS; index += 1) {
-    const heading = headings[index];
-    const title = plainReleaseNoteText(heading[1], 80);
-    if (!title) continue;
-    const contentStart = (heading.index || 0) + heading[0].length;
-    const contentEnd = index + 1 < headings.length ? headings[index + 1].index : section.length;
-    const items = [];
-    for (const match of section.slice(contentStart, contentEnd).matchAll(/<li\b[^>]*>([\s\S]*?)<\/li>/gi)) {
-      if (itemCount >= MAX_RELEASE_NOTE_ITEMS) break;
-      const text = plainReleaseNoteText(match[1]);
-      if (!text) continue;
-      items.push(text);
-      itemCount += 1;
-    }
-    if (items.length > 0) groups.push({ title, items });
-  }
-  return groups;
-}
-
-function extractHtmlReleaseNotes(value) {
-  if (typeof value !== 'string' || !value.trim()) return {};
-  const body = value.slice(0, MAX_RELEASE_BODY_CHARS);
-  const headings = Array.from(body.matchAll(/<h1\b[^>]*>([\s\S]*?)<\/h1>/gi));
-  const localeByHeading = new Map([
-    ['english', 'en'],
-    ['中文', 'zh'],
-    ['繁體中文', 'zh-TW'],
-    ['한국어', 'ko'],
-    ['日本語', 'ja']
-  ]);
-  const notes = {};
-  for (let index = 0; index < headings.length; index += 1) {
-    const heading = headings[index];
-    const title = plainReleaseNoteText(heading[1], 40).toLowerCase();
-    const locale = localeByHeading.get(title);
-    if (!locale) continue;
-    const contentStart = (heading.index || 0) + heading[0].length;
-    const contentEnd = index + 1 < headings.length ? headings[index + 1].index : body.length;
-    const localeSection = body.slice(contentStart, contentEnd);
-    // GitHub strips Markdown comment markers and may omit collapsed <details>
-    // content from Atom entirely. Parse only locale headings present in the
-    // feed; the renderer owns locale fallback when a section is absent. The
-    // first h2 is the app summary and the next begins its download section.
-    const sectionHeadings = Array.from(localeSection.matchAll(/<h2\b[^>]*>[\s\S]*?<\/h2>/gi));
-    if (sectionHeadings.length === 0) continue;
-    const summaryStart = (sectionHeadings[0].index || 0) + sectionHeadings[0][0].length;
-    const summaryEnd = sectionHeadings[1]?.index ?? localeSection.length;
-    const groups = parseHtmlReleaseNoteGroups(localeSection.slice(summaryStart, summaryEnd));
-    if (groups.length > 0) notes[locale] = groups;
-  }
-  return notes;
-}
-
-function extractUpdaterReleaseNotes(value, version) {
-  let note = value;
-  if (Array.isArray(value)) {
-    const matching = value.find((entry) => parseTag(entry?.version) === parseTag(version));
-    note = matching?.note ?? value[0]?.note;
-  }
-  if (typeof note !== 'string') return {};
-  const marked = extractReleaseNotes(note);
-  return Object.keys(marked).length > 0 ? marked : extractHtmlReleaseNotes(note);
-}
-
 function mergeLatestReleaseMetadata(existing, incoming) {
   if (!incoming || typeof incoming !== 'object') return null;
   if (!existing || existing.version !== incoming.version) return incoming;
@@ -379,39 +293,6 @@ function parseLatestReleasePayload(payload) {
     htmlUrl,
     publishedAt: typeof payload.published_at === 'string' ? payload.published_at : '',
     ...(Object.keys(releaseNotes).length > 0 ? { releaseNotes } : {})
-  };
-}
-
-function latestFromUpdaterInfo(info) {
-  if (!info || typeof info !== 'object') return null;
-  const version = parseTag(info.version);
-  if (!version) return null;
-  const infoTag = typeof info.tag === 'string' && parseTag(info.tag) === version ? info.tag : '';
-  const tag = infoTag || `v${version}`;
-  const releaseNotes = extractUpdaterReleaseNotes(info.releaseNotes, version);
-  return {
-    version,
-    tag,
-    name: (typeof info.releaseName === 'string' && info.releaseName.trim()) ? info.releaseName : tag,
-    htmlUrl: `https://github.com/${GITHUB_REPO}/releases/tag/${encodeURIComponent(tag)}`,
-    publishedAt: typeof info.releaseDate === 'string' ? info.releaseDate : '',
-    ...(Object.keys(releaseNotes).length > 0 ? { releaseNotes } : {})
-  };
-}
-
-function providerUpdateCheckAvailability(result, currentVersion) {
-  const latest = latestFromUpdaterInfo(result?.updateInfo);
-  if (!latest) return { valid: false, newer: false, latest: null, clearLatest: false };
-  const current = parseTag(currentVersion);
-  const newer = Boolean(result?.isUpdateAvailable === true
-    && current
-    && semver.gt(latest.version, current));
-  const isCurrent = Boolean(current && latest.version === current);
-  return {
-    valid: true,
-    newer,
-    latest: newer || isCurrent ? latest : null,
-    clearLatest: !newer && !isCurrent
   };
 }
 
@@ -482,48 +363,19 @@ function shouldSkipAppUpdateCheck({
   return nowMs - last < cooldownMs;
 }
 
-function downloadedAppUpdateMatchesLatest({
-  phase,
-  downloadedVersion,
-  latest
-} = {}) {
-  if (phase !== 'downloaded') return false;
-  const version = semver.valid(downloadedVersion);
-  const latestVersion = semver.valid(latest?.version);
-  return Boolean(version && latestVersion && version === latestVersion);
-}
-
-function shouldDownloadAutomaticAppUpdate({
-  automaticAppUpdates = false,
-  updateState = null
-} = {}) {
-  return Boolean(
-    automaticAppUpdates
-    && updateState?.hasUpdate
-    && updateState.installSupported
-    && updateState.dismissedVersion !== updateState.latest?.version
-    && !updateState.downloaded
-    && !updateState.installBusy
-  );
-}
-
 function deriveAppUpdateAvailability({
   currentVersion,
   latest,
-  dismissedVersion,
-  phase,
-  downloadedVersion
+  dismissedVersion
 } = {}) {
   const current = semver.valid(currentVersion);
   const latestVersion = semver.valid(latest?.version);
   const hasUpdate = Boolean(current && latestVersion && semver.gt(latestVersion, current));
   const dismissed = Boolean(hasUpdate && latestVersion === dismissedVersion);
-  const downloaded = downloadedAppUpdateMatchesLatest({ phase, downloadedVersion, latest });
   return {
     hasUpdate,
     dismissed,
-    downloaded,
-    showUpdateNotice: downloaded || (hasUpdate && !dismissed)
+    showUpdateNotice: hasUpdate && !dismissed
   };
 }
 
@@ -544,8 +396,8 @@ async function checkLatestRelease(currentVersion) {
       const response = await fetch(RELEASES_LATEST_URL, {
         signal,
         headers: {
-          // GitHub's public web route returns release JSON through content negotiation.
-          // electron-updater uses the same route so public checks avoid api.github.com quotas.
+          // GitHub's public web route returns release JSON through content negotiation,
+          // avoiding authenticated API credentials and api.github.com quotas.
           'accept': 'application/json',
           'user-agent': `token-monitor/${currentVersion || '0.0.0'}`
         }
@@ -571,19 +423,13 @@ async function checkLatestRelease(currentVersion) {
 }
 
 module.exports = {
-  appUpdateInstallSupport,
   parseTag,
   parseLatestReleasePayload,
-  latestFromUpdaterInfo,
-  providerUpdateCheckAvailability,
   classifyAppUpdateError,
   resolveAppUpdateCheckError,
   shouldSkipAppUpdateCheck,
-  downloadedAppUpdateMatchesLatest,
-  shouldDownloadAutomaticAppUpdate,
   deriveAppUpdateAvailability,
   extractReleaseNotes,
-  extractUpdaterReleaseNotes,
   mergeLatestReleaseMetadata,
   checkLatestRelease,
   RELEASES_LATEST_URL,
