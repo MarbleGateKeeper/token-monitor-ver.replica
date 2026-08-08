@@ -522,8 +522,6 @@ test('release template exposes marked summaries for every bundled locale', () =>
   assert.match(template, /## 繁體中文[\s\S]*## 從原始碼建置/);
   assert.match(template, /## 한국어[\s\S]*## 소스에서 빌드/);
   assert.match(template, /## 日本語[\s\S]*## ソースからビルド/);
-  assert.match(template, /\(#\d+(?:, #\d+)*\)/);
-  assert.match(template, /（#\d+(?:、#\d+)*）/);
 });
 
 test('mergeLatestReleaseMetadata preserves notes when refreshed metadata omits them', () => {

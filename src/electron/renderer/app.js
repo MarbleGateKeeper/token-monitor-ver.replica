@@ -6899,6 +6899,10 @@ function applyThemeColors(overrides) {
     if (value) root.setProperty(name, value);
     else root.removeProperty(name);
   }
+  document.documentElement.classList.toggle(
+    'theme-surface-light',
+    themePresetsApi.isLightHex(resolvedThemeColor('bg'))
+  );
   renderFloatingBubbleContent();
 }
 

@@ -25,7 +25,7 @@ test('usageCharts exports every symbol app.js destructures from it', () => {
 
 test('clientColors carries the known palette and a default', () => {
   assert.equal(clientColors.claude, '#cc7c5e');
-  assert.equal(clientColors.codex, '#49a3b0');
+  assert.equal(clientColors.codex, '#007CCB');
   assert.equal(clientColors.cline, '#323B43');
   assert.equal(clientColors.volcengine, '#006EFF');
   assert.equal(clientColors.meituan, '#FFD100');
@@ -81,7 +81,7 @@ test('barsChartSvg renders one rect per segment with colorFor fill and a per-bar
   assert.match(svg, /^<svg /);
   assert.equal((svg.match(/class="bar-seg"/g) || []).length, 2); // one shape per stacked segment
   assert.match(svg, /class="bar-stack" data-motion-key="2026-06-01"/); // entry motion grows the whole stack from one baseline
-  assert.match(svg, /<path d="M[\d.,\sLQZ-]+" fill="#49a3b0" class="bar-seg">/); // top segment gets a rounded-top cap
+  assert.match(svg, /<path d="M[\d.,\sLQZ-]+" fill="#007CCB" class="bar-seg">/); // top segment gets a rounded-top cap
   assert.equal((svg.match(/class="bar-hover"/g) || []).length, 1); // plus a transparent hover overlay
   assert.match(svg, /fill="#cc7c5e"/);
   assert.match(svg, /<title>total 15<\/title>/);

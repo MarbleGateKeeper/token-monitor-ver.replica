@@ -7,7 +7,7 @@
   </p>
   <p>
     <a href="https://github.com/MarbleGateKeeper/token-monitor-ver.replica/releases"><img src="https://img.shields.io/github/v/release/MarbleGateKeeper/token-monitor-ver.replica?include_prereleases&style=flat-square&label=replica&color=22c55e" alt="Replica release"></a>
-    <img src="https://img.shields.io/badge/version-0.42.0--replica.2-64748b?style=flat-square" alt="Version 0.42.0-replica.2">
+    <img src="https://img.shields.io/badge/version-0.42.0--replica.3-64748b?style=flat-square" alt="Version 0.42.0-replica.3">
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-A855F7?style=flat-square" alt="MIT License"></a>
   </p>
   <img src=".github/assets/demo.gif" alt="Token Monitor demo">
@@ -25,7 +25,7 @@
 - **上游项目：** [Javis603/token-monitor](https://github.com/Javis603/token-monitor)，提供 Token Monitor 的主体架构、采集器、桌面组件、多设备 Hub、AI 工具额度和绝大多数功能。
 - **本仓库：** [MarbleGateKeeper/token-monitor-ver.replica](https://github.com/MarbleGateKeeper/token-monitor-ver.replica)，用于保留个人需要但尚未进入上游的修复与功能。
 - **Git 远程：** 通常以 `upstream` 跟踪原项目，以 `origin` 跟踪本 fork。同步上游时应先审阅差异，再保留下文列出的 fork 功能。
-- **版本规则：** 使用 `<上游版本>-replica.<修订号>`，例如当前版本 `0.42.0-replica.2`。同一上游版本继续发布时递增修订号；同步到新的上游版本后从 `replica.1` 重新开始。
+- **版本规则：** 使用 `<上游版本>-replica.<修订号>`，例如当前版本 `0.42.0-replica.3`。同一上游版本继续发布时递增修订号；同步到新的上游版本后从 `replica.1` 重新开始。
 - **更新来源：** 应用只把本 fork 的 `*-replica.N` Release 当作可用版本；同时独立查询上游最新 Release，用于提醒维护者何时需要同步上游。两类提醒都只打开对应 Release 页面，不会下载或安装更新。
 - **许可与署名：** 代码继续使用上游的 MIT 许可证，保留原作者 Javis 的版权声明；打包产物会携带完整 `LICENSE`。
 
@@ -68,9 +68,23 @@ k3-256   → kimi-k3
 
 #### 4. 仅提示新 tag，不自动更新
 
-应用启动后和手动检查时会查询本仓库最新的 GitHub Release。本 fork 的更新通道只接受 `<上游版本>-replica.<修订号>`：同一基础版本按 replica 修订号比较，基础版本不同时先比较上游版本。因此上游的 `0.42.0` 不会再被视为高于本 fork 的 `0.42.0-replica.1`；只有 `0.42.0-replica.2` 或基于更高上游版本的 replica Release 才会触发本 fork 更新提示。
+应用启动后和手动检查时会查询本仓库最新的 GitHub Release。本 fork 的更新通道只接受 `<上游版本>-replica.<修订号>`：同一基础版本按 replica 修订号比较，基础版本不同时先比较上游版本。因此 plain 上游 `0.42.0` 永远不会被视为高于同一基础版本的 `0.42.0-replica.N`；只有更高的 replica 修订号或基于更高上游版本的 replica Release 才会触发本 fork 更新提示。
 
 上游 [Javis603/token-monitor](https://github.com/Javis603/token-monitor) 使用独立检查和独立提醒。它把当前安装版本与本 fork 最新 replica Release 中较高的基础版本视为“本分支已跟进版本”；只有上游版本真正更高时才显示橙色“上游”提示，提醒维护者同步本分支。该提示可以单独忽略，也可直接打开上游 Release。项目不包含应用更新器，不会在后台下载安装包，也没有“重启安装”流程。
+
+#### 5. 区分厂商默认配色
+
+本 fork 调整了容易挤在黑色附近的默认厂商色，并让同一厂商的客户端、模型和额度入口保持一致：
+
+- OpenAI / Codex：`#007CCB`
+- 智谱 GLM / Z.ai / ZCode：`#3859FF`
+- Kimi / Moonshot：`#1783FF`
+- Grok / xAI：`#64748B`
+- OpenCode：`#B85F00`
+
+这些值只作为新默认值；用户在 **设置 → 外观 → 厂商颜色** 中已经保存的覆盖值不会被改写。智谱与 Kimi 采用各自视觉体系中的蓝色；Grok 的石板灰与 OpenCode 的琥珀橙是为了界面辨识度选择的中性色和产品提示色，不宣称为官方 Logo 品牌色。
+
+OpenAI 的蓝色用于图表、色点和统计数据。根据 [OpenAI 品牌规范](https://openai.com/brand/)，Blossom 标志本身保持黑白，并直接显示 SVG，而不再作为 CSS 遮罩染成厂商色；深色和浅色主题会选择相应的单色呈现。
 
 ### 本 fork 的发行与维护改动
 
@@ -156,7 +170,7 @@ npm run dist:linux    # Linux x64 AppImage
 - **Upstream:** [Javis603/token-monitor](https://github.com/Javis603/token-monitor) provides the core architecture, collectors, desktop widget, multi-device Hub, AI Tool Limits, and most product functionality.
 - **This repository:** [MarbleGateKeeper/token-monitor-ver.replica](https://github.com/MarbleGateKeeper/token-monitor-ver.replica) carries personal fixes and features that have not been incorporated upstream.
 - **Git remotes:** `upstream` normally tracks the original project and `origin` tracks this fork. Review upstream changes before merging and preserve the fork behavior documented below.
-- **Versioning:** releases use `<upstream-version>-replica.<revision>`, currently `0.42.0-replica.2`. Increment the replica revision on the same upstream base; restart at `replica.1` after adopting a new upstream version.
+- **Versioning:** releases use `<upstream-version>-replica.<revision>`, currently `0.42.0-replica.3`. Increment the replica revision on the same upstream base; restart at `replica.1` after adopting a new upstream version.
 - **Updates:** only this fork's `*-replica.N` Releases enter the fork update channel. The app also checks upstream independently to tell maintainers when the fork needs syncing. Both channels only open their matching Release page and never download or install updates.
 - **License and credit:** the upstream MIT license and Javis copyright notice are preserved, and packaged applications include the complete `LICENSE`.
 
@@ -199,9 +213,23 @@ Mapping behavior:
 
 #### 4. New-tag notices without automatic updates
 
-On startup and on manual checks, the app queries this repository's latest GitHub Release. The fork channel accepts only `<upstream-version>-replica.<revision>` tags: replica revisions are compared within the same upstream base, while different bases compare by upstream version first. Consequently upstream `0.42.0` is not newer than fork build `0.42.0-replica.1`; only `0.42.0-replica.2` or a replica Release based on a newer upstream version triggers the fork notice.
+On startup and on manual checks, the app queries this repository's latest GitHub Release. The fork channel accepts only `<upstream-version>-replica.<revision>` tags: replica revisions are compared within the same upstream base, while different bases compare by upstream version first. Consequently a plain upstream `0.42.0` never outranks any `0.42.0-replica.N` build; only a higher replica revision or a replica Release based on a newer upstream version triggers the fork notice.
 
 The upstream [Javis603/token-monitor](https://github.com/Javis603/token-monitor) check has independent state and UI. It treats the higher base from the running build and the latest fork replica Release as the version already tracked by this branch. An orange Upstream notice appears only when upstream is genuinely newer, can be dismissed separately, and opens the upstream Release. The application updater, background downloads, and restart-to-install flow remain removed.
+
+#### 5. Distinct default vendor colors
+
+This fork separates defaults that otherwise cluster around black and keeps client, model, and limits entries for the same vendor aligned:
+
+- OpenAI / Codex: `#007CCB`
+- Zhipu GLM / Z.ai / ZCode: `#3859FF`
+- Kimi / Moonshot: `#1783FF`
+- Grok / xAI: `#64748B`
+- OpenCode: `#B85F00`
+
+These are new defaults only; saved overrides under **Settings → Appearance → Vendor colors** are not rewritten. Zhipu and Kimi use blues from their visual identities. Grok slate and OpenCode amber are neutral/product cues chosen for UI differentiation and are not presented as official logo brand colors.
+
+OpenAI blue is used for charts, dots, and statistical data. Following the [OpenAI brand guidelines](https://openai.com/brand/), the Blossom mark itself stays monochrome and is rendered directly from the SVG instead of being colorized through a CSS mask; dark and light themes select the corresponding monochrome presentation.
 
 ### Distribution and maintenance changes
 

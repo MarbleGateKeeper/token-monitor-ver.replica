@@ -253,9 +253,31 @@ test('every non-default brand vendor has a display label', () => {
   assert.equal(vendorLabel('somethingnew'), 'Somethingnew'); // graceful fallback
 });
 
-test('Kimi usage and limits share one vendor color entry', () => {
+test('approved fork vendor colors keep client, model, and limits identities aligned', () => {
   assert.equal(VENDOR_ORDER.filter((id) => id === 'kimi').length, 1);
-  assert.equal(clientColors.kimi, '#16191e');
+  assert.equal(clientColors.codex, '#007CCB');
+  assert.equal(clientColors.kimi, '#1783FF');
+  assert.equal(clientColors.moonshot, clientColors.kimi);
+  assert.equal(clientColors.grok, '#64748B');
+  assert.equal(clientColors.xai, clientColors.grok);
+  assert.equal(clientColors.opencode, '#B85F00');
+  assert.equal(clientColors.zai, '#3859FF');
+  assert.equal(clientColors.zaiteam, clientColors.zai);
+  assert.equal(clientColors.zcode, clientColors.zai);
+});
+
+test('OpenAI marks stay monochrome while Codex usage retains its vendor color', () => {
+  const css = fs.readFileSync(path.join(__dirname, '../../src/electron/renderer/styles.css'), 'utf8');
+  const app = fs.readFileSync(path.join(__dirname, '../../src/electron/renderer/app.js'), 'utf8');
+  for (const selector of ['.row-icon-codex', '.limit-icon-codex']) {
+    const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const rule = css.match(new RegExp(`${escaped}\\s*\\{([^}]*)\\}`))?.[1] || '';
+    assert.match(rule, /background-image:\s*url\([^)]*codex\.svg\)/);
+    assert.match(rule, /(?:-webkit-)?mask-image:\s*none/);
+    assert.match(rule, /filter:\s*invert\(1\)/);
+  }
+  assert.match(css, /\.theme-surface-light \.row-icon-codex,[\s\S]*filter:\s*none/);
+  assert.match(app, /classList\.toggle\(\s*'theme-surface-light',[\s\S]*isLightHex\(resolvedThemeColor\('bg'\)\)/);
 });
 
 test('LongCat and Hy3 vendors expose brand colors and labels', () => {

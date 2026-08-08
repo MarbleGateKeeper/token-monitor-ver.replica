@@ -22,7 +22,7 @@ test('tag workflow publishes release notes without building or uploading binarie
 
 test('desktop package keeps local build commands but has no packaged updater or forced signing', () => {
   const pkg = JSON.parse(read('package.json'));
-  assert.equal(pkg.version, '0.42.0-replica.2');
+  assert.equal(pkg.version, '0.42.0-replica.3');
   assert.equal(pkg.repository.url, 'git+https://github.com/MarbleGateKeeper/token-monitor-ver.replica.git');
   assert.equal(pkg.dependencies['electron-updater'], undefined);
   assert.equal(pkg.build.publish, undefined);

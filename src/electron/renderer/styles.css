@@ -3300,7 +3300,16 @@ html.is-windows .settings-panel select option {
   -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
 }
 .row-icon-claude     { -webkit-mask-image: url(../../../assets/icons/claude.svg);        mask-image: url(../../../assets/icons/claude.svg); }
-.row-icon-codex      { -webkit-mask-image: url(../../../assets/icons/codex.svg);         mask-image: url(../../../assets/icons/codex.svg); }
+.row-icon-codex {
+  background-color: transparent;
+  background-image: url(../../../assets/icons/codex.svg);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  filter: invert(1);
+  -webkit-mask-image: none;
+  mask-image: none;
+}
 .row-icon-hermes     { -webkit-mask-image: url(../../../assets/icons/hermes-agent.svg);  mask-image: url(../../../assets/icons/hermes-agent.svg); }
 .row-icon-gemini     { -webkit-mask-image: url(../../../assets/icons/gemini.svg);        mask-image: url(../../../assets/icons/gemini.svg); }
 .row-icon-cursor     { -webkit-mask-image: url(../../../assets/icons/cursor.svg);        mask-image: url(../../../assets/icons/cursor.svg); }
@@ -3361,8 +3370,18 @@ html.is-windows .settings-panel select option {
   mask-image: url(../../../assets/icons/claude.svg);
 }
 .limit-icon-codex {
-  -webkit-mask-image: url(../../../assets/icons/codex.svg);
-  mask-image: url(../../../assets/icons/codex.svg);
+  background-color: transparent;
+  background-image: url(../../../assets/icons/codex.svg);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  filter: invert(1);
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+.theme-surface-light .row-icon-codex,
+.theme-surface-light .limit-icon-codex {
+  filter: none;
 }
 .limit-icon-cursor {
   -webkit-mask-image: url(../../../assets/icons/cursor.svg);
