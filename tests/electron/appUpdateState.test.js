@@ -20,26 +20,26 @@ function sourceBetween(startMarker, endMarker) {
 }
 
 test('manual update checks restore a matching dismissed version', () => {
-  const check = sourceBetween('async function runAppUpdateCheck', 'function maybeRunBackgroundUpdateCheck');
+  const check = sourceBetween('async function runAppUpdateCheck', 'async function runUpstreamUpdateCheck');
   assert.match(check, /if \(force && result\.newer\) restoreDismissedAppUpdate\(result\.latest\?\.version\)/);
 });
 
 test('manual checks preserve feedback when reusing an in-flight background check', () => {
-  const check = sourceBetween('async function runAppUpdateCheck', 'function maybeRunBackgroundUpdateCheck');
+  const check = sourceBetween('async function runAppUpdateCheck', 'async function runUpstreamUpdateCheck');
   assert.match(check, /if \(force\) sendAppUpdatePush\(\);\s*const activeResult = await appUpdateCheckPromise/);
   assert.match(check, /if \(activeResult\.newer\) restoreDismissedAppUpdate\(activeResult\.latest\?\.version\)/);
   assert.match(check, /resolveAppUpdateCheckError\(appUpdateLastError, activeResult, \{ force: true \}\)/);
 });
 
 test('background failures preserve the last visible update-check error', () => {
-  const check = sourceBetween('async function runAppUpdateCheck', 'function maybeRunBackgroundUpdateCheck');
+  const check = sourceBetween('async function runAppUpdateCheck', 'async function runUpstreamUpdateCheck');
   assert.doesNotMatch(check, /appUpdateCheckInFlight = true;\s*appUpdateLastError = null/);
   assert.match(check, /resolveAppUpdateCheckError\(appUpdateLastError, result, \{ force \}\)/);
   assert.match(check, /resolveAppUpdateCheckError\(appUpdateLastError, \{\s*ok: false,[\s\S]*\}, \{ force \}\)/);
 });
 
 test('all builds use the public release-tag check without a packaged updater', () => {
-  const provider = sourceBetween('async function checkAppUpdateProvider', 'function deriveAppUpdateState');
+  const provider = sourceBetween('async function checkAppUpdateProvider', 'function rememberSuccessfulUpstreamUpdateCheck');
   assert.match(provider, /return checkLatestRelease\(app\.getVersion\(\)\)/);
   assert.doesNotMatch(provider, /app\.isPackaged|autoUpdater|electron-updater|latest\.yml/);
   assert.doesNotMatch(main, /autoUpdater|electron-updater/);
@@ -57,8 +57,8 @@ test('update state contains notification metadata and no download or install sta
 
 test('successful checks cache the release and clear stale errors', () => {
   const success = sourceBetween('function rememberSuccessfulAppUpdateCheck', 'async function checkAppUpdateProvider');
-  const check = sourceBetween('async function runAppUpdateCheck', 'function maybeRunBackgroundUpdateCheck');
-  assert.match(success, /if \(!latest\) return null/);
+  const check = sourceBetween('async function runAppUpdateCheck', 'async function runUpstreamUpdateCheck');
+  assert.match(success, /const remembered = latest[\s\S]*\? mergeLatestReleaseMetadata[\s\S]*: null/);
   assert.match(success, /lastKnownLatest: remembered/);
   assert.match(success, /appUpdateLastAttemptAt = checkedAt/);
   assert.match(success, /appUpdateLastError = null/);
@@ -72,6 +72,22 @@ test('the renderer exposes release notices only and the bridge has no installer 
   assert.doesNotMatch(renderer, /downloadAppUpdate|installAppUpdate|automaticAppUpdate/);
   assert.doesNotMatch(preload, /appUpdate:(?:download|install)|downloadAppUpdate|installAppUpdate/);
   assert.doesNotMatch(main, /ipcMain\.handle\('appUpdate:(?:download|install)'/);
+});
+
+test('upstream tracking has independent state, IPC, dismissal, and renderer controls', () => {
+  const derive = sourceBetween('function deriveAppUpdateState', 'function restoreDismissedAppUpdate');
+  const upstreamCheck = sourceBetween('async function runUpstreamUpdateCheck', 'function maybeRunBackgroundUpdateCheck');
+  assert.match(derive, /deriveUpstreamUpdateAvailability\(/);
+  assert.match(derive, /upstream: \{[\s\S]*trackedVersion: upstreamAvailability\.trackedVersion[\s\S]*showUpdateNotice: upstreamAvailability\.showUpdateNotice/);
+  assert.match(upstreamCheck, /shouldSkipUpstreamUpdateCheck\(/);
+  assert.match(upstreamCheck, /rememberSuccessfulUpstreamUpdateCheck\(result\.latest, result\.checkedAt\)/);
+  assert.match(main, /ipcMain\.handle\('appUpdate:checkUpstream'/);
+  assert.match(main, /ipcMain\.handle\('appUpdate:dismissUpstream'/);
+  assert.match(preload, /checkUpstreamUpdateNow: \(\) => ipcRenderer\.invoke\('appUpdate:checkUpstream'\)/);
+  assert.match(preload, /dismissUpstreamUpdate: \(version\) => ipcRenderer\.invoke\('appUpdate:dismissUpstream', version\)/);
+  assert.match(html, /id="upstreamUpdatePill"[\s\S]*id="upstreamUpdateCheckButton"|id="upstreamUpdateCheckButton"[\s\S]*id="upstreamUpdatePill"/);
+  assert.match(renderer, /function renderUpstreamUpdatePill\(\)[\s\S]*s\.showUpdateNotice/);
+  assert.match(renderer, /function renderSettingsUpstreamUpdateRow\(\)/);
 });
 
 test('legacy automatic-download settings are ignored and stripped on save', () => {

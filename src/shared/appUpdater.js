@@ -3,7 +3,9 @@
 const semver = require('semver');
 
 const GITHUB_REPO = 'MarbleGateKeeper/token-monitor-ver.replica';
+const UPSTREAM_GITHUB_REPO = 'Javis603/token-monitor';
 const RELEASES_LATEST_URL = `https://github.com/${GITHUB_REPO}/releases/latest`;
+const UPSTREAM_RELEASES_LATEST_URL = `https://github.com/${UPSTREAM_GITHUB_REPO}/releases/latest`;
 const REQUEST_TIMEOUT_MS = 10 * 1000;
 const APP_UPDATE_BACKGROUND_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 const APP_UPDATE_OUTDATED_COOLDOWN_MS = 60 * 60 * 1000;
@@ -30,6 +32,51 @@ function parseTag(tag) {
   if (!trimmed) return null;
   const stripped = trimmed.replace(/^v/i, '');
   return semver.valid(stripped) ? stripped : null;
+}
+
+function replicaVersionInfo(value) {
+  const version = parseTag(value);
+  const parsed = version ? semver.parse(version) : null;
+  if (!parsed || parsed.prerelease.length !== 2 || parsed.prerelease[0] !== 'replica') return null;
+  const revision = parsed.prerelease[1];
+  if (!Number.isInteger(revision) || revision < 1) return null;
+  return {
+    version,
+    baseVersion: `${parsed.major}.${parsed.minor}.${parsed.patch}`,
+    revision
+  };
+}
+
+function upstreamBaseVersion(value) {
+  const version = parseTag(value);
+  const parsed = version ? semver.parse(version) : null;
+  return parsed ? `${parsed.major}.${parsed.minor}.${parsed.patch}` : null;
+}
+
+function isReplicaReleaseVersion(value) {
+  return Boolean(replicaVersionInfo(value));
+}
+
+function forkReleaseIsNewer(latestVersion, currentVersion) {
+  const latest = replicaVersionInfo(latestVersion);
+  if (!latest) return false;
+  const currentReplica = replicaVersionInfo(currentVersion);
+  const currentBase = currentReplica?.baseVersion || upstreamBaseVersion(currentVersion);
+  if (!currentBase) return true;
+  const baseComparison = semver.compare(latest.baseVersion, currentBase);
+  if (baseComparison !== 0) return baseComparison > 0;
+  return currentReplica ? latest.revision > currentReplica.revision : true;
+}
+
+function trackedUpstreamVersion(currentVersion, latestForkRelease = null) {
+  const currentBase = upstreamBaseVersion(currentVersion);
+  const latestForkVersion = typeof latestForkRelease === 'string'
+    ? latestForkRelease
+    : latestForkRelease?.version;
+  const forkBase = replicaVersionInfo(latestForkVersion)?.baseVersion || null;
+  if (!currentBase) return forkBase;
+  if (!forkBase) return currentBase;
+  return semver.gte(forkBase, currentBase) ? forkBase : currentBase;
 }
 
 function truncateReleaseNoteText(value, maxChars) {
@@ -279,12 +326,13 @@ function mergeLatestReleaseMetadata(existing, incoming) {
   };
 }
 
-function parseLatestReleasePayload(payload) {
+function parseLatestReleasePayload(payload, repository = GITHUB_REPO) {
   if (!payload || typeof payload !== 'object') return null;
   const tag = typeof payload.tag_name === 'string' ? payload.tag_name : '';
   const version = parseTag(tag);
   if (!version) return null;
-  const htmlUrl = `https://github.com/${GITHUB_REPO}/releases/tag/${encodeURIComponent(tag)}`;
+  const releaseRepository = repository === UPSTREAM_GITHUB_REPO ? UPSTREAM_GITHUB_REPO : GITHUB_REPO;
+  const htmlUrl = `https://github.com/${releaseRepository}/releases/tag/${encodeURIComponent(tag)}`;
   const releaseNotes = extractReleaseNotes(payload.body);
   return {
     version,
@@ -346,6 +394,15 @@ function resolveAppUpdateCheckError(previousError, result, { force = false } = {
   };
 }
 
+function shouldSkipUpdateCheck({ force, lastCheckedAt, availability, nowMs }) {
+  if (force || !lastCheckedAt) return false;
+  const last = Date.parse(lastCheckedAt);
+  if (!Number.isFinite(last)) return false;
+  const cachedUpdate = availability.hasUpdate && !availability.dismissed;
+  const cooldownMs = cachedUpdate ? APP_UPDATE_OUTDATED_COOLDOWN_MS : APP_UPDATE_BACKGROUND_COOLDOWN_MS;
+  return nowMs - last < cooldownMs;
+}
+
 function shouldSkipAppUpdateCheck({
   force = false,
   lastCheckedAt,
@@ -354,13 +411,34 @@ function shouldSkipAppUpdateCheck({
   currentVersion,
   nowMs = Date.now()
 } = {}) {
-  if (force || !lastCheckedAt) return false;
-  const last = Date.parse(lastCheckedAt);
-  if (!Number.isFinite(last)) return false;
-  const availability = deriveAppUpdateAvailability({ currentVersion, latest, dismissedVersion });
-  const cachedUpdate = availability.hasUpdate && !availability.dismissed;
-  const cooldownMs = cachedUpdate ? APP_UPDATE_OUTDATED_COOLDOWN_MS : APP_UPDATE_BACKGROUND_COOLDOWN_MS;
-  return nowMs - last < cooldownMs;
+  return shouldSkipUpdateCheck({
+    force,
+    lastCheckedAt,
+    availability: deriveAppUpdateAvailability({ currentVersion, latest, dismissedVersion }),
+    nowMs
+  });
+}
+
+function shouldSkipUpstreamUpdateCheck({
+  force = false,
+  lastCheckedAt,
+  latest,
+  dismissedVersion,
+  currentVersion,
+  latestForkRelease,
+  nowMs = Date.now()
+} = {}) {
+  return shouldSkipUpdateCheck({
+    force,
+    lastCheckedAt,
+    availability: deriveUpstreamUpdateAvailability({
+      currentVersion,
+      latestForkRelease,
+      latest,
+      dismissedVersion
+    }),
+    nowMs
+  });
 }
 
 function deriveAppUpdateAvailability({
@@ -368,11 +446,28 @@ function deriveAppUpdateAvailability({
   latest,
   dismissedVersion
 } = {}) {
-  const current = semver.valid(currentVersion);
-  const latestVersion = semver.valid(latest?.version);
-  const hasUpdate = Boolean(current && latestVersion && semver.gt(latestVersion, current));
+  const latestVersion = replicaVersionInfo(latest?.version)?.version || null;
+  const hasUpdate = forkReleaseIsNewer(latestVersion, currentVersion);
   const dismissed = Boolean(hasUpdate && latestVersion === dismissedVersion);
   return {
+    hasUpdate,
+    dismissed,
+    showUpdateNotice: hasUpdate && !dismissed
+  };
+}
+
+function deriveUpstreamUpdateAvailability({
+  currentVersion,
+  latestForkRelease,
+  latest,
+  dismissedVersion
+} = {}) {
+  const trackedVersion = trackedUpstreamVersion(currentVersion, latestForkRelease);
+  const latestVersion = parseTag(latest?.version);
+  const hasUpdate = Boolean(trackedVersion && latestVersion && semver.gt(latestVersion, trackedVersion));
+  const dismissed = Boolean(hasUpdate && latestVersion === dismissedVersion);
+  return {
+    trackedVersion,
     hasUpdate,
     dismissed,
     showUpdateNotice: hasUpdate && !dismissed
@@ -389,11 +484,11 @@ async function withTimeout(ms, task) {
   }
 }
 
-async function checkLatestRelease(currentVersion) {
+async function requestLatestRelease({ repository, url, currentVersion }) {
   const checkedAt = new Date().toISOString();
   try {
     const payload = await withTimeout(REQUEST_TIMEOUT_MS, async (signal) => {
-      const response = await fetch(RELEASES_LATEST_URL, {
+      const response = await fetch(url, {
         signal,
         headers: {
           // GitHub's public web route returns release JSON through content negotiation,
@@ -409,31 +504,70 @@ async function checkLatestRelease(currentVersion) {
       }
       return response.json();
     });
-    const latest = parseLatestReleasePayload(payload);
+    const latest = parseLatestReleasePayload(payload, repository);
     if (!latest) {
       return { ok: false, newer: false, latest: null, error: 'Release payload missing or invalid', errorKind: 'metadata', checkedAt };
     }
-    const current = semver.valid(currentVersion) ? currentVersion : '0.0.0';
-    const newer = semver.gt(latest.version, current);
-    return { ok: true, newer, latest, error: null, errorKind: null, checkedAt };
+    return { ok: true, latest, error: null, errorKind: null, checkedAt };
   } catch (error) {
     const classified = classifyAppUpdateError(error);
     return { ok: false, newer: false, latest: null, error: classified.message, errorKind: classified.kind, checkedAt };
   }
 }
 
+async function checkLatestRelease(currentVersion) {
+  const result = await requestLatestRelease({
+    repository: GITHUB_REPO,
+    url: RELEASES_LATEST_URL,
+    currentVersion
+  });
+  if (!result.ok) return result;
+  if (!isReplicaReleaseVersion(result.latest?.version)) {
+    return { ...result, newer: false, ignoredLatest: result.latest, latest: null };
+  }
+  return {
+    ...result,
+    newer: forkReleaseIsNewer(result.latest.version, currentVersion)
+  };
+}
+
+async function checkLatestUpstreamRelease(currentVersion, latestForkRelease = null) {
+  const result = await requestLatestRelease({
+    repository: UPSTREAM_GITHUB_REPO,
+    url: UPSTREAM_RELEASES_LATEST_URL,
+    currentVersion
+  });
+  const trackedVersion = trackedUpstreamVersion(currentVersion, latestForkRelease);
+  if (!result.ok) return { ...result, trackedVersion };
+  return {
+    ...result,
+    trackedVersion,
+    newer: Boolean(trackedVersion && semver.gt(result.latest.version, trackedVersion))
+  };
+}
+
 module.exports = {
   parseTag,
+  replicaVersionInfo,
+  upstreamBaseVersion,
+  isReplicaReleaseVersion,
+  forkReleaseIsNewer,
+  trackedUpstreamVersion,
   parseLatestReleasePayload,
   classifyAppUpdateError,
   resolveAppUpdateCheckError,
   shouldSkipAppUpdateCheck,
+  shouldSkipUpstreamUpdateCheck,
   deriveAppUpdateAvailability,
+  deriveUpstreamUpdateAvailability,
   extractReleaseNotes,
   mergeLatestReleaseMetadata,
   checkLatestRelease,
+  checkLatestUpstreamRelease,
   RELEASES_LATEST_URL,
+  UPSTREAM_RELEASES_LATEST_URL,
   GITHUB_REPO,
+  UPSTREAM_GITHUB_REPO,
   APP_UPDATE_BACKGROUND_COOLDOWN_MS,
   APP_UPDATE_OUTDATED_COOLDOWN_MS
 };

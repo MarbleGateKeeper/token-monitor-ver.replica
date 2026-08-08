@@ -72,6 +72,11 @@ test('app update copy clearly describes notification-only release checks', () =>
     translate('zh-TW', 'settings.appUpdate.notificationOnly'),
     '僅檢查新的 release tag 並顯示提示，不會自動下載或安裝。'
   );
+  assert.equal(
+    translate('zh-CN', 'settings.upstreamUpdate.notice', { latest: '0.43.0', tracked: '0.42.0' }),
+    '上游 v0.43.0 高于本分支基础版本 v0.42.0，请同步上游更新。'
+  );
+  assert.equal(translate('en', 'settings.upstreamUpdate.pill', { version: '0.43.0' }), 'Upstream ↑ v0.43.0');
 });
 
 test('tool health copy stays compact and describes snapshots, not liveness', () => {

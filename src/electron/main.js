@@ -97,10 +97,14 @@ const {
 const {
   classifyAppUpdateError,
   checkLatestRelease,
+  checkLatestUpstreamRelease,
   deriveAppUpdateAvailability,
+  deriveUpstreamUpdateAvailability,
+  isReplicaReleaseVersion,
   mergeLatestReleaseMetadata,
   resolveAppUpdateCheckError,
-  shouldSkipAppUpdateCheck
+  shouldSkipAppUpdateCheck,
+  shouldSkipUpstreamUpdateCheck
 } = require('../shared/appUpdater');
 const cursorAuth = require('../shared/cursorAuth');
 const cursorProbe = require('../shared/cursorProbe');
@@ -416,7 +420,12 @@ function defaultSettings() {
     appUpdate: {
       lastCheckedAt: null,
       lastKnownLatest: null,
-      dismissedVersion: null
+      dismissedVersion: null,
+      upstream: {
+        lastCheckedAt: null,
+        lastKnownLatest: null,
+        dismissedVersion: null
+      }
     }
   };
 }
@@ -4420,10 +4429,15 @@ let appUpdateCheckPromise = null;
 let appUpdateLastError = null;
 let appUpdateLastAttemptAt = null;
 let appUpdateBackgroundTimer = null;
+let upstreamUpdateCheckInFlight = false;
+let upstreamUpdateCheckPromise = null;
+let upstreamUpdateLastError = null;
+let upstreamUpdateLastAttemptAt = null;
 
 function rememberSuccessfulAppUpdateCheck(latest, checkedAt = new Date().toISOString()) {
-  if (!latest) return null;
-  const remembered = mergeLatestReleaseMetadata(settings?.appUpdate?.lastKnownLatest, latest);
+  const remembered = latest
+    ? mergeLatestReleaseMetadata(settings?.appUpdate?.lastKnownLatest, latest)
+    : null;
   settings.appUpdate = {
     ...(settings.appUpdate || {}),
     lastCheckedAt: checkedAt,
@@ -4441,15 +4455,51 @@ async function checkAppUpdateProvider() {
   return checkLatestRelease(app.getVersion());
 }
 
+function rememberSuccessfulUpstreamUpdateCheck(latest, checkedAt = new Date().toISOString()) {
+  if (!latest) return null;
+  const block = settings?.appUpdate || {};
+  const upstreamBlock = block.upstream || {};
+  const remembered = mergeLatestReleaseMetadata(upstreamBlock.lastKnownLatest, latest);
+  settings.appUpdate = {
+    ...block,
+    upstream: {
+      ...upstreamBlock,
+      lastCheckedAt: checkedAt,
+      lastKnownLatest: remembered
+    }
+  };
+  saveSettings();
+  upstreamUpdateLastAttemptAt = checkedAt;
+  upstreamUpdateLastError = null;
+  return remembered;
+}
+
+async function checkUpstreamUpdateProvider() {
+  const forkLatest = isReplicaReleaseVersion(settings?.appUpdate?.lastKnownLatest?.version)
+    ? settings.appUpdate.lastKnownLatest
+    : null;
+  return checkLatestUpstreamRelease(app.getVersion(), forkLatest);
+}
+
 function deriveAppUpdateState() {
   const block = settings?.appUpdate || {};
   const currentVersion = app.getVersion();
-  const latest = block.lastKnownLatest || null;
+  const latest = isReplicaReleaseVersion(block.lastKnownLatest?.version)
+    ? block.lastKnownLatest
+    : null;
   const dismissedVersion = block.dismissedVersion || null;
   const availability = deriveAppUpdateAvailability({
     currentVersion,
     latest,
     dismissedVersion
+  });
+  const upstreamBlock = block.upstream || {};
+  const upstreamLatest = upstreamBlock.lastKnownLatest || null;
+  const upstreamAvailability = deriveUpstreamUpdateAvailability({
+    currentVersion,
+    latestForkRelease: latest,
+    latest: upstreamLatest,
+    dismissedVersion: upstreamBlock.dismissedVersion || null
   });
   return {
     currentVersion,
@@ -4461,7 +4511,19 @@ function deriveAppUpdateState() {
     lastAttemptAt: appUpdateLastAttemptAt,
     checking: appUpdateCheckInFlight,
     lastError: appUpdateLastError?.message || null,
-    lastErrorKind: appUpdateLastError?.kind || null
+    lastErrorKind: appUpdateLastError?.kind || null,
+    upstream: {
+      trackedVersion: upstreamAvailability.trackedVersion,
+      latest: upstreamLatest,
+      hasUpdate: upstreamAvailability.hasUpdate,
+      showUpdateNotice: upstreamAvailability.showUpdateNotice,
+      dismissedVersion: upstreamBlock.dismissedVersion || null,
+      lastCheckedAt: upstreamBlock.lastCheckedAt || null,
+      lastAttemptAt: upstreamUpdateLastAttemptAt,
+      checking: upstreamUpdateCheckInFlight,
+      lastError: upstreamUpdateLastError?.message || null,
+      lastErrorKind: upstreamUpdateLastError?.kind || null
+    }
   };
 }
 
@@ -4471,6 +4533,21 @@ function restoreDismissedAppUpdate(version) {
   settings.appUpdate = {
     ...block,
     dismissedVersion: null
+  };
+  saveSettings();
+  return true;
+}
+
+function restoreDismissedUpstreamUpdate(version) {
+  const block = settings?.appUpdate || {};
+  const upstreamBlock = block.upstream || {};
+  if (!version || upstreamBlock.dismissedVersion !== version) return false;
+  settings.appUpdate = {
+    ...block,
+    upstream: {
+      ...upstreamBlock,
+      dismissedVersion: null
+    }
   };
   saveSettings();
   return true;
@@ -4551,8 +4628,88 @@ async function runAppUpdateCheck({ force = false } = {}) {
   return deriveAppUpdateState();
 }
 
+async function runUpstreamUpdateCheck({ force = false } = {}) {
+  if (upstreamUpdateCheckPromise) {
+    if (force) sendAppUpdatePush();
+    const activeResult = await upstreamUpdateCheckPromise;
+    if (force) {
+      upstreamUpdateLastAttemptAt = activeResult?.checkedAt || new Date().toISOString();
+      upstreamUpdateLastError = resolveAppUpdateCheckError(upstreamUpdateLastError, activeResult, { force: true });
+      const upstreamState = deriveAppUpdateState().upstream;
+      if (activeResult?.ok && upstreamState.hasUpdate) {
+        restoreDismissedUpstreamUpdate(upstreamState.latest?.version);
+      }
+      sendAppUpdatePush();
+    }
+    return deriveAppUpdateState();
+  }
+  const block = settings?.appUpdate || {};
+  const upstreamBlock = block.upstream || {};
+  const forkLatest = isReplicaReleaseVersion(block.lastKnownLatest?.version)
+    ? block.lastKnownLatest
+    : null;
+  if (shouldSkipUpstreamUpdateCheck({
+    force,
+    lastCheckedAt: upstreamBlock.lastCheckedAt,
+    latest: upstreamBlock.lastKnownLatest,
+    dismissedVersion: upstreamBlock.dismissedVersion,
+    currentVersion: app.getVersion(),
+    latestForkRelease: forkLatest
+  })) {
+    return deriveAppUpdateState();
+  }
+  const checkTask = (async () => {
+    upstreamUpdateCheckInFlight = true;
+    upstreamUpdateLastAttemptAt = new Date().toISOString();
+    if (force) sendAppUpdatePush();
+    let result;
+    try {
+      result = await checkUpstreamUpdateProvider();
+      upstreamUpdateLastAttemptAt = result.checkedAt || upstreamUpdateLastAttemptAt;
+      if (result.ok) {
+        rememberSuccessfulUpstreamUpdateCheck(result.latest, result.checkedAt);
+        const upstreamState = deriveAppUpdateState().upstream;
+        if (force && upstreamState.hasUpdate) {
+          restoreDismissedUpstreamUpdate(upstreamState.latest?.version);
+        }
+      } else {
+        upstreamUpdateLastError = resolveAppUpdateCheckError(upstreamUpdateLastError, result, { force });
+        if (!force) console.warn('Upstream update check failed:', result.error);
+      }
+    } catch (error) {
+      const classified = classifyAppUpdateError(error);
+      upstreamUpdateLastError = resolveAppUpdateCheckError(upstreamUpdateLastError, {
+        ok: false,
+        error: classified.message,
+        errorKind: classified.kind
+      }, { force });
+      if (!force) console.warn('Upstream update check threw:', error);
+      return {
+        ok: false,
+        newer: false,
+        latest: null,
+        error: classified.message,
+        errorKind: classified.kind,
+        checkedAt: upstreamUpdateLastAttemptAt
+      };
+    } finally {
+      upstreamUpdateCheckInFlight = false;
+      sendAppUpdatePush();
+    }
+    return result;
+  })();
+  upstreamUpdateCheckPromise = checkTask;
+  try {
+    await checkTask;
+  } finally {
+    if (upstreamUpdateCheckPromise === checkTask) upstreamUpdateCheckPromise = null;
+  }
+  return deriveAppUpdateState();
+}
+
 function maybeRunBackgroundUpdateCheck() {
   runAppUpdateCheck({ force: false }).catch(() => {});
+  runUpstreamUpdateCheck({ force: false }).catch(() => {});
 }
 
 function startAppUpdateBackgroundChecks() {
@@ -4566,6 +4723,21 @@ function dismissAppUpdateVersion(version) {
   settings.appUpdate = {
     ...(settings.appUpdate || {}),
     dismissedVersion: version
+  };
+  saveSettings();
+  sendAppUpdatePush();
+  return deriveAppUpdateState();
+}
+
+function dismissUpstreamUpdateVersion(version) {
+  if (typeof version !== 'string' || !version) return deriveAppUpdateState();
+  const block = settings?.appUpdate || {};
+  settings.appUpdate = {
+    ...block,
+    upstream: {
+      ...(block.upstream || {}),
+      dismissedVersion: version
+    }
   };
   saveSettings();
   sendAppUpdatePush();
@@ -4587,6 +4759,13 @@ function isAllowedExternalUrl(value) {
     (
       parsed.pathname === '/MarbleGateKeeper/token-monitor-ver.replica' ||
       parsed.pathname.startsWith('/MarbleGateKeeper/token-monitor-ver.replica/')
+    )
+  ) return true;
+  if (
+    parsed.hostname === 'github.com' &&
+    (
+      parsed.pathname === '/Javis603/token-monitor' ||
+      parsed.pathname.startsWith('/Javis603/token-monitor/')
     )
   ) return true;
   if (
@@ -5561,7 +5740,9 @@ app.whenReady().then(() => {
   });
   ipcMain.handle('appUpdate:getState', () => deriveAppUpdateState());
   ipcMain.handle('appUpdate:checkNow', () => runAppUpdateCheck({ force: true }));
+  ipcMain.handle('appUpdate:checkUpstream', () => runUpstreamUpdateCheck({ force: true }));
   ipcMain.handle('appUpdate:dismiss', (_event, version) => dismissAppUpdateVersion(version));
+  ipcMain.handle('appUpdate:dismissUpstream', (_event, version) => dismissUpstreamUpdateVersion(version));
   ipcMain.handle('cursor:loginManual', async (_event, raw) => {
     const token = normalizeManualCookie(raw);
     if (!token) return { ok: false, error: 'Empty or malformed token' };

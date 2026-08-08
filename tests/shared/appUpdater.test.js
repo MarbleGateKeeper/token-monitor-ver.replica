@@ -7,21 +7,30 @@ const test = require('node:test');
 
 const {
   checkLatestRelease,
+  checkLatestUpstreamRelease,
   classifyAppUpdateError,
   deriveAppUpdateAvailability,
+  deriveUpstreamUpdateAvailability,
   extractReleaseNotes,
+  forkReleaseIsNewer,
+  isReplicaReleaseVersion,
   mergeLatestReleaseMetadata,
   parseLatestReleasePayload,
   parseTag,
+  replicaVersionInfo,
   RELEASES_LATEST_URL,
   resolveAppUpdateCheckError,
-  shouldSkipAppUpdateCheck
+  shouldSkipAppUpdateCheck,
+  shouldSkipUpstreamUpdateCheck,
+  trackedUpstreamVersion,
+  UPSTREAM_RELEASES_LATEST_URL
 } = require('../../src/shared/appUpdater');
 
 const trailingPullRequestReference = /(?:\(\s*#\d+(?:\s*,\s*#\d+)*\s*\)|（\s*#\d+(?:\s*[、，,]\s*#\d+)*\s*）)$/;
 
-test('source-mode release checks use the public GitHub page instead of the REST API', () => {
+test('fork and upstream checks use their public GitHub release pages', () => {
   assert.equal(RELEASES_LATEST_URL, 'https://github.com/MarbleGateKeeper/token-monitor-ver.replica/releases/latest');
+  assert.equal(UPSTREAM_RELEASES_LATEST_URL, 'https://github.com/Javis603/token-monitor/releases/latest');
 });
 
 test('source-mode release checks negotiate public release JSON without authentication', async () => {
@@ -30,13 +39,47 @@ test('source-mode release checks negotiate public release JSON without authentic
     assert.equal(url, RELEASES_LATEST_URL);
     assert.equal(options.headers.accept, 'application/json');
     assert.equal(Object.hasOwn(options.headers, 'authorization'), false);
-    return { ok: true, json: async () => ({ tag_name: 'v0.40.0' }) };
+    return { ok: true, json: async () => ({ tag_name: 'v0.40.0-replica.2' }) };
   };
   try {
-    const result = await checkLatestRelease('0.39.0');
+    const result = await checkLatestRelease('0.40.0-replica.1');
     assert.equal(result.ok, true);
     assert.equal(result.newer, true);
-    assert.equal(result.latest.version, '0.40.0');
+    assert.equal(result.latest.version, '0.40.0-replica.2');
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
+test('fork checks ignore plain upstream-style releases on the fork repository', async () => {
+  const originalFetch = global.fetch;
+  global.fetch = async () => ({ ok: true, json: async () => ({ tag_name: 'v0.42.0' }) });
+  try {
+    const result = await checkLatestRelease('0.42.0-replica.1');
+    assert.equal(result.ok, true);
+    assert.equal(result.newer, false);
+    assert.equal(result.latest, null);
+    assert.equal(result.ignoredLatest.version, '0.42.0');
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
+test('upstream checks compare against the highest fork base and use the upstream release URL', async () => {
+  const originalFetch = global.fetch;
+  global.fetch = async (url) => {
+    assert.equal(url, UPSTREAM_RELEASES_LATEST_URL);
+    return { ok: true, json: async () => ({ tag_name: 'v0.43.0' }) };
+  };
+  try {
+    const result = await checkLatestUpstreamRelease(
+      '0.41.0-replica.3',
+      { version: '0.42.0-replica.2' }
+    );
+    assert.equal(result.ok, true);
+    assert.equal(result.trackedVersion, '0.42.0');
+    assert.equal(result.newer, true);
+    assert.equal(result.latest.htmlUrl, 'https://github.com/Javis603/token-monitor/releases/tag/v0.43.0');
   } finally {
     global.fetch = originalFetch;
   }
@@ -72,21 +115,42 @@ test('parseTag returns null for invalid or empty input', () => {
   assert.equal(parseTag(123), null);
 });
 
+test('replica versions compare revisions without letting a plain base outrank them', () => {
+  assert.deepEqual(replicaVersionInfo('v0.42.0-replica.2'), {
+    version: '0.42.0-replica.2',
+    baseVersion: '0.42.0',
+    revision: 2
+  });
+  assert.equal(isReplicaReleaseVersion('0.42.0-replica.1'), true);
+  assert.equal(isReplicaReleaseVersion('0.42.0'), false);
+  assert.equal(isReplicaReleaseVersion('0.42.0-replica.0'), false);
+  assert.equal(forkReleaseIsNewer('0.42.0', '0.42.0-replica.1'), false);
+  assert.equal(forkReleaseIsNewer('0.42.0-replica.2', '0.42.0-replica.1'), true);
+  assert.equal(forkReleaseIsNewer('0.42.0-replica.1', '0.42.0-replica.2'), false);
+  assert.equal(forkReleaseIsNewer('0.43.0-replica.1', '0.42.0-replica.9'), true);
+});
+
+test('upstream tracking uses the higher base from the installed and latest fork versions', () => {
+  assert.equal(trackedUpstreamVersion('0.42.0-replica.1', null), '0.42.0');
+  assert.equal(trackedUpstreamVersion('0.42.0-replica.1', { version: '0.43.0-replica.1' }), '0.43.0');
+  assert.equal(trackedUpstreamVersion('0.44.0-replica.1', { version: '0.43.0-replica.9' }), '0.44.0');
+});
+
 test('shouldSkipAppUpdateCheck refreshes cached update prompts sooner than the normal cooldown', () => {
   const nowMs = Date.parse('2026-07-02T18:30:00Z');
   const twoHoursAgo = '2026-07-02T16:30:00Z';
   const tenMinutesAgo = '2026-07-02T18:20:00Z';
-  const latest = { version: '0.18.0' };
+  const latest = { version: '0.18.0-replica.1' };
 
   assert.equal(shouldSkipAppUpdateCheck({
-    currentVersion: '0.17.0',
+    currentVersion: '0.17.0-replica.1',
     latest,
     lastCheckedAt: twoHoursAgo,
     nowMs
   }), false);
 
   assert.equal(shouldSkipAppUpdateCheck({
-    currentVersion: '0.17.0',
+    currentVersion: '0.17.0-replica.1',
     latest,
     lastCheckedAt: tenMinutesAgo,
     nowMs
@@ -98,9 +162,9 @@ test('shouldSkipAppUpdateCheck uses normal cooldown for dismissed cached updates
   const twoHoursAgo = '2026-07-02T16:30:00Z';
 
   assert.equal(shouldSkipAppUpdateCheck({
-    currentVersion: '0.17.0',
-    latest: { version: '0.18.0' },
-    dismissedVersion: '0.18.0',
+    currentVersion: '0.17.0-replica.1',
+    latest: { version: '0.18.0-replica.1' },
+    dismissedVersion: '0.18.0-replica.1',
     lastCheckedAt: twoHoursAgo,
     nowMs
   }), true);
@@ -108,14 +172,45 @@ test('shouldSkipAppUpdateCheck uses normal cooldown for dismissed cached updates
 
 test('deriveAppUpdateAvailability keeps availability separate from notification dismissal', () => {
   assert.deepEqual(deriveAppUpdateAvailability({
-    currentVersion: '0.28.0',
-    latest: { version: '0.28.1' },
-    dismissedVersion: '0.28.1'
+    currentVersion: '0.28.0-replica.1',
+    latest: { version: '0.28.0-replica.2' },
+    dismissedVersion: '0.28.0-replica.2'
   }), {
     hasUpdate: true,
     dismissed: true,
     showUpdateNotice: false
   });
+});
+
+test('upstream availability is independent from replica revision ordering', () => {
+  assert.deepEqual(deriveUpstreamUpdateAvailability({
+    currentVersion: '0.42.0-replica.1',
+    latestForkRelease: { version: '0.42.0-replica.2' },
+    latest: { version: '0.42.0' }
+  }), {
+    trackedVersion: '0.42.0',
+    hasUpdate: false,
+    dismissed: false,
+    showUpdateNotice: false
+  });
+  assert.deepEqual(deriveUpstreamUpdateAvailability({
+    currentVersion: '0.42.0-replica.1',
+    latestForkRelease: { version: '0.42.0-replica.2' },
+    latest: { version: '0.43.0' },
+    dismissedVersion: '0.43.0'
+  }), {
+    trackedVersion: '0.42.0',
+    hasUpdate: true,
+    dismissed: true,
+    showUpdateNotice: false
+  });
+  assert.equal(shouldSkipUpstreamUpdateCheck({
+    currentVersion: '0.42.0-replica.1',
+    latestForkRelease: { version: '0.42.0-replica.2' },
+    latest: { version: '0.43.0' },
+    lastCheckedAt: '2026-07-02T16:30:00Z',
+    nowMs: Date.parse('2026-07-02T18:30:00Z')
+  }), false);
 });
 
 test('extractReleaseNotes reads marked localized summaries as plain text', () => {

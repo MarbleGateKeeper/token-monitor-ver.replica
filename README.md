@@ -7,7 +7,7 @@
   </p>
   <p>
     <a href="https://github.com/MarbleGateKeeper/token-monitor-ver.replica/releases"><img src="https://img.shields.io/github/v/release/MarbleGateKeeper/token-monitor-ver.replica?include_prereleases&style=flat-square&label=replica&color=22c55e" alt="Replica release"></a>
-    <img src="https://img.shields.io/badge/version-0.42.0--replica.1-64748b?style=flat-square" alt="Version 0.42.0-replica.1">
+    <img src="https://img.shields.io/badge/version-0.42.0--replica.2-64748b?style=flat-square" alt="Version 0.42.0-replica.2">
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-A855F7?style=flat-square" alt="MIT License"></a>
   </p>
   <img src=".github/assets/demo.gif" alt="Token Monitor demo">
@@ -25,8 +25,8 @@
 - **上游项目：** [Javis603/token-monitor](https://github.com/Javis603/token-monitor)，提供 Token Monitor 的主体架构、采集器、桌面组件、多设备 Hub、AI 工具额度和绝大多数功能。
 - **本仓库：** [MarbleGateKeeper/token-monitor-ver.replica](https://github.com/MarbleGateKeeper/token-monitor-ver.replica)，用于保留个人需要但尚未进入上游的修复与功能。
 - **Git 远程：** 通常以 `upstream` 跟踪原项目，以 `origin` 跟踪本 fork。同步上游时应先审阅差异，再保留下文列出的 fork 功能。
-- **版本规则：** 使用 `<上游版本>-replica.<修订号>`，例如当前版本 `0.42.0-replica.1`。同一上游版本继续发布时递增修订号；同步到新的上游版本后从 `replica.1` 重新开始。
-- **更新来源：** 应用只查询本 fork 最新 GitHub Release 的 tag 和发行说明；发现新版本时提示并可打开 Release 页面，不会下载或安装更新。
+- **版本规则：** 使用 `<上游版本>-replica.<修订号>`，例如当前版本 `0.42.0-replica.2`。同一上游版本继续发布时递增修订号；同步到新的上游版本后从 `replica.1` 重新开始。
+- **更新来源：** 应用只把本 fork 的 `*-replica.N` Release 当作可用版本；同时独立查询上游最新 Release，用于提醒维护者何时需要同步上游。两类提醒都只打开对应 Release 页面，不会下载或安装更新。
 - **许可与署名：** 代码继续使用上游的 MIT 许可证，保留原作者 Javis 的版权声明；打包产物会携带完整 `LICENSE`。
 
 ### 本 fork 的功能改动
@@ -66,13 +66,16 @@ k3-256   → kimi-k3
 
 #### 4. 仅提示新 tag，不自动更新
 
-应用启动后和手动检查时会查询本仓库最新的 GitHub Release。只有 tag 版本高于当前版本时才显示提示；提示可查看发行说明并打开 Release 页面。项目不再包含应用更新器，不会在后台下载安装包，也没有“重启安装”流程。旧版本设置中残留的自动下载偏好会被忽略并清理。
+应用启动后和手动检查时会查询本仓库最新的 GitHub Release。本 fork 的更新通道只接受 `<上游版本>-replica.<修订号>`：同一基础版本按 replica 修订号比较，基础版本不同时先比较上游版本。因此上游的 `0.42.0` 不会再被视为高于本 fork 的 `0.42.0-replica.1`；只有 `0.42.0-replica.2` 或基于更高上游版本的 replica Release 才会触发本 fork 更新提示。
+
+上游 [Javis603/token-monitor](https://github.com/Javis603/token-monitor) 使用独立检查和独立提醒。它把当前安装版本与本 fork 最新 replica Release 中较高的基础版本视为“本分支已跟进版本”；只有上游版本真正更高时才显示橙色“上游”提示，提醒维护者同步本分支。该提示可以单独忽略，也可直接打开上游 Release。项目不包含应用更新器，不会在后台下载安装包，也没有“重启安装”流程。
 
 ### 本 fork 的发行与维护改动
 
 - 应用和 Worker 版本统一使用 `replica` 后缀。
 - GitHub 仓库链接、更新提示和发行模板全部指向本 fork。
-- 推送 `v*` tag 时，GitHub Actions 只创建 latest Release 并使用仓库内的发行说明；不构建或上传安装包、应用压缩包、更新元数据和 blockmap。
+- 本 fork 更新和上游同步提醒是两个独立通道；plain 上游版本不会进入 replica 更新通道。
+- 推送 `v*-replica.*` tag 时，GitHub Actions 只创建 latest Release 并使用仓库内的发行说明；plain 上游 tag 不触发本 fork Release，也不会构建或上传安装包、应用压缩包、更新元数据和 blockmap。
 - GitHub 自动显示的 “Source code (zip/tar.gz)” 是平台生成的源码快照，不是可直接运行的应用。
 - 由于仓库不发布二进制更新，发行流程不需要 Windows/macOS 代码签名凭证。
 - 根 MIT 许可证作为可见的 `resources/LICENSE` 随桌面应用分发。
@@ -151,8 +154,8 @@ npm run dist:linux    # Linux x64 AppImage
 - **Upstream:** [Javis603/token-monitor](https://github.com/Javis603/token-monitor) provides the core architecture, collectors, desktop widget, multi-device Hub, AI Tool Limits, and most product functionality.
 - **This repository:** [MarbleGateKeeper/token-monitor-ver.replica](https://github.com/MarbleGateKeeper/token-monitor-ver.replica) carries personal fixes and features that have not been incorporated upstream.
 - **Git remotes:** `upstream` normally tracks the original project and `origin` tracks this fork. Review upstream changes before merging and preserve the fork behavior documented below.
-- **Versioning:** releases use `<upstream-version>-replica.<revision>`, currently `0.42.0-replica.1`. Increment the replica revision on the same upstream base; restart at `replica.1` after adopting a new upstream version.
-- **Updates:** the app queries this fork's latest GitHub Release for its tag and notes. A newer version produces a notice and link only; the app never downloads or installs an update.
+- **Versioning:** releases use `<upstream-version>-replica.<revision>`, currently `0.42.0-replica.2`. Increment the replica revision on the same upstream base; restart at `replica.1` after adopting a new upstream version.
+- **Updates:** only this fork's `*-replica.N` Releases enter the fork update channel. The app also checks upstream independently to tell maintainers when the fork needs syncing. Both channels only open their matching Release page and never download or install updates.
 - **License and credit:** the upstream MIT license and Javis copyright notice are preserved, and packaged applications include the complete `LICENSE`.
 
 ### Functional changes in this fork
@@ -192,13 +195,16 @@ Mapping behavior:
 
 #### 4. New-tag notices without automatic updates
 
-On startup and on manual checks, the app queries this repository's latest GitHub Release. It shows a notice only when that tag is newer than the running version, with release notes and a link to the Release page. The application updater, background downloads, and restart-to-install flow have been removed. Any legacy automatic-download preference is ignored and cleaned from saved settings.
+On startup and on manual checks, the app queries this repository's latest GitHub Release. The fork channel accepts only `<upstream-version>-replica.<revision>` tags: replica revisions are compared within the same upstream base, while different bases compare by upstream version first. Consequently upstream `0.42.0` is not newer than fork build `0.42.0-replica.1`; only `0.42.0-replica.2` or a replica Release based on a newer upstream version triggers the fork notice.
+
+The upstream [Javis603/token-monitor](https://github.com/Javis603/token-monitor) check has independent state and UI. It treats the higher base from the running build and the latest fork replica Release as the version already tracked by this branch. An orange Upstream notice appears only when upstream is genuinely newer, can be dismissed separately, and opens the upstream Release. The application updater, background downloads, and restart-to-install flow remain removed.
 
 ### Distribution and maintenance changes
 
 - App and Worker versions share the `replica` suffix.
 - Repository links, update notices, and release templates point to this fork.
-- Pushing a `v*` tag makes GitHub Actions create a latest Release from the checked-in notes only; it does not build or upload installers, app archives, updater metadata, or blockmaps.
+- Fork updates and upstream-sync notices are separate channels; plain upstream versions never enter the replica update channel.
+- Pushing a `v*-replica.*` tag makes GitHub Actions create a latest Release from the checked-in notes only. Plain upstream tags do not trigger a fork Release, and the workflow does not build or upload installers, app archives, updater metadata, or blockmaps.
 - GitHub's automatic “Source code (zip/tar.gz)” entries are source snapshots, not ready-to-run applications.
 - Because no binary updates are published, the release workflow needs no Windows or macOS signing credentials.
 - The root MIT license ships visibly as `resources/LICENSE`.

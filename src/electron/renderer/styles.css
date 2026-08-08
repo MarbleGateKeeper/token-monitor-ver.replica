@@ -1621,6 +1621,7 @@ span.settings-note.settings-item-desc {
 .tokscale-message:empty { display: none; } /* don't reserve a blank line while there's no status */
 .tokscale-message.error { color: var(--red); }
 .tokscale-message.success { color: var(--success); }
+.tokscale-message.attention { color: var(--orange); }
 .settings-panel .client-checkboxes {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -4741,6 +4742,17 @@ html.is-windows .limit-live-badge {
 }
 .update-pill.hidden { display: none; }
 .update-pill:hover { background: rgba(115, 189, 245, 0.18); border-color: rgba(115, 189, 245, 0.52); }
+.upstream-update-pill {
+  background: rgba(255, 176, 46, 0.1);
+  border-color: rgba(255, 176, 46, 0.34);
+  color: var(--orange);
+}
+.upstream-update-pill:hover {
+  background: rgba(255, 176, 46, 0.16);
+  border-color: rgba(255, 176, 46, 0.54);
+}
+.upstream-update-pill .update-pill-action:hover { background: rgba(255, 176, 46, 0.09); }
+.upstream-update-pill .update-pill-dismiss { color: var(--orange); }
 .footer:has(.utility-actions:hover) .update-pill,
 .footer:has(.utility-actions :focus-visible) .update-pill,
 .footer:has(.refresh-button:is(.is-refreshing, .is-refreshed, .is-refresh-error)) .update-pill,

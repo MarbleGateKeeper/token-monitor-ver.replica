@@ -84,6 +84,19 @@
               </div>
               <div id="appUpdateMessage" class="tokscale-message"></div>
             </div>
+            <div class="settings-subgroup maintenance-section upstream-update-settings">
+              <div class="settings-group-header maintenance-header"><span data-i18n="settings.upstreamUpdate.title">Upstream sync</span><span data-i18n="settings.upstreamUpdate.source">Javis603/token-monitor</span></div>
+              <p class="settings-note" data-i18n="settings.upstreamUpdate.description">Tracks the upstream base version separately from this fork's replica releases.</p>
+              <div class="maintenance-version-grid upstream-update-version-grid">
+                <div class="maintenance-version-item"><span data-i18n="settings.upstreamUpdate.tracked">Fork base</span><strong id="upstreamUpdateTracked">—</strong></div>
+                <div class="maintenance-version-item"><span data-i18n="settings.upstreamUpdate.latest">Upstream latest</span><strong id="upstreamUpdateLatest" data-i18n="settings.common.notChecked">Not checked</strong></div>
+              </div>
+              <div class="settings-actions maintenance-actions">
+                <button id="upstreamUpdateCheckButton" type="button" data-i18n="settings.upstreamUpdate.check">Check upstream</button>
+                <button id="upstreamUpdateViewReleaseButton" type="button" class="hidden" data-i18n="settings.upstreamUpdate.viewRelease">View upstream release</button>
+              </div>
+              <div id="upstreamUpdateMessage" class="tokscale-message upstream-update-message"></div>
+            </div>
             <div class="settings-subgroup">
               <div class="settings-group-header"><span data-i18n="settings.integrations.title">Integrations</span></div>
               <label class="checkbox-label settings-item">
@@ -1408,6 +1421,12 @@
             <span id="appUpdatePillLabel" class="update-pill-label"></span>
           </button>
           <button id="appUpdatePillDismiss" type="button" class="update-pill-dismiss" data-i18n-title="settings.appUpdate.dismiss" data-i18n-aria-label="settings.appUpdate.dismiss" title="Dismiss this version" aria-label="Dismiss this version">×</button>
+        </div>
+        <div id="upstreamUpdatePill" class="update-pill upstream-update-pill hidden" title="">
+          <button id="upstreamUpdatePillAction" type="button" class="update-pill-action">
+            <span id="upstreamUpdatePillLabel" class="update-pill-label"></span>
+          </button>
+          <button id="upstreamUpdatePillDismiss" type="button" class="update-pill-dismiss" data-i18n-title="settings.upstreamUpdate.dismiss" data-i18n-aria-label="settings.upstreamUpdate.dismiss" title="Dismiss this upstream version" aria-label="Dismiss this upstream version">×</button>
         </div>
         <span id="footerActionSlot">
           <span id="utilityActions" class="utility-actions">

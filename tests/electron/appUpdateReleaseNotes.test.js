@@ -34,6 +34,19 @@ test('footer update pill opens an accessible release-note popover', () => {
   assert.doesNotMatch(html, /id="appUpdatePopoverRelease"/);
 });
 
+test('upstream sync uses a separate dismissible amber notice without a release-note popover', () => {
+  const html = read('index.html');
+  const app = read('app.js');
+  const css = read('styles.css');
+  assert.match(html, /id="upstreamUpdatePill"[^>]*upstream-update-pill[\s\S]*id="upstreamUpdatePillAction"[\s\S]*id="upstreamUpdatePillDismiss"/);
+  assert.match(html, /settings\.upstreamUpdate\.title[\s\S]*id="upstreamUpdateTracked"[\s\S]*id="upstreamUpdateLatest"[\s\S]*id="upstreamUpdateCheckButton"/);
+  assert.match(app, /upstreamUpdatePillLabel\.textContent = t\('settings\.upstreamUpdate\.pill', \{ version \}\)/);
+  assert.match(app, /dismissUpstreamUpdate\(version\)/);
+  assert.match(app, /openExternal\(latest\.htmlUrl\)/);
+  assert.match(css, /\.upstream-update-pill \{[\s\S]*color: var\(--orange\)/);
+  assert.match(css, /\.tokscale-message\.attention \{ color: var\(--orange\); \}/);
+});
+
 test('footer update pill yields its space while utility actions are disclosed', () => {
   const css = read('styles.css');
   const start = css.indexOf('.footer:has(.utility-actions:hover) .update-pill,');

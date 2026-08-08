@@ -393,6 +393,15 @@ Object.assign(els, {
   appUpdateNotesBody: document.getElementById('appUpdateNotesBody'),
   appUpdateReleaseNotesButton: document.getElementById('appUpdateReleaseNotesButton'),
   appUpdateMessage: document.getElementById('appUpdateMessage'),
+  upstreamUpdatePill: document.getElementById('upstreamUpdatePill'),
+  upstreamUpdatePillAction: document.getElementById('upstreamUpdatePillAction'),
+  upstreamUpdatePillLabel: document.getElementById('upstreamUpdatePillLabel'),
+  upstreamUpdatePillDismiss: document.getElementById('upstreamUpdatePillDismiss'),
+  upstreamUpdateTracked: document.getElementById('upstreamUpdateTracked'),
+  upstreamUpdateLatest: document.getElementById('upstreamUpdateLatest'),
+  upstreamUpdateCheckButton: document.getElementById('upstreamUpdateCheckButton'),
+  upstreamUpdateViewReleaseButton: document.getElementById('upstreamUpdateViewReleaseButton'),
+  upstreamUpdateMessage: document.getElementById('upstreamUpdateMessage'),
   titleIconInput: document.getElementById('titleIconInput'),
   showCompactTotalTokensInput: document.getElementById('showCompactTotalTokensInput'),
   compactTokenUnitsRow: document.getElementById('compactTokenUnitsRow'),
@@ -958,6 +967,30 @@ function renderAppUpdatePill() {
   els.appUpdatePillAction.disabled = false;
   els.appUpdatePillLabel.textContent = `↑ v${version}`;
 }
+function upstreamUpdateState() {
+  return state.appUpdate?.upstream || null;
+}
+function renderUpstreamUpdatePill() {
+  const s = upstreamUpdateState();
+  const version = s?.latest?.version || '';
+  if (!s || !s.showUpdateNotice || !version || !s.latest?.htmlUrl) {
+    els.upstreamUpdatePill.classList.add('hidden');
+    els.upstreamUpdatePill.setAttribute('title', '');
+    els.upstreamUpdatePillLabel.textContent = '';
+    els.upstreamUpdatePillAction.removeAttribute('title');
+    els.upstreamUpdatePillAction.removeAttribute('aria-label');
+    return;
+  }
+  const notice = t('settings.upstreamUpdate.notice', {
+    tracked: s.trackedVersion || '—',
+    latest: version
+  });
+  els.upstreamUpdatePill.classList.remove('hidden');
+  els.upstreamUpdatePill.setAttribute('title', notice);
+  els.upstreamUpdatePillAction.setAttribute('title', notice);
+  els.upstreamUpdatePillAction.setAttribute('aria-label', notice);
+  els.upstreamUpdatePillLabel.textContent = t('settings.upstreamUpdate.pill', { version });
+}
 function releaseNoteGroupsForCurrentLocale(latest) {
   return appUpdatePresentationApi.releaseNoteGroupsForLocale(latest?.releaseNotes, currentLocale());
 }
@@ -1071,6 +1104,53 @@ function renderSettingsAppUpdateRow() {
   } else {
     els.appUpdateMessage.textContent = '';
     els.appUpdateMessage.classList.remove('error');
+  }
+}
+
+function renderSettingsUpstreamUpdateRow() {
+  const s = upstreamUpdateState();
+  if (!s) {
+    els.upstreamUpdateTracked.textContent = '—';
+    els.upstreamUpdateLatest.textContent = t('settings.common.notChecked');
+    els.upstreamUpdateCheckButton.disabled = false;
+    els.upstreamUpdateCheckButton.textContent = t('settings.upstreamUpdate.check');
+    els.upstreamUpdateViewReleaseButton.classList.add('hidden');
+    els.upstreamUpdateMessage.textContent = '';
+    els.upstreamUpdateMessage.classList.remove('error', 'attention');
+    return;
+  }
+  els.upstreamUpdateTracked.textContent = s.trackedVersion ? `v${s.trackedVersion}` : '—';
+  els.upstreamUpdateLatest.textContent = s.latest?.version
+    ? `v${s.latest.version}`
+    : s.lastError
+      ? t('settings.appUpdate.unavailable')
+      : t('settings.common.notChecked');
+  const releaseAvailable = Boolean(s.latest?.htmlUrl);
+  els.upstreamUpdateViewReleaseButton.classList.toggle('hidden', !releaseAvailable);
+  els.upstreamUpdateViewReleaseButton.disabled = false;
+  els.upstreamUpdateViewReleaseButton.textContent = t('settings.upstreamUpdate.viewRelease');
+  els.upstreamUpdateCheckButton.disabled = Boolean(s.checking);
+  els.upstreamUpdateCheckButton.textContent = s.checking
+    ? t('settings.upstreamUpdate.checking')
+    : t('settings.upstreamUpdate.check');
+  if (s.lastError) {
+    const error = t(appUpdatePresentationApi.appUpdateErrorMessageKey(s.lastErrorKind));
+    const age = compactAge(s.lastCheckedAt);
+    els.upstreamUpdateMessage.textContent = age
+      ? t('settings.appUpdate.errorWithLastSuccess', { error, age })
+      : error;
+    els.upstreamUpdateMessage.classList.add('error');
+    els.upstreamUpdateMessage.classList.remove('attention');
+  } else if (s.hasUpdate) {
+    els.upstreamUpdateMessage.textContent = t('settings.upstreamUpdate.notice', {
+      tracked: s.trackedVersion || '—',
+      latest: s.latest?.version || '—'
+    });
+    els.upstreamUpdateMessage.classList.remove('error');
+    els.upstreamUpdateMessage.classList.add('attention');
+  } else {
+    els.upstreamUpdateMessage.textContent = '';
+    els.upstreamUpdateMessage.classList.remove('error', 'attention');
   }
 }
 
@@ -7673,6 +7753,7 @@ function syncSettingsForm() {
   buildAppearanceColorControls();
   renderTokscaleStatus();
   renderSettingsAppUpdateRow();
+  renderSettingsUpstreamUpdateRow();
   renderCodexAccounts();
   renderModelMappings();
   renderCustomPricing();
@@ -9848,11 +9929,15 @@ async function init() {
 
   state.appUpdate = await window.tokenMonitor.getAppUpdateState();
   renderAppUpdatePill();
+  renderUpstreamUpdatePill();
   renderSettingsAppUpdateRow();
+  renderSettingsUpstreamUpdateRow();
   window.tokenMonitor.onAppUpdatePush?.((payload) => {
     state.appUpdate = payload;
     renderAppUpdatePill();
+    renderUpstreamUpdatePill();
     renderSettingsAppUpdateRow();
+    renderSettingsUpstreamUpdateRow();
     if (els.appUpdatePopover.matches(':popover-open')) renderAppUpdatePopover(payload);
   });
   if (state.appInfo?.loginItemSupported) {
@@ -10339,6 +10424,12 @@ async function runAppUpdateAction() {
   renderSettingsAppUpdateRow();
 }
 
+async function runUpstreamUpdateAction() {
+  const latest = upstreamUpdateState()?.latest;
+  if (!latest?.htmlUrl) return;
+  await window.tokenMonitor.openExternal(latest.htmlUrl);
+}
+
 els.appUpdatePillAction.addEventListener('click', async () => {
   if (!renderAppUpdatePopover(state.appUpdate) || typeof els.appUpdatePopover.showPopover !== 'function') {
     await runAppUpdateAction();
@@ -10355,6 +10446,16 @@ els.appUpdatePillDismiss.addEventListener('click', async () => {
   state.appUpdate = await window.tokenMonitor.dismissAppUpdate(version);
   if (els.appUpdatePopover.matches(':popover-open')) els.appUpdatePopover.hidePopover();
   renderAppUpdatePill();
+});
+
+els.upstreamUpdatePillAction.addEventListener('click', runUpstreamUpdateAction);
+
+els.upstreamUpdatePillDismiss.addEventListener('click', async () => {
+  const version = upstreamUpdateState()?.latest?.version;
+  if (!version) return;
+  state.appUpdate = await window.tokenMonitor.dismissUpstreamUpdate(version);
+  renderUpstreamUpdatePill();
+  renderSettingsUpstreamUpdateRow();
 });
 
 els.appUpdatePopoverClose.addEventListener('click', () => {
@@ -10386,8 +10487,18 @@ window.addEventListener('resize', () => {
 els.appUpdateCheckButton.addEventListener('click', async () => {
   state.appUpdate = await window.tokenMonitor.checkAppUpdateNow();
   renderAppUpdatePill();
+  renderUpstreamUpdatePill();
   renderSettingsAppUpdateRow();
+  renderSettingsUpstreamUpdateRow();
 });
+
+els.upstreamUpdateCheckButton.addEventListener('click', async () => {
+  state.appUpdate = await window.tokenMonitor.checkUpstreamUpdateNow();
+  renderUpstreamUpdatePill();
+  renderSettingsUpstreamUpdateRow();
+});
+
+els.upstreamUpdateViewReleaseButton.addEventListener('click', runUpstreamUpdateAction);
 
 els.appUpdateViewReleaseButton.addEventListener('click', async () => {
   await runAppUpdateAction();
@@ -10407,6 +10518,8 @@ window.tokenMonitor.onSettingsPush?.((next) => {
   state.settings = next;
   applyEffectiveCurrencyRates();
   preserveSettingsPanelScroll(syncSettingsForm);
+  renderAppUpdatePill();
+  renderUpstreamUpdatePill();
   maybeUpdateBarsIcon();
   if ((prevMetric || 'cost') !== (next.heatmapMetric || 'cost')) {
     render();
