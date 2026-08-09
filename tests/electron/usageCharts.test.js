@@ -179,6 +179,33 @@ test('heatmapSvg embeds escaped per-cell titles when supplied', () => {
   assert.match(svg, /<title>2026-06-22 &lt; 1234<\/title>/);
 });
 
+test('heatmap cells preserve dominant-model metadata and outline existing rects', () => {
+  const model = contribHeatmap([{
+    date: '2026-06-22',
+    intensity: 4,
+    tokens: 1234,
+    dominantModel: 'model<&"',
+    outlineColor: '#1783FF'
+  }], { cell: 9, gap: 3 });
+  const cell = model.cells.find((entry) => entry.date === '2026-06-22');
+  assert.equal(cell.dominantModel, 'model<&"');
+  assert.equal(cell.outlineColor, '#1783FF');
+
+  const svg = heatmapSvg(model);
+  assert.match(svg, /class="heat lvl-4 heat-model-outline"/);
+  assert.match(svg, /data-model="model&lt;&amp;&quot;"/);
+  assert.match(svg, /style="--heat-outline:#1783FF"/);
+  assert.equal((svg.match(/<rect /g) || []).length, model.cells.length, 'the outline reuses the heat cell instead of adding a rect');
+});
+
+test('heatmap cells without model metadata keep the legacy no-outline markup', () => {
+  const model = contribHeatmap([{ date: '2026-06-22', intensity: 2, tokens: 20 }], { cell: 9, gap: 3 });
+  const svg = heatmapSvg(model);
+  assert.doesNotMatch(svg, /heat-model-outline/);
+  assert.doesNotMatch(svg, /data-model=/);
+  assert.doesNotMatch(svg, /--heat-outline:/);
+});
+
 test('heatmapSvg can include a glow filter for hovered cells', () => {
   const svg = heatmapSvg({
     width: 9,

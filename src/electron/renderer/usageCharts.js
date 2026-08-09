@@ -193,7 +193,12 @@
     for (const d of (Array.isArray(daily) ? daily : [])) {
       const key = String(d.date).slice(0, 10);
       intensities.set(key, n(d[o.intensityKey]));
-      values.set(key, { tokens: n(d.tokens), cost: n(d.cost) });
+      values.set(key, {
+        tokens: n(d.tokens),
+        cost: n(d.cost),
+        dominantModel: String(d.dominantModel || ''),
+        outlineColor: String(d.outlineColor || '')
+      });
       if (!o.startDate && (!minDate || key < minDate)) minDate = key;
       if (!o.endDate && (!maxDate || key > maxDate)) maxDate = key;
     }
@@ -211,8 +216,8 @@
       // Label the column that contains the 1st of a month — this puts the first
       // month flush at the left edge (the leading week always spans a month's 1st).
       if (key.slice(8, 10) === '01') monthLabels.push({ col, label: key.slice(0, 7) });
-      const value = values.get(key) || { tokens: 0, cost: 0 };
-      cells.push({ date: key, intensity: intensities.get(key) || 0, tokens: value.tokens, cost: value.cost, col, row, x: col * (o.cell + o.gap), y: row * (o.cell + o.gap), size: o.cell });
+      const value = values.get(key) || { tokens: 0, cost: 0, dominantModel: '', outlineColor: '' };
+      cells.push({ date: key, intensity: intensities.get(key) || 0, tokens: value.tokens, cost: value.cost, dominantModel: value.dominantModel, outlineColor: value.outlineColor, col, row, x: col * (o.cell + o.gap), y: row * (o.cell + o.gap), size: o.cell });
     }
     const weeks = cells.length ? cells[cells.length - 1].col + 1 : 0;
     return {
@@ -415,7 +420,13 @@
   }
 
   function escapeXml(value) {
-    return String(value).replace(/[<>&]/g, (c) => (c === '<' ? '&lt;' : c === '>' ? '&gt;' : '&amp;'));
+    return String(value).replace(/[<>&"']/g, (c) => ({
+      '<': '&lt;',
+      '>': '&gt;',
+      '&': '&amp;',
+      '"': '&quot;',
+      "'": '&#39;'
+    }[c]));
   }
 
   function sparklineSvg(model, options) {
@@ -538,7 +549,19 @@
     }
     const defs = defsParts.length ? `<defs>${defsParts.join('')}</defs>` : '';
     const initialVisibility = o.initialHidden ? ' data-motion-hidden="true" opacity="0"' : '';
-    const cellAttrs = (c) => `class="heat lvl-${c.intensity}" data-d="${escapeXml(c.date)}" data-t="${svgRound(c.tokens || 0)}" data-cost="${svgRound(c.cost || 0)}" x="${svgRound(c.x)}" y="${svgRound(c.y)}" width="${svgRound(c.size)}" height="${svgRound(c.size)}" rx="${svgRound(Math.max(0, Number(o.radius) || 0))}"${initialVisibility}`;
+    const outline = (c) => {
+      const model = String(c.dominantModel || '');
+      const color = String(c.outlineColor || '').trim();
+      if (!model || !color) return { className: '', attrs: '' };
+      return {
+        className: ' heat-model-outline',
+        attrs: ` data-model="${escapeXml(model)}" style="--heat-outline:${escapeXml(color)}"`
+      };
+    };
+    const cellAttrs = (c) => {
+      const decoration = outline(c);
+      return `class="heat lvl-${c.intensity}${decoration.className}" data-d="${escapeXml(c.date)}" data-t="${svgRound(c.tokens || 0)}" data-cost="${svgRound(c.cost || 0)}" x="${svgRound(c.x)}" y="${svgRound(c.y)}" width="${svgRound(c.size)}" height="${svgRound(c.size)}" rx="${svgRound(Math.max(0, Number(o.radius) || 0))}"${decoration.attrs}${initialVisibility}`;
+    };
     const cells = (model.cells || []).map((c) =>
       `<rect ${cellAttrs(c)}>${o.titleOf(c) ? `<title>${escapeXml(o.titleOf(c))}</title>` : ''}</rect>`
     ).join('');

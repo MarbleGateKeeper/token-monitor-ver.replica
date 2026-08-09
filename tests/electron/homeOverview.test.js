@@ -6,6 +6,7 @@ const path = require('node:path');
 const test = require('node:test');
 
 const {
+  dominantModelByTokens,
   homeActivityHeatmapLayout,
   homeDeviceRows,
   homeLimitAccounts,
@@ -59,6 +60,9 @@ test('Home activity heatmap is a scaled copy of the dashboard heatmap', () => {
   );
   assert.match(rule(css, '.home-activity-tooltip'), /position:\s*fixed/);
   assert.match(rule(css, '.home-activity-canvas .heat-month'), /fill:\s*rgba\(var\(--line-rgb\), 0\.5\)/);
+  assert.match(rule(css, '.home-activity-canvas .heat'), /stroke:\s*var\(--heat-outline, none\)/);
+  assert.match(rule(css, '.home-activity-canvas .heat-model-outline'), /stroke-width:\s*1/);
+  assert.match(rule(css, '.home-activity-canvas .heat-model-outline'), /vector-effect:\s*non-scaling-stroke/);
 });
 
 test('Home module selection is independent from main view preferences', () => {
@@ -499,6 +503,23 @@ test('pickHomeHistory returns an empty-daily shape when both sources are empty',
   assert.equal(pickHomeHistory(emptyHistory, emptyHistory), emptyHistory);
 });
 
+test('dominantModelByTokens supports history metrics and live numeric model maps', () => {
+  assert.equal(dominantModelByTokens({
+    'gpt-5.4': { tokens: 120, cost: 1 },
+    'claude-opus': { tokens: 240, cost: 2 }
+  }), 'claude-opus');
+  assert.equal(dominantModelByTokens({
+    'gpt-5.4': 120,
+    'claude-opus': 240
+  }), 'claude-opus');
+});
+
+test('dominantModelByTokens ignores non-positive values and resolves ties by model id', () => {
+  assert.equal(dominantModelByTokens({ zeta: 50, alpha: 50, zero: 0, negative: -5 }), 'alpha');
+  assert.equal(dominantModelByTokens({ zero: 0 }), '');
+  assert.equal(dominantModelByTokens(null), '');
+});
+
 test('patchDailyToday overwrites the frozen today bucket with the live headline total', () => {
   const daily = [
     { date: '2026-07-06', tokens: 200, cost: 2 },
@@ -528,6 +549,16 @@ test('renderHomeTrendsModule patches the activity today cell with the live perio
   const match = rendererSource.match(/function renderHomeTrendsModule\(\) \{([\s\S]*?)\n\}\n\nfunction renderHome/);
   assert.ok(match, 'renderHomeTrendsModule exists');
   assert.match(match[1], /patchDailyToday\([\s\S]*?totalTokens/);
+  assert.match(match[1], /dominantModelByTokens\(todayPeriod\?\.models\)/, 'today uses the live mapped model totals');
+  assert.match(match[1], /cachedHistoricalDominantModel\(p\?\.perModel\)/, 'past days use cached history winners');
+  assert.match(match[1], /outlineColor:\s*activityModelColor\(dominantModel\)/, 'the winner resolves through the active vendor palette');
+});
+
+test('Home activity tooltip exposes the dominant model with localized text', () => {
+  const rendererSource = fs.readFileSync(path.join(__dirname, '../../src/electron/renderer/app.js'), 'utf8');
+  assert.match(rendererSource, /cell\.dataset\.model/);
+  assert.match(rendererSource, /t\('home\.activityTopModel'\)/);
+  assert.match(rendererSource, /homeActivityTooltipModelName/);
 });
 
 test('loadHomeHistory wires the bounded retry through a timer, not a render', () => {

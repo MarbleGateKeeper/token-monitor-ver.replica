@@ -4,7 +4,33 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
-const { deviceBreakdownForPeriod, devicePlatformLabel } = require('../../src/electron/renderer/deviceBreakdown');
+const {
+  clientModelRowsForPeriod,
+  deviceBreakdownForPeriod,
+  devicePlatformLabel
+} = require('../../src/electron/renderer/deviceBreakdown');
+
+test('clientModelRowsForPeriod returns every positive model in stable usage order', () => {
+  const period = {
+    clientModels: {
+      codex: {
+        zeta: 25,
+        alpha: 25,
+        biggest: 50,
+        zero: 0,
+        negative: -10
+      }
+    }
+  };
+
+  assert.deepEqual(clientModelRowsForPeriod(period, 'codex'), [
+    { key: 'biggest', name: 'biggest', value: 50 },
+    { key: 'alpha', name: 'alpha', value: 25 },
+    { key: 'zeta', name: 'zeta', value: 25 }
+  ]);
+  assert.deepEqual(clientModelRowsForPeriod(period, 'missing'), []);
+  assert.deepEqual(clientModelRowsForPeriod(null, 'codex'), []);
+});
 
 test('deviceBreakdownForPeriod nests sorted models under each tool', () => {
   const result = deviceBreakdownForPeriod({ periods: { month: {
@@ -65,8 +91,14 @@ test('device breakdown browser helper loads before app.js and keeps reduced-moti
   assert.ok(html.indexOf('<script src="deviceBreakdown.js"></script>') < html.indexOf('<script src="app.js"></script>'));
   assert.match(css, /\.device-model-list \{/);
   assert.match(css, /\.device-model-row \{[\s\S]*justify-content: space-between;/);
+  assert.match(css, /\.tool-model-list \{[\s\S]*display: grid;/);
+  assert.match(css, /\.tool-model-name \{[\s\S]*text-overflow: ellipsis;/);
+  assert.match(css, /\.tool-model-value \{[\s\S]*font-variant-numeric: tabular-nums;/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.row-accordion/);
   assert.match(app, /const signature = JSON\.stringify\(\[\s*toolIconsEnabled\(state\.settings\?\.showToolIcons\),/);
   assert.match(app, /deviceDetail: \{[\s\S]*emptyText: breakdown\.totalTokens > 0 \? t\('devices\.detailsUnavailable'\) : t\('home\.noTools'\)/);
+  assert.match(app, /toolModels: deviceBreakdownApi\.clientModelRowsForPeriod\(period, client\)/);
+  assert.match(app, /const existing = new Map\(Array\.from\(list\.children\)/, 'tool model rows are reconciled by model id');
+  assert.match(app, /const modelSummary = Array\.isArray\(toolModels\)/, 'button rows expose their nested model totals to assistive technology');
   assert.doesNotMatch(app, /deviceDetail: breakdown\.totalTokens > 0 \?/);
 });

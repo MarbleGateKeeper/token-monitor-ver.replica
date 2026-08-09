@@ -7,7 +7,7 @@
   </p>
   <p>
     <a href="https://github.com/MarbleGateKeeper/token-monitor-ver.replica/releases"><img src="https://img.shields.io/github/v/release/MarbleGateKeeper/token-monitor-ver.replica?include_prereleases&style=flat-square&label=replica&color=22c55e" alt="Replica release"></a>
-    <img src="https://img.shields.io/badge/version-0.42.1--replica.1-64748b?style=flat-square" alt="Version 0.42.1-replica.1">
+    <img src="https://img.shields.io/badge/version-0.42.1--replica.2-64748b?style=flat-square" alt="Version 0.42.1-replica.2">
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-A855F7?style=flat-square" alt="MIT License"></a>
   </p>
   <img src=".github/assets/demo.gif" alt="Token Monitor demo">
@@ -25,7 +25,7 @@
 - **上游项目：** [Javis603/token-monitor](https://github.com/Javis603/token-monitor)，提供 Token Monitor 的主体架构、采集器、桌面组件、多设备 Hub、AI 工具额度和绝大多数功能。
 - **本仓库：** [MarbleGateKeeper/token-monitor-ver.replica](https://github.com/MarbleGateKeeper/token-monitor-ver.replica)，用于保留个人需要但尚未进入上游的修复与功能。
 - **Git 远程：** 通常以 `upstream` 跟踪原项目，以 `origin` 跟踪本 fork。同步上游时应先审阅差异，再保留下文列出的 fork 功能。
-- **版本规则：** 使用 `<上游版本>-replica.<修订号>`，例如当前版本 `0.42.1-replica.1`。同一上游版本继续发布时递增修订号；同步到新的上游版本后从 `replica.1` 重新开始。
+- **版本规则：** 使用 `<上游版本>-replica.<修订号>`，例如当前版本 `0.42.1-replica.2`。同一上游版本继续发布时递增修订号；同步到新的上游版本后从 `replica.1` 重新开始。
 - **更新来源：** 应用只把本 fork 的 `*-replica.N` Release 当作可用版本；同时独立查询上游最新 Release，用于提醒维护者何时需要同步上游。两类提醒都只打开对应 Release 页面，不会下载或安装更新。
 - **许可与署名：** 代码继续使用上游的 MIT 许可证，保留原作者 Javis 的版权声明；打包产物会携带完整 `LICENSE`。
 
@@ -85,6 +85,14 @@ k3-256   → kimi-k3
 这些值只作为新默认值；用户在 **设置 → 外观 → 厂商颜色** 中已经保存的覆盖值不会被改写。智谱与 Kimi 采用各自视觉体系中的蓝色；Grok 的石板灰与 OpenCode 的琥珀橙是为了界面辨识度选择的中性色和产品提示色，不宣称为官方 Logo 品牌色。
 
 OpenAI 的蓝色用于图表、色点和统计数据。根据 [OpenAI 品牌规范](https://openai.com/brand/)，Blossom 标志本身保持黑白，并直接显示 SVG，而不再作为 CSS 遮罩染成厂商色；深色和浅色主题会选择相应的单色呈现。
+
+#### 6. 工具页内嵌模型用量
+
+**工具**视图会在每个工具的进度条下方列出该工具使用过的全部模型，并按 Token 用量从高到低排列。模型名较长时会在窄窗口中省略显示，悬浮或辅助技术仍可读取完整名称和精确 Token；手动模型映射会在生成列表前合并等价模型。该列表直接复用现有 `clientModels` 统计，不增加采集或 Hub 协议字段，并按模型 ID 增量复用界面节点，避免每次实时刷新重建完整列表。
+
+#### 7. 按主导模型标记主页活动
+
+主页活动热力图继续使用用户选择的 Token 或费用强度作为填色，同时以当天 Token 用量最高模型的颜色绘制一像素细边；悬浮提示会显示对应模型名。今天使用实时模型统计，历史日期使用已经存在的逐日模型明细，并缓存主导模型结果，因此不需要增加网络负载，也不会在每次统计刷新时重新扫描全年模型。描边遵循当前厂商颜色和用户覆盖值；缺少模型明细的日期保持无描边。
 
 ### 本 fork 的发行与维护改动
 
@@ -170,7 +178,7 @@ npm run dist:linux    # Linux x64 AppImage
 - **Upstream:** [Javis603/token-monitor](https://github.com/Javis603/token-monitor) provides the core architecture, collectors, desktop widget, multi-device Hub, AI Tool Limits, and most product functionality.
 - **This repository:** [MarbleGateKeeper/token-monitor-ver.replica](https://github.com/MarbleGateKeeper/token-monitor-ver.replica) carries personal fixes and features that have not been incorporated upstream.
 - **Git remotes:** `upstream` normally tracks the original project and `origin` tracks this fork. Review upstream changes before merging and preserve the fork behavior documented below.
-- **Versioning:** releases use `<upstream-version>-replica.<revision>`, currently `0.42.1-replica.1`. Increment the replica revision on the same upstream base; restart at `replica.1` after adopting a new upstream version.
+- **Versioning:** releases use `<upstream-version>-replica.<revision>`, currently `0.42.1-replica.2`. Increment the replica revision on the same upstream base; restart at `replica.1` after adopting a new upstream version.
 - **Updates:** only this fork's `*-replica.N` Releases enter the fork update channel. The app also checks upstream independently to tell maintainers when the fork needs syncing. Both channels only open their matching Release page and never download or install updates.
 - **License and credit:** the upstream MIT license and Javis copyright notice are preserved, and packaged applications include the complete `LICENSE`.
 
@@ -230,6 +238,14 @@ This fork separates defaults that otherwise cluster around black and keeps clien
 These are new defaults only; saved overrides under **Settings → Appearance → Vendor colors** are not rewritten. Zhipu and Kimi use blues from their visual identities. Grok slate and OpenCode amber are neutral/product cues chosen for UI differentiation and are not presented as official logo brand colors.
 
 OpenAI blue is used for charts, dots, and statistical data. Following the [OpenAI brand guidelines](https://openai.com/brand/), the Blossom mark itself stays monochrome and is rendered directly from the SVG instead of being colorized through a CSS mask; dark and light themes select the corresponding monochrome presentation.
+
+#### 6. Per-tool model usage lists
+
+The **Tools** view lists every model used by each tool directly below its usage bar, ordered by token usage. Long model IDs are truncated in narrow windows while hover and assistive text retain the full ID and exact token count; manual model mappings merge equivalent IDs before the list is built. The list reuses the existing `clientModels` statistics without adding collection or Hub protocol fields, and reconciles rows by model ID so live refreshes do not rebuild an unchanged list.
+
+#### 7. Dominant-model outlines on Home activity
+
+The Home activity heatmap keeps the selected token- or cost-intensity fill and adds a one-pixel outline using the color of the model with the most tokens on that day. Its hover tooltip also names that model. Today uses live model totals, while past days use the existing daily model breakdown and cache their winner, adding no network payload and avoiding a full-year model scan on every stats refresh. Outlines follow the current vendor palette and user overrides; days without model detail remain unoutlined.
 
 ### Distribution and maintenance changes
 

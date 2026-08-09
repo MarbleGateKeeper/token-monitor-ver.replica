@@ -3129,14 +3129,18 @@ html.is-windows .settings-panel select option {
 }
 .home-activity-canvas .heat {
   fill: rgba(var(--overlay-rgb), 0.03);
-  stroke: none;
+  stroke: var(--heat-outline, none);
   stroke-width: 0;
   transition: fill 140ms ease, stroke 140ms ease, transform 140ms ease;
+}
+.home-activity-canvas .heat-model-outline {
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
 }
 .home-activity-canvas .heat[data-active="true"],
 .home-activity-canvas .heat:hover {
   filter: url("#homeActivityHeatGlow");
-  stroke: rgba(var(--line-rgb), 0.9);
+  stroke: var(--heat-outline, rgba(var(--line-rgb), 0.9));
   stroke-width: 1;
   transform: scale(1.28);
 }
@@ -3216,6 +3220,24 @@ html.is-windows .settings-panel select option {
   align-items: baseline;
   gap: 4px;
   font-weight: 700;
+}
+.home-activity-tooltip-model {
+  display: inline-flex;
+  max-width: 260px;
+  align-items: baseline;
+  gap: 4px;
+  font-size: 9px;
+}
+.home-activity-tooltip-model-label {
+  color: var(--muted);
+  font-weight: 500;
+}
+.home-activity-tooltip-model-name {
+  overflow: hidden;
+  min-width: 0;
+  max-width: 190px;
+  font-weight: 650;
+  text-overflow: ellipsis;
 }
 .home-activity-tooltip-count {
   color: var(--number);
@@ -5366,6 +5388,35 @@ html.is-windows .limit-live-badge {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-variant-numeric: tabular-nums;
   opacity: 0.85;
+}
+.tool-model-list {
+  display: grid;
+  gap: 2px;
+  padding: 4px 4px 0 16px;
+}
+.tool-model-list:empty {
+  display: none;
+}
+.tool-model-row {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.3;
+}
+.tool-model-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tool-model-value {
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.72;
 }
 .device-model-list {
   display: grid;

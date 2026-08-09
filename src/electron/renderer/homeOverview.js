@@ -267,6 +267,25 @@
     return Array.isArray(history?.daily) && history.daily.length > 0;
   }
 
+  // History stores `{ tokens, cost }` objects while the live period stores plain
+  // token numbers. Accept both so Home can use one deterministic winner rule for
+  // archived days and the still-changing local day.
+  function dominantModelByTokens(modelBreakdown) {
+    if (!modelBreakdown || typeof modelBreakdown !== 'object' || Array.isArray(modelBreakdown)) return '';
+    let winner = '';
+    let winnerTokens = 0;
+    for (const [rawModel, metric] of Object.entries(modelBreakdown)) {
+      const model = String(rawModel || '');
+      const tokens = finiteNumber(metric && typeof metric === 'object' ? metric.tokens : metric) || 0;
+      if (!model || tokens <= 0) continue;
+      if (tokens > winnerTokens || (tokens === winnerTokens && (!winner || model < winner))) {
+        winner = model;
+        winnerTokens = tokens;
+      }
+    }
+    return winner;
+  }
+
   // Which history source the home activity/trends module renders. Prefer the
   // full-year homeHistory (fetched on demand), but fall back to the compact stats
   // preview while it loads — an empty homeHistory must never shadow real preview
@@ -420,6 +439,7 @@
     homeActivityWheelRoute,
     homeActivityScrollTarget,
     homeActivityScrollRecord,
+    dominantModelByTokens,
     remainingPercent,
     usedPercent
   };

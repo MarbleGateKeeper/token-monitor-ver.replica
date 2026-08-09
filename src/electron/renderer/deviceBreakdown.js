@@ -11,17 +11,19 @@
       .filter(([, amount]) => amount > 0);
   }
 
+  function clientModelRowsForPeriod(period, client) {
+    return positiveEntries(period?.clientModels?.[client]).map(([model, value]) => ({
+      key: model,
+      name: model,
+      value
+    })).sort((a, b) => b.value - a.value || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+  }
+
   function deviceBreakdownForPeriod(device, periodName, options = {}) {
     const period = device?.periods?.[periodName] || {};
     const totalTokens = Math.max(0, Number(period.totalTokens || 0));
     const tools = positiveEntries(period.clients).map(([client, value]) => {
-      const models = positiveEntries(period.clientModels?.[client]).map(([model, modelValue]) => {
-        return {
-          key: model,
-          name: model,
-          value: modelValue
-        };
-      }).sort((a, b) => b.value - a.value || a.name.localeCompare(b.name));
+      const models = clientModelRowsForPeriod(period, client);
 
       return {
         key: client,
@@ -51,5 +53,5 @@
     return [name, version].filter(Boolean).join(' ');
   }
 
-  return { deviceBreakdownForPeriod, devicePlatformLabel };
+  return { clientModelRowsForPeriod, deviceBreakdownForPeriod, devicePlatformLabel };
 });

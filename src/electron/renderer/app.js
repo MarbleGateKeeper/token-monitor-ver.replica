@@ -1636,11 +1636,52 @@ function rowTemplate(rowData) {
   if (platform) row.dataset.platform = platform;
   if (client) row.dataset.client = client;
   if (kind) row.dataset.kind = kind;
-  row.innerHTML = '<div class="row-head"><div class="row-name"><span class="row-mark"></span><div class="row-label"><span class="row-title"></span><span class="row-subtitle"></span><span class="row-detail"></span></div></div><div class="row-metrics"><div class="row-value"></div><div class="row-cost"></div></div></div><div class="row-body"><div class="bar"><div class="bar-fill"></div></div><div class="row-accordion"><div class="row-accordion-inner"></div></div></div>';
+  row.innerHTML = '<div class="row-head"><div class="row-name"><span class="row-mark"></span><div class="row-label"><span class="row-title"></span><span class="row-subtitle"></span><span class="row-detail"></span></div></div><div class="row-metrics"><div class="row-value"></div><div class="row-cost"></div></div></div><div class="row-body"><div class="bar"><div class="bar-fill"></div></div><div class="tool-model-list" role="list"></div><div class="row-accordion"><div class="row-accordion-inner"></div></div></div>';
   row.querySelector('.row-title').textContent = name;
   row.querySelector('.row-subtitle').textContent = subtitle || '';
   row.querySelector('.row-detail').textContent = detail || '';
   return row;
+}
+
+function updateToolModelList(list, models) {
+  if (!list) return;
+  const rows = Array.isArray(models) ? models : [];
+  const signature = JSON.stringify([
+    effectiveCompactTokenUnits(),
+    currentLocale(),
+    rows.map((model) => [model.key, model.value])
+  ]);
+  if (list.dataset.signature === signature) return;
+
+  const existing = new Map(Array.from(list.children).map((item) => [item.dataset.model, item]));
+  const nodes = rows.map((model) => {
+    const key = String(model.key || model.name || '');
+    const name = String(model.name || key);
+    const value = Math.max(0, Number(model.value || 0));
+    const item = existing.get(key) || document.createElement('div');
+    item.className = 'tool-model-row';
+    item.dataset.model = key;
+    item.setAttribute('role', 'listitem');
+
+    let nameEl = item.querySelector('.tool-model-name');
+    let valueEl = item.querySelector('.tool-model-value');
+    if (!nameEl || !valueEl) {
+      nameEl = document.createElement('span');
+      nameEl.className = 'tool-model-name';
+      valueEl = document.createElement('span');
+      valueEl.className = 'tool-model-value';
+      item.replaceChildren(nameEl, valueEl);
+    }
+    nameEl.textContent = name;
+    valueEl.textContent = formatCompact(value);
+    const exact = formatNumber(value);
+    item.title = `${name} · ${exact}`;
+    item.setAttribute('aria-label', `${name}, ${t('dashboard.stat.totalTokens')}: ${exact}`);
+    return item;
+  });
+
+  list.replaceChildren(...nodes);
+  list.dataset.signature = signature;
 }
 
 function renderDeviceAccordion(accordionInner, deviceDetail) {
@@ -1724,7 +1765,7 @@ function renderDeviceAccordion(accordionInner, deviceDetail) {
   accordionInner.dataset.signature = signature;
 }
 
-function updateRow(row, { name, subtitle, detail, value, cost, max, color, barBackground, accordionRows, deviceDetail, stale, platform, local, client, kind, cacheReadTokens, outputTokens }) {
+function updateRow(row, { name, subtitle, detail, value, cost, max, color, barBackground, accordionRows, deviceDetail, toolModels, stale, platform, local, client, kind, cacheReadTokens, outputTokens }) {
   const width = rowWidth(value, max);
   const isExpanded = row.classList.contains('expanded');
   row.className = `row${kind ? ` ${kind}-row` : ''}${stale ? ' stale' : ''}${local ? ' local' : ''}`;
@@ -1765,6 +1806,7 @@ function updateRow(row, { name, subtitle, detail, value, cost, max, color, barBa
   const fill = row.querySelector('.bar-fill');
   fill.style.background = barBackground || color;
   applyBarScale(fill, width / 100);
+  updateToolModelList(row.querySelector('.tool-model-list'), toolModels);
 
   const accordionInner = row.querySelector('.row-accordion-inner');
   if (deviceDetail) {
@@ -1839,7 +1881,10 @@ function updateRow(row, { name, subtitle, detail, value, cost, max, color, barBa
     if (row.tabIndex !== 0) row.tabIndex = 0;
     setAttributeIfChanged(row, 'role', 'button');
     setAttributeIfChanged(row, 'aria-expanded', String(row.classList.contains('expanded')));
-    setAttributeIfChanged(row, 'aria-label', `${name}, ${t('dashboard.stat.totalTokens')}: ${formatNumber(value)}, ${t('dashboard.stat.totalCost')}: ${formatCost(cost || 0)}`);
+    const modelSummary = Array.isArray(toolModels) && toolModels.length > 0
+      ? `, ${t('home.models')}: ${toolModels.map((model) => `${model.name}: ${formatNumber(model.value)}`).join('; ')}`
+      : '';
+    setAttributeIfChanged(row, 'aria-label', `${name}, ${t('dashboard.stat.totalTokens')}: ${formatNumber(value)}, ${t('dashboard.stat.totalCost')}: ${formatCost(cost || 0)}${modelSummary}`);
   } else {
     if (row.hasAttribute('tabindex')) row.removeAttribute('tabindex');
     if (row.hasAttribute('role')) row.removeAttribute('role');
@@ -1899,6 +1944,7 @@ function renderRows(rows, { incompleteHint = '' } = {}) {
     currency: currentCurrency(),
     currencyRatesEffective: state.settings?.currencyRatesEffective || null,
     locale: currentLocale(),
+    compactTokenUnits: effectiveCompactTokenUnits(),
     showToolIcons: toolIconsEnabled(state.settings?.showToolIcons)
   };
   for (const rowData of rows) {
@@ -1982,7 +2028,7 @@ function deviceRowsForPeriod() {
 }
 
 function toolRowsForPeriod(period) {
-  const clientRows = Object.entries(period?.clients || {}).filter(([, value]) => Number(value) > 0).map(([client, value]) => ({ key: client, name: clientLabels[client] || client, value: Number(value), cost: Number(period?.clientCosts?.[client] || 0), color: clientColors[client] || clientColors.default, stale: false, cacheReadTokens: Number(period?.clientCacheReads?.[client] || 0), cacheWriteTokens: Number(period?.clientCacheWrites?.[client] || 0), outputTokens: Number(period?.clientOutputs?.[client] || 0) }));
+  const clientRows = Object.entries(period?.clients || {}).filter(([, value]) => Number(value) > 0).map(([client, value]) => ({ key: client, name: clientLabels[client] || client, value: Number(value), cost: Number(period?.clientCosts?.[client] || 0), color: clientColors[client] || clientColors.default, stale: false, toolModels: deviceBreakdownApi.clientModelRowsForPeriod(period, client), cacheReadTokens: Number(period?.clientCacheReads?.[client] || 0), cacheWriteTokens: Number(period?.clientCacheWrites?.[client] || 0), outputTokens: Number(period?.clientOutputs?.[client] || 0) }));
   if (clientRows.length > 0) {
     const usageSortedRows = clientRows.sort((a, b) => b.value - a.value);
     return clientDisplayPreferencesApi.applyClientDisplayPreferences(usageSortedRows, state.settings?.clientDisplayOrder, state.settings?.hiddenClients, KNOWN_CLIENTS, state.settings?.pinnedClients);
@@ -6009,6 +6055,15 @@ function dailyWithHeatIntensity(daily) {
 }
 
 const homeActivityProgrammaticScrollers = new WeakSet();
+const homeDominantModelCache = new WeakMap();
+
+function cachedHistoricalDominantModel(perModel) {
+  if (!perModel || typeof perModel !== 'object' || Array.isArray(perModel)) return '';
+  if (homeDominantModelCache.has(perModel)) return homeDominantModelCache.get(perModel);
+  const model = homeOverviewApi.dominantModelByTokens(perModel);
+  homeDominantModelCache.set(perModel, model);
+  return model;
+}
 
 function applyHomeActivityScroll(scroller) {
   const target = homeOverviewApi.homeActivityScrollTarget({
@@ -6104,10 +6159,23 @@ function homeActivityTooltipEl() {
   date.className = 'home-activity-tooltip-date';
   date.dataset.homeActivityTooltipDate = 'true';
 
+  const modelLabel = document.createElement('span');
+  modelLabel.className = 'home-activity-tooltip-model-label';
+  modelLabel.dataset.homeActivityTooltipModelLabel = 'true';
+
+  const modelName = document.createElement('span');
+  modelName.className = 'home-activity-tooltip-model-name';
+  modelName.dataset.homeActivityTooltipModelName = 'true';
+
+  const modelRow = document.createElement('span');
+  modelRow.className = 'home-activity-tooltip-model hidden';
+  modelRow.dataset.homeActivityTooltipModel = 'true';
+  modelRow.append(modelLabel, modelName);
+
   const row = document.createElement('span');
   row.className = 'home-activity-tooltip-row';
   row.append(count, label);
-  tooltip.append(row, date);
+  tooltip.append(row, modelRow, date);
   document.body.append(tooltip);
   return tooltip;
 }
@@ -6220,6 +6288,13 @@ function setupHomeActivityHover(scroller) {
       tooltip.querySelector('[data-home-activity-tooltip-count]').textContent = formatCompact(Number(cell.dataset.t || 0));
       tooltip.querySelector('[data-home-activity-tooltip-label]').textContent = 'tokens';
       tooltip.querySelector('[data-home-activity-tooltip-date]').textContent = cell.dataset.d || '';
+      const model = cell.dataset.model || '';
+      const modelRow = tooltip.querySelector('[data-home-activity-tooltip-model]');
+      const modelName = tooltip.querySelector('[data-home-activity-tooltip-model-name]');
+      tooltip.querySelector('[data-home-activity-tooltip-model-label]').textContent = t('home.activityTopModel');
+      modelName.textContent = model;
+      modelName.style.color = model ? cell.style.getPropertyValue('--heat-outline') : '';
+      modelRow.classList.toggle('hidden', !model);
     }
     tooltip.dataset.visible = 'true';
     tooltip.setAttribute('aria-hidden', 'false');
@@ -6328,13 +6403,27 @@ function renderHomeTrendsModule() {
   const today = charts.localDayKey();
   const todayPeriod = state.stats?.periods?.today;
   const points = homeOverviewApi.patchDailyToday(rawDaily, today, Number(todayPeriod?.totalTokens || 0), Number(todayPeriod?.costUsd || 0));
+  const liveDominantModel = homeOverviewApi.dominantModelByTokens(todayPeriod?.models);
+  const activityModelColors = new Map();
+  const activityModelColor = (model) => {
+    if (!model) return '';
+    if (!activityModelColors.has(model)) activityModelColors.set(model, modelColor(model));
+    return activityModelColors.get(model);
+  };
   const activityLayout = homeOverviewApi.homeActivityHeatmapLayout();
   const heatMetric = state.settings?.heatmapMetric || 'cost';
   const intensityField = heatMetric === 'cost' ? 'costIntensity' : 'tokenIntensity';
-  const intensityPoints = dailyWithHeatIntensity(points).map((p) => ({
-    ...p,
-    intensity: Number(p[intensityField] ?? p.intensity ?? 0)
-  }));
+  const intensityPoints = dailyWithHeatIntensity(points).map((p) => {
+    const dominantModel = String(p?.date || '').slice(0, 10) === today
+      ? liveDominantModel
+      : cachedHistoricalDominantModel(p?.perModel);
+    return {
+      ...p,
+      intensity: Number(p[intensityField] ?? p.intensity ?? 0),
+      dominantModel,
+      outlineColor: activityModelColor(dominantModel)
+    };
+  });
   const activity = charts.rollingYearHeatmap(intensityPoints, {
     endDate: today,
     cell: activityLayout.cell,
