@@ -92,7 +92,7 @@ OpenAI 的蓝色用于图表、色点和统计数据。根据 [OpenAI 品牌规�
 
 #### 7. 按主导模型标记主页活动
 
-主页活动热力图继续使用用户选择的 Token 或费用强度作为填色，同时以当天 Token 用量最高模型的颜色绘制一像素细边；悬浮提示会显示对应模型名。今天使用实时模型统计，历史日期使用已经存在的逐日模型明细，并缓存主导模型结果，因此不需要增加网络负载，也不会在每次统计刷新时重新扫描全年模型。描边遵循当前厂商颜色和用户覆盖值；缺少模型明细的日期保持无描边。
+主页活动热力图继续使用用户选择的 Token 或费用强度作为填色，同时以当天 Token 用量最高模型的颜色绘制两 CSS 像素轮廓；悬浮提示会显示对应模型名。轮廓位于热度填充和聚光高亮之后的独立顶层，直接使用当前厂商色或用户覆盖色，因此不会被蓝色方格遮盖，也不会通过明暗混色改变 Claude 橙等原始颜色。颜色通过应用 CSP 允许的 SVG 属性传入，而不是会被拒绝的内联 `style`；同色日期会合并成一条 SVG path，以控制节点数量。今天使用实时模型统计，历史日期使用已经存在的逐日模型明细，并缓存主导模型结果，因此不需要增加网络负载，也不会在每次统计刷新时重新扫描全年模型。缺少模型明细的日期保持无描边。
 
 ### 本 fork 的发行与维护改动
 
@@ -245,7 +245,7 @@ The **Tools** view lists every model used by each tool directly below its usage 
 
 #### 7. Dominant-model outlines on Home activity
 
-The Home activity heatmap keeps the selected token- or cost-intensity fill and adds a one-pixel outline using the color of the model with the most tokens on that day. Its hover tooltip also names that model. Today uses live model totals, while past days use the existing daily model breakdown and cache their winner, adding no network payload and avoiding a full-year model scan on every stats refresh. Outlines follow the current vendor palette and user overrides; days without model detail remain unoutlined.
+The Home activity heatmap keeps the selected token- or cost-intensity fill and adds a two-CSS-pixel outline using the color of the model with the most tokens on that day. Its hover tooltip also names that model. The outline is drawn in a dedicated top layer after the intensity fill and spotlight highlight, using the current vendor color or user override directly, so blue cells cannot cover it and hues such as Claude orange are not altered by contrast mixing. Colors travel through SVG attributes allowed by the app CSP rather than a rejected inline `style`; dates with the same color are combined into one SVG path to keep the node count bounded. Today uses live model totals, while past days use the existing daily model breakdown and cache their winner, adding no network payload and avoiding a full-year model scan on every stats refresh. Days without model detail remain unoutlined.
 
 ### Distribution and maintenance changes
 

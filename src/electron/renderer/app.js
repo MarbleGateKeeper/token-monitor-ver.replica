@@ -6293,7 +6293,7 @@ function setupHomeActivityHover(scroller) {
       const modelName = tooltip.querySelector('[data-home-activity-tooltip-model-name]');
       tooltip.querySelector('[data-home-activity-tooltip-model-label]').textContent = t('home.activityTopModel');
       modelName.textContent = model;
-      modelName.style.color = model ? cell.style.getPropertyValue('--heat-outline') : '';
+      modelName.style.color = model ? (cell.dataset.outlineColor || '') : '';
       modelRow.classList.toggle('hidden', !model);
     }
     tooltip.dataset.visible = 'true';
@@ -6455,7 +6455,6 @@ function renderHomeTrendsModule() {
   activityCanvas.innerHTML = charts.heatmapSvg(activity, {
     monthLabel: (month) => compactMonthLabel(month.label),
     radius: activityLayout.radius,
-    glowFilterId: 'homeActivityHeatGlow',
     spotlightId: 'homeActivitySpotlight',
     spotlightRadius: 82
   });

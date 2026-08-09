@@ -179,7 +179,7 @@ test('heatmapSvg embeds escaped per-cell titles when supplied', () => {
   assert.match(svg, /<title>2026-06-22 &lt; 1234<\/title>/);
 });
 
-test('heatmap cells preserve dominant-model metadata and outline existing rects', () => {
+test('heatmap model colors use CSP-safe SVG attributes and a top outline path', () => {
   const model = contribHeatmap([{
     date: '2026-06-22',
     intensity: 4,
@@ -192,10 +192,12 @@ test('heatmap cells preserve dominant-model metadata and outline existing rects'
   assert.equal(cell.outlineColor, '#1783FF');
 
   const svg = heatmapSvg(model);
-  assert.match(svg, /class="heat lvl-4 heat-model-outline"/);
+  assert.match(svg, /class="heat lvl-4 heat-has-model"/);
   assert.match(svg, /data-model="model&lt;&amp;&quot;"/);
-  assert.match(svg, /style="--heat-outline:#1783FF"/);
-  assert.equal((svg.match(/<rect /g) || []).length, model.cells.length, 'the outline reuses the heat cell instead of adding a rect');
+  assert.match(svg, /data-outline-color="#1783FF" color="#1783FF" stroke="#1783FF"/);
+  assert.match(svg, /<g class="heat-model-outline-layer" aria-hidden="true"><path class="heat-model-outline" stroke="#1783FF"/);
+  assert.doesNotMatch(svg, /\sstyle=/, 'style-src self rejects inline SVG styles in the packaged app');
+  assert.equal((svg.match(/<rect /g) || []).length, model.cells.length, 'the outline layer adds no per-day rects');
 });
 
 test('heatmap cells without model metadata keep the legacy no-outline markup', () => {
@@ -203,7 +205,7 @@ test('heatmap cells without model metadata keep the legacy no-outline markup', (
   const svg = heatmapSvg(model);
   assert.doesNotMatch(svg, /heat-model-outline/);
   assert.doesNotMatch(svg, /data-model=/);
-  assert.doesNotMatch(svg, /--heat-outline:/);
+  assert.doesNotMatch(svg, /data-outline-color=/);
 });
 
 test('heatmapSvg can include a glow filter for hovered cells', () => {
@@ -236,6 +238,49 @@ test('heatmapSvg can include a spotlight layer with cell data attributes', () =>
   assert.match(svg, /class="heat-bright-layer"/);
   assert.match(svg, /data-d="2026-06-22"/);
   assert.match(svg, /data-t="1234"/);
+});
+
+test('spotlight heatmaps paint grouped raw-color outlines after the bright layer', () => {
+  const svg = heatmapSvg({
+    width: 21,
+    height: 9,
+    cell: 9,
+    gap: 3,
+    cells: [
+      {
+        date: '2026-06-22',
+        intensity: 4,
+        tokens: 1234,
+        dominantModel: 'claude-opus-4-7',
+        outlineColor: '#cc7c5e',
+        x: 0,
+        y: 0,
+        size: 9
+      },
+      {
+        date: '2026-06-23',
+        intensity: 3,
+        tokens: 567,
+        dominantModel: 'claude-sonnet-4-5',
+        outlineColor: '#cc7c5e',
+        x: 12,
+        y: 0,
+        size: 9
+      }
+    ],
+    monthLabels: []
+  }, { spotlightId: 'homeActivitySpotlight' });
+
+  assert.match(svg, /class="heat heat-bright lvl-4"[^>]*><\/rect>/);
+  assert.doesNotMatch(svg, /class="heat heat-bright[^"]*heat-model-outline/);
+  assert.ok(
+    svg.indexOf('class="heat-model-outline-layer"') > svg.indexOf('class="heat-bright-layer"'),
+    'the unmasked outline layer is painted after the spotlight fill'
+  );
+  assert.equal((svg.match(/<path class="heat-model-outline"/g) || []).length, 1, 'same-color days share one outline path');
+  assert.equal((svg.match(/data-model=/g) || []).length, 2, 'interactive base rects retain their own model metadata');
+  assert.match(svg, /<path class="heat-model-outline" stroke="#cc7c5e" d="M/);
+  assert.doesNotMatch(svg, /\sstyle=/, 'spotlight markup also remains valid under the packaged CSP');
 });
 
 test('statsCards returns ordered descriptors with kinds and coerced values', () => {

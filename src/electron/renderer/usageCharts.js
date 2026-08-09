@@ -549,29 +549,65 @@
     }
     const defs = defsParts.length ? `<defs>${defsParts.join('')}</defs>` : '';
     const initialVisibility = o.initialHidden ? ' data-motion-hidden="true" opacity="0"' : '';
-    const outline = (c) => {
-      const model = String(c.dominantModel || '');
+    const cellRadius = Math.max(0, Number(o.radius) || 0);
+    const modelDecoration = (c) => {
+      const dominantModel = String(c.dominantModel || '');
       const color = String(c.outlineColor || '').trim();
-      if (!model || !color) return { className: '', attrs: '' };
+      if (!dominantModel || !color) return { className: '', attrs: '' };
+      // The app's CSP blocks inline style="" attributes. SVG presentation
+      // attributes remain CSP-safe, while data-outline-color gives the HTML
+      // tooltip the same raw color without reading a rejected CSS declaration.
       return {
-        className: ' heat-model-outline',
-        attrs: ` data-model="${escapeXml(model)}" style="--heat-outline:${escapeXml(color)}"`
+        className: ' heat-has-model',
+        attrs: ` data-model="${escapeXml(dominantModel)}" data-outline-color="${escapeXml(color)}" color="${escapeXml(color)}" stroke="${escapeXml(color)}"`
       };
     };
     const cellAttrs = (c) => {
-      const decoration = outline(c);
-      return `class="heat lvl-${c.intensity}${decoration.className}" data-d="${escapeXml(c.date)}" data-t="${svgRound(c.tokens || 0)}" data-cost="${svgRound(c.cost || 0)}" x="${svgRound(c.x)}" y="${svgRound(c.y)}" width="${svgRound(c.size)}" height="${svgRound(c.size)}" rx="${svgRound(Math.max(0, Number(o.radius) || 0))}"${decoration.attrs}${initialVisibility}`;
+      const decoration = modelDecoration(c);
+      return `class="heat lvl-${c.intensity}${decoration.className}" data-d="${escapeXml(c.date)}" data-t="${svgRound(c.tokens || 0)}" data-cost="${svgRound(c.cost || 0)}" x="${svgRound(c.x)}" y="${svgRound(c.y)}" width="${svgRound(c.size)}" height="${svgRound(c.size)}" rx="${svgRound(cellRadius)}"${decoration.attrs}${initialVisibility}`;
     };
     const cells = (model.cells || []).map((c) =>
       `<rect ${cellAttrs(c)}>${o.titleOf(c) ? `<title>${escapeXml(o.titleOf(c))}</title>` : ''}</rect>`
     ).join('');
     const brightCells = spotlightId
       ? (model.cells || []).map((c) =>
-        `<rect class="heat heat-bright lvl-${c.intensity}" x="${svgRound(c.x)}" y="${svgRound(c.y)}" width="${svgRound(c.size)}" height="${svgRound(c.size)}" rx="${svgRound(Math.max(0, Number(o.radius) || 0))}"></rect>`
+        `<rect class="heat heat-bright lvl-${c.intensity}" x="${svgRound(c.x)}" y="${svgRound(c.y)}" width="${svgRound(c.size)}" height="${svgRound(c.size)}" rx="${svgRound(cellRadius)}"></rect>`
       ).join('')
       : '';
     const brightLayer = spotlightId
       ? `<g class="heat-bright-layer" mask="url(#${escapeXml(spotlightMaskId)})" aria-hidden="true">${brightCells}</g>`
+      : '';
+    const roundedCellPath = (c) => {
+      const x = Number(c.x) || 0;
+      const y = Number(c.y) || 0;
+      const size = Math.max(0, Number(c.size) || 0);
+      const right = x + size;
+      const bottom = y + size;
+      const r = Math.min(size / 2, cellRadius);
+      if (!r) {
+        return `M${svgRound(x)} ${svgRound(y)}H${svgRound(right)}V${svgRound(bottom)}H${svgRound(x)}Z`;
+      }
+      return `M${svgRound(x + r)} ${svgRound(y)}`
+        + `H${svgRound(right - r)}A${svgRound(r)} ${svgRound(r)} 0 0 1 ${svgRound(right)} ${svgRound(y + r)}`
+        + `V${svgRound(bottom - r)}A${svgRound(r)} ${svgRound(r)} 0 0 1 ${svgRound(right - r)} ${svgRound(bottom)}`
+        + `H${svgRound(x + r)}A${svgRound(r)} ${svgRound(r)} 0 0 1 ${svgRound(x)} ${svgRound(bottom - r)}`
+        + `V${svgRound(y + r)}A${svgRound(r)} ${svgRound(r)} 0 0 1 ${svgRound(x + r)} ${svgRound(y)}Z`;
+    };
+    const outlineGroups = new Map();
+    for (const c of model.cells || []) {
+      const dominantModel = String(c.dominantModel || '');
+      const color = String(c.outlineColor || '').trim();
+      if (!dominantModel || !color) continue;
+      const paths = outlineGroups.get(color) || [];
+      paths.push(roundedCellPath(c));
+      outlineGroups.set(color, paths);
+    }
+    const outlinePaths = [...outlineGroups.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([color, paths]) => `<path class="heat-model-outline" stroke="${escapeXml(color)}" d="${paths.join('')}"></path>`)
+      .join('');
+    const outlineLayer = outlinePaths
+      ? `<g class="heat-model-outline-layer" aria-hidden="true">${outlinePaths}</g>`
       : '';
     // Month labels sit BELOW the grid, left-anchored at the column where each month
     // starts — so the current month naturally lands on whichever column its 1st falls in
@@ -580,7 +616,7 @@
     const months = (model.monthLabels || []).map((m) =>
       `<text class="heat-month" x="${svgRound(m.col * pitch)}" y="${svgRound(labelY)}" text-anchor="start">${escapeXml(o.monthLabel(m))}</text>`
     ).join('');
-    return `<svg class="dash-heatmap" viewBox="0 0 ${model.width} ${model.height + botPad}" width="${model.width}" height="${model.height + botPad}">${defs}<g class="heat-base-layer">${cells}</g>${brightLayer}${months}</svg>`;
+    return `<svg class="dash-heatmap" viewBox="0 0 ${model.width} ${model.height + botPad}" width="${model.width}" height="${model.height + botPad}">${defs}<g class="heat-base-layer">${cells}</g>${brightLayer}${outlineLayer}${months}</svg>`;
   }
 
   function statsCardsHtml(cards, options) {

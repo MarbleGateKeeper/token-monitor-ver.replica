@@ -3129,18 +3129,27 @@ html.is-windows .settings-panel select option {
 }
 .home-activity-canvas .heat {
   fill: rgba(var(--overlay-rgb), 0.03);
-  stroke: var(--heat-outline, none);
   stroke-width: 0;
   transition: fill 140ms ease, stroke 140ms ease, transform 140ms ease;
 }
+.home-activity-canvas .heat:not(.heat-has-model) {
+  color: rgb(120, 190, 255);
+  stroke: rgba(var(--line-rgb), 0.9);
+}
+.home-activity-canvas .heat-model-outline-layer {
+  pointer-events: none;
+}
 .home-activity-canvas .heat-model-outline {
-  stroke-width: 1;
+  fill: none;
+  pointer-events: none;
+  stroke-linejoin: round;
+  stroke-opacity: 1;
+  stroke-width: 2px;
   vector-effect: non-scaling-stroke;
 }
 .home-activity-canvas .heat[data-active="true"],
 .home-activity-canvas .heat:hover {
-  filter: url("#homeActivityHeatGlow");
-  stroke: var(--heat-outline, rgba(var(--line-rgb), 0.9));
+  filter: drop-shadow(0 0 2px currentColor);
   stroke-width: 1;
   transform: scale(1.28);
 }

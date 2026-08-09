@@ -60,9 +60,18 @@ test('Home activity heatmap is a scaled copy of the dashboard heatmap', () => {
   );
   assert.match(rule(css, '.home-activity-tooltip'), /position:\s*fixed/);
   assert.match(rule(css, '.home-activity-canvas .heat-month'), /fill:\s*rgba\(var\(--line-rgb\), 0\.5\)/);
-  assert.match(rule(css, '.home-activity-canvas .heat'), /stroke:\s*var\(--heat-outline, none\)/);
-  assert.match(rule(css, '.home-activity-canvas .heat-model-outline'), /stroke-width:\s*1/);
+  assert.match(rule(css, '.home-activity-canvas .heat'), /stroke-width:\s*0/);
+  assert.doesNotMatch(rule(css, '.home-activity-canvas .heat'), /\bstroke:\s*var/);
+  assert.match(rule(css, '.home-activity-canvas .heat:not(.heat-has-model)'), /color:\s*rgb\(120, 190, 255\)/);
+  assert.match(rule(css, '.home-activity-canvas .heat:not(.heat-has-model)'), /stroke:\s*rgba\(var\(--line-rgb\), 0\.9\)/);
+  assert.match(rule(css, '.home-activity-canvas .heat-model-outline-layer'), /pointer-events:\s*none/);
+  assert.match(rule(css, '.home-activity-canvas .heat-model-outline'), /fill:\s*none/);
+  assert.match(rule(css, '.home-activity-canvas .heat-model-outline'), /pointer-events:\s*none/);
+  assert.doesNotMatch(rule(css, '.home-activity-canvas .heat-model-outline'), /\bstroke:/);
+  assert.match(rule(css, '.home-activity-canvas .heat-model-outline'), /stroke-width:\s*2px/);
   assert.match(rule(css, '.home-activity-canvas .heat-model-outline'), /vector-effect:\s*non-scaling-stroke/);
+  assert.doesNotMatch(css, /--heat-outline/);
+  assert.match(css, /\.heat\[data-active="true"\],\s*\.home-activity-canvas \.heat:hover\s*\{[^}]*drop-shadow\(0 0 2px currentColor\)/);
 });
 
 test('Home module selection is independent from main view preferences', () => {
@@ -557,6 +566,7 @@ test('renderHomeTrendsModule patches the activity today cell with the live perio
 test('Home activity tooltip exposes the dominant model with localized text', () => {
   const rendererSource = fs.readFileSync(path.join(__dirname, '../../src/electron/renderer/app.js'), 'utf8');
   assert.match(rendererSource, /cell\.dataset\.model/);
+  assert.match(rendererSource, /cell\.dataset\.outlineColor/);
   assert.match(rendererSource, /t\('home\.activityTopModel'\)/);
   assert.match(rendererSource, /homeActivityTooltipModelName/);
 });
