@@ -10,6 +10,8 @@ const { normalizeLimitsRefreshMs, parseBoolean, parseLimitProviders } = require(
 const { postSyncPayload } = require('../shared/syncPayload');
 const { applyProjectRollups } = require('../shared/usage');
 const { runAgent, runAgentOnce } = require('./runtime');
+const { createSessionMetadataResolver } = require('../shared/sessionMetadata');
+const { backfillSessionMetadataArchives } = require('../shared/sessionArchiveMetadata');
 const {
   applySessionUsageArchive,
   captureSessionUsageArchive,
@@ -39,6 +41,7 @@ const wslScanEnabled = parseBoolean(args.wslScan ?? args.wslScanEnabled ?? proce
 const opencodeCookie = String(process.env.TOKEN_MONITOR_OPENCODE_COOKIE || '').trim();
 const once = Boolean(args.once);
 const dryRun = Boolean(args['dry-run'] || args.dryRun);
+const sessionMetadataResolver = createSessionMetadataResolver();
 
 const usageOptions = {
   clients,
@@ -47,6 +50,7 @@ const usageOptions = {
   deviceId,
   agentVersion: appVersion(),
   agentRuntime: 'headless-agent',
+  sessionMetadataResolver,
   projectsEnabled,
   historyEnabled,
   historyIntervalMs: normalizeHistoryIntervalMs(process.env.TOKEN_MONITOR_HISTORY_INTERVAL_MS),
@@ -69,12 +73,18 @@ const limitsOptions = {
 };
 let sessionUsageArchive;
 
-function summaryWithSessionUsageArchive(summary, now = new Date()) {
+function summaryWithSessionUsageArchive(summary, _reason, meta = {}, now = new Date()) {
   let visibleSummary = summary;
   if (sessionUsageArchiveEnabled) {
     const archiveDate = sessionUsageArchiveDate(summary, now);
     const previous = sessionUsageArchive || readSessionUsageArchive();
-    const next = captureSessionUsageArchive(previous, summary, archiveDate);
+    const backfilled = projectsEnabled && meta.fullScan === true
+      ? backfillSessionMetadataArchives({ sessionUsageArchive: previous }, {
+          metadataResolver: sessionMetadataResolver,
+          resolveProjects: true
+        }).sessionUsageArchive
+      : previous;
+    const next = captureSessionUsageArchive(backfilled, summary, archiveDate);
     if (!dryRun && JSON.stringify(next) !== JSON.stringify(previous)) {
       try {
         writeSessionUsageArchive(next);

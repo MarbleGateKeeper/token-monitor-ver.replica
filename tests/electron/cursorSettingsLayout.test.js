@@ -1212,7 +1212,8 @@ test('main settings normalize sync upload intervals and restart only the device 
   assert.match(syncCollector, /createSyncUploadScheduler\(\{/);
   assert.match(syncCollector, /intervalMs: syncUploadIntervalMs\(\)/);
   assert.match(syncCollector, /const visibleSummary = \{[\s\S]*\.\.\.summary,[\s\S]*syncUploadIntervalMs: syncUploadIntervalMs\(\)[\s\S]*\};/);
-  assert.match(syncCollector, /transformUsage: summaryWithArchivedClientUsage/);
+  assert.match(syncCollector, /const usagePipeline = electronUsagePipeline\('sync-collector'\)/);
+  assert.match(syncCollector, /transformUsage: usagePipeline\.transformUsage/);
   assert.match(syncCollector, /await syncUploadScheduler\.enqueue\(visibleSummary, revision\)/);
 
   const hostCollector = main.slice(main.indexOf('function startHostCollector'), main.indexOf('function stopHostStats'));
@@ -1253,6 +1254,29 @@ test('main collectors share one live GUI limit credential resolver in every widg
     'claudeWebCookie', 'zaiApiKey', 'zaiApiRegion', 'volcengineAccessKeyId', 'volcengineSecretAccessKey',
     'volcengineRegion', 'qoderCookie', 'qoderSite', 'kimiApiKey', 'kimiWebAccessToken', 'ollamaCookie'
   ]) assert.match(runtimeConfig, new RegExp(`${key}: settings\\.${key}`));
+});
+
+test('full scans reuse the collector metadata resolver to backfill local archives', () => {
+  const root = path.join(__dirname, '..', '..');
+  const main = fs.readFileSync(path.join(root, 'src', 'electron', 'main.js'), 'utf8');
+  const collector = fs.readFileSync(path.join(root, 'src', 'shared', 'collector.js'), 'utf8');
+  const runtime = fs.readFileSync(path.join(root, 'src', 'shared', 'deviceRuntime.js'), 'utf8');
+  const agent = fs.readFileSync(path.join(root, 'src', 'agent', 'agent.js'), 'utf8');
+
+  const pipeline = functionBody(main, 'electronUsagePipeline', 'electronLimitsConfig');
+  assert.match(pipeline, /const sessionMetadataResolver = createSessionMetadataResolver\(\)/);
+  assert.match(pipeline, /sessionMetadataResolver/);
+  assert.match(pipeline, /summaryWithArchivedClientUsage\(summary, reason/);
+
+  const backfill = functionBody(main, 'backfillLocalSessionMetadataArchives', 'updateSessionUsageArchive');
+  assert.match(backfill, /backfillSessionMetadataArchives/);
+  assert.match(backfill, /archivedClientUsage: settings\?\.archivedClientUsage/);
+  assert.match(backfill, /saveSettings\(\)/);
+
+  assert.match(collector, /onUpdate\?\.\(summary, reason, \{[\s\S]*fullScan:/);
+  assert.match(runtime, /\{ \.\.\.collectorMeta, preview: false \}/);
+  assert.match(agent, /sessionMetadataResolver = createSessionMetadataResolver\(\)/);
+  assert.match(agent, /meta\.fullScan === true[\s\S]*backfillSessionMetadataArchives/);
 });
 
 test('main settings migrateLimitProviders normalizes without expanding old defaults', () => {

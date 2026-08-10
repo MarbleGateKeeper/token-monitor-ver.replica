@@ -16,16 +16,25 @@ function functionSource(source, signature) {
   return source.slice(start, end === -1 ? source.length : end);
 }
 
-// Local / sync / host must every one of them take their usage options from
-// electronUsageConfig, or a mode quietly stops honouring the settings below.
-// Sync and host call it inline. Local hoists it into a const first, because the
-// cold-start anchor seed has to validate against the very config the collector
-// will then run with, so that one is asserted where it lives rather than by
-// counting a bare `usageOptions` shorthand anywhere in the file.
+// Local / sync / host must every one of them take their usage options from the
+// shared Electron pipeline, and that pipeline must retain electronUsageConfig.
+// Local hoists the options into a const because its cold-start anchor seed has
+// to validate against the exact config the collector will then run with.
 function assertEveryCollectorModeUsesUsageConfig() {
-  assert.equal((main.match(/usageOptions:\s*electronUsageConfig\(/g) || []).length, 2);
+  const pipeline = functionSource(main, 'function electronUsagePipeline(errorPrefix)');
+  assert.match(pipeline, /\.\.\.electronUsageConfig\(errorPrefix\)/);
+
+  const syncCollector = functionSource(main, 'function startSyncCollector()');
+  assert.match(syncCollector, /const usagePipeline = electronUsagePipeline\('sync-collector'\);/);
+  assert.match(syncCollector, /usageOptions:\s*usagePipeline\.usageOptions/);
+
+  const hostCollector = functionSource(main, 'function startHostCollector()');
+  assert.match(hostCollector, /const usagePipeline = electronUsagePipeline\('host-collector'\);/);
+  assert.match(hostCollector, /usageOptions:\s*usagePipeline\.usageOptions/);
+
   const localCollector = functionSource(main, 'function startLocalCollector()');
-  assert.match(localCollector, /const usageOptions = electronUsageConfig\('collector'\);/);
+  assert.match(localCollector, /const usagePipeline = electronUsagePipeline\('collector'\);/);
+  assert.match(localCollector, /const usageOptions = usagePipeline\.usageOptions;/);
   assert.match(localCollector, /^\s+usageOptions,$/m);
 }
 

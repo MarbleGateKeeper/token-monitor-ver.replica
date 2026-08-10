@@ -21,14 +21,20 @@ test('model alias settings expose an editable source-to-target form', () => {
   assert.match(app, /setupModelMappingUI\(\);/);
 });
 
-test('main process persists aliases and maps stats plus full history at read time', () => {
+test('main process persists aliases, maps display data, and prices sources through canonical targets', () => {
   const main = read('src/electron/main.js');
   assert.match(main, /modelMappings: \[\]/);
   assert.match(main, /merged\.modelMappings = normalizeModelMappings\(merged\.modelMappings\)/);
   assert.match(main, /modelMappings: patch\.modelMappings !== undefined[\s\S]*normalizeModelMappings\(settings\.modelMappings\)/);
   assert.match(main, /applyModelMappingsToStats\(stats, mappings\)/);
   assert.match(main, /applyModelMappingsToHistory\(history, settings\?\.modelMappings\)/);
+  assert.match(main, /syncMappedPricing\(customModelPricing, modelMappings, \{/);
+  assert.match(main, /ensureSettingsLoaded\(\);\s*await regenerateTokscalePricing\(\);[\s\S]*createWindow\(\);[\s\S]*startMode\(\);/);
+  assert.match(main, /customModelPricingChanged \|\| modelMappingsChanged[\s\S]*regenerateTokscalePricing\(\)\.then\(refreshAfterPricingChange\)/);
   assert.match(main, /refreshAfterModelMappingChange\(\)/);
+
+  const pricing = read('src/shared/tokscaleCustomPricing.js');
+  assert.doesNotMatch(pricing, /sessionUsageArchive|clientUsageArchive/);
 
   const previewBuilder = main.match(/function withHistoryPreview\(stats, devices\) \{([\s\S]*?)\n\}/)?.[1] || '';
   assert.doesNotMatch(previewBuilder, /applyModelMappings/, 'the retained stats snapshot must stay raw so removing an alias is reversible');

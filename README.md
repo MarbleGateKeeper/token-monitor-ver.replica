@@ -64,7 +64,9 @@ k3-256   → kimi-k3
 - 支持多条规则汇聚到同一个目标，并解析映射链。
 - 拒绝重复源和循环映射。
 - 合并仪表盘、设备、模型、会话、成本、缓存、输出 token、历史趋势和导出中的模型维度数据。
+- 后续本机采集会按映射链最终目标的价格为源 ID 计费；解析结果缓存在 Tokscale 托管定价旁车文件中，只有映射、自定义价格或应用定价版本变化时才重新查询，不会在每次启动重复查询。
 - 不改写采集器原始数据、Hub 设备记录或保留的原始统计快照；删除映射后即可恢复原始模型拆分。
+- 不自动扫描或重算已经进入会话保留归档的数据；需要修正旧费用时应执行一次性迁移。
 
 #### 4. 仅提示新 tag，不自动更新
 
@@ -94,6 +96,14 @@ OpenAI 的蓝色用于图表、色点和统计数据。根据 [OpenAI 品牌规�
 
 主页活动热力图继续使用用户选择的 Token 或费用强度作为填色，同时以当天 Token 用量最高模型的颜色绘制两 CSS 像素轮廓；悬浮提示会显示对应模型名。轮廓位于热度填充和聚光高亮之后的独立顶层，直接使用当前厂商色或用户覆盖色，因此不会被蓝色方格遮盖，也不会通过明暗混色改变 Claude 橙等原始颜色。颜色通过应用 CSP 允许的 SVG 属性传入，而不是会被拒绝的内联 `style`；同色日期会合并成一条 SVG path，以控制节点数量。今天使用实时模型统计，历史日期使用已经存在的逐日模型明细，并缓存主导模型结果，因此不需要增加网络负载，也不会在每次统计刷新时重新扫描全年模型。缺少模型明细的日期保持无描边。
 
+#### 8. 补全更多工具的项目归属
+
+Tokscale 继续负责 Token、费用、模型和会话 ID；本 fork 在本机增加独立的会话元数据补全层，将这些会话 ID 与工具已经保存的工作目录相匹配。它通过受限的目录结构、最多 64 KiB 的 JSON/JSONL 元数据前缀或只读 SQLite 查询，为 Grok Build、ZCode、Pi / Oh My Pi、CodeBuddy、OpenCode、Hermes、WorkBuddy、Qwen Code 和 Kimi Code 补全项目归属，不会解析或重新计算 Token，也不会增加 Tokscale 子进程、网络请求或 Hub 字段。
+
+项目路径在采集进程内立即转换为哈希 ID 和末级目录名，原始绝对路径不会进入设备记录。Kimi Code 按 `wd_<名称>_<哈希>` 工作区目录生成稳定的项目名称和不透明 ID，不依赖或声称还原绝对路径；CodeBuddy 只有日志明确包含 `cwd` 时才归属项目，粗粒度 IDE 日志不会被伪装成项目。Windows 对运行中 WSL 的文件型来源仍可补全项目，而 OpenCode、Hermes 等 SQLite 工具继续需要在 WSL 内运行 headless agent。
+
+完整扫描还会使用同一个本地解析器回填会话保留归档，以及已经从跟踪列表移除工具的归档副本，并将补全后的哈希 ID 和标签写回本地归档；因此仍有对应源元数据的历史会话不必重新出现在 Tokscale 结果中。已经被工具删除或轮转、且归档中从未保存项目身份的源记录继续保持未知。实时监听 tick 不重复扫描历史归档。
+
 ### 本 fork 的发行与维护改动
 
 - 应用和 Worker 版本统一使用 `replica` 后缀。
@@ -115,6 +125,7 @@ Token Monitor 是一个本地优先的 Electron 桌面组件，用于汇总 AI �
 - 保存历史趋势、活动热力图并导出 CSV/JSON。
 - 支持本地模式、内置 Hub、Node Hub 和 Cloudflare Worker 多设备同步。
 - 提示词、回复、源代码和文件内容不会上传到项目维护者。
+- 项目补全只在本机读取工具保存的目录、结构化元数据前缀和只读数据库字段；原始项目路径会先哈希，再进入现有本地或 Hub 统计流程。
 
 ### 安装与更新
 
@@ -217,7 +228,9 @@ Mapping behavior:
 - Multiple sources may converge on one target, and mapping chains resolve to their final target.
 - Duplicate sources and cycles are rejected.
 - Model dimensions are combined across dashboards, devices, models, sessions, costs, cache metrics, output tokens, history, trends, and exports.
+- Future local collection prices each source ID through the final target of its mapping chain. Resolved aliases are cached beside Token Monitor's managed Tokscale pricing and are looked up again only when mappings, custom prices, or the app pricing revision changes—not on every startup.
 - Collector output, Hub device records, and retained raw snapshots are not rewritten, so removing a mapping restores the original split.
+- Retained session archives are not scanned or repriced automatically; correcting old costs remains an explicit one-off migration.
 
 #### 4. New-tag notices without automatic updates
 
@@ -247,6 +260,14 @@ The **Tools** view lists every model used by each tool directly below its usage 
 
 The Home activity heatmap keeps the selected token- or cost-intensity fill and adds a two-CSS-pixel outline using the color of the model with the most tokens on that day. Its hover tooltip also names that model. The outline is drawn in a dedicated top layer after the intensity fill and spotlight highlight, using the current vendor color or user override directly, so blue cells cannot cover it and hues such as Claude orange are not altered by contrast mixing. Colors travel through SVG attributes allowed by the app CSP rather than a rejected inline `style`; dates with the same color are combined into one SVG path to keep the node count bounded. Today uses live model totals, while past days use the existing daily model breakdown and cache their winner, adding no network payload and avoiding a full-year model scan on every stats refresh. Days without model detail remain unoutlined.
 
+#### 8. Project attribution for additional tools
+
+Tokscale remains responsible for tokens, cost, models, and session IDs. This fork adds a separate local metadata layer that joins those session IDs to working directories already stored by the tools. Bounded directory layouts, at most 64 KiB of JSON/JSONL metadata prefixes, or read-only SQLite queries provide project attribution for Grok Build, ZCode, Pi / Oh My Pi, CodeBuddy, OpenCode, Hermes, WorkBuddy, Qwen Code, and Kimi Code. The layer neither parses nor recalculates token usage and adds no Tokscale subprocess, network request, or Hub field.
+
+Project paths are converted inside the collector to hashed IDs and final-directory labels, so raw absolute paths never enter device records. Kimi Code derives a stable label and opaque ID from its `wd_<name>_<hash>` workspace directory without depending on or claiming to recover an absolute path. CodeBuddy is attributed only when a record contains an explicit `cwd`; coarse IDE logs remain unknown. Windows can still enrich file-backed sources inside running WSL distributions, while SQLite-backed tools such as OpenCode and Hermes continue to require a headless agent inside WSL.
+
+Full scans also use the same local resolver to backfill the retained-session archive and archived copies of tools removed from the tracking list, then persist only the resulting hashed IDs and labels. Historical sessions therefore do not need to reappear in Tokscale output while their source metadata still exists. Records already deleted or rotated by a tool remain unknown when no project identity was captured earlier. Live watch ticks do not rescan historical archives.
+
 ### Distribution and maintenance changes
 
 - App and Worker versions share the `replica` suffix.
@@ -268,6 +289,7 @@ Token Monitor is a local-first Electron widget for AI coding-tool tokens, cost, 
 - Historical trends, activity heatmaps, and CSV/JSON export.
 - Local mode plus embedded, Node, or Cloudflare Worker hubs for multi-device sync.
 - Prompts, responses, source code, and file contents are not sent to the project maintainer.
+- Project enrichment reads only local directory structure, bounded structured-metadata prefixes, and read-only database fields; raw project paths are hashed before entering the existing local or Hub statistics flow.
 
 ### Install and update
 

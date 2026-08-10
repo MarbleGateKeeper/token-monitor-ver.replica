@@ -1,8 +1,10 @@
 'use strict';
 
-// Reads OpenCode session metadata + per-exchange detail from opencode.db (SQLite).
-// This is the only place that reads the DB for *sessions*; it mirrors the discovery and
-// feature-detection used by ./opencodeLimits (node:sqlite, read-only, deps.sqlite seam).
+// Reads OpenCode per-exchange detail from opencode.db (SQLite) and retains the
+// session-metadata reader as a compatibility seam. The collector's unified
+// metadata resolver owns normal project/timestamp enrichment; both paths mirror
+// the discovery and feature-detection used by ./opencodeLimits (node:sqlite,
+// read-only, deps.sqlite seam).
 // OpenCode has no jsonl transcript like Claude/Codex — everything lives in the DB.
 
 const { discoverDbPaths } = require('./opencodeLimits');

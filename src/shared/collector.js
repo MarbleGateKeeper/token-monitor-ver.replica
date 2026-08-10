@@ -32,11 +32,15 @@ const { hermesProfileWatchDirs, resolveHermesHome } = require('./hermesProfiles'
 const { mergeHistories, parseGraphResult, normalizeHistory } = require('./history');
 const { retainDailyHistory, retainLiveDailyHistory } = require('./dailyHistoryArchive');
 const cursorAuth = require('./cursorAuth');
-const { findSessionFiles, codexSessionFile } = require('./sessionFiles');
-const opencodeSession = require('./opencodeSession');
 const { buildPromaHistoryGraph, buildPromaPeriods, collectPromaRows } = require('./promaUsage');
-const { hashKey } = require('./hashKey');
 const { hostOsInfo, normalizeOsInfo } = require('./osVersion');
+const {
+  addBoundedMetadataPath,
+  createSessionMetadataResolver,
+  projectIdentity,
+  projectPathFromJsonl,
+  sessionTimestampMap
+} = require('./sessionMetadata');
 const {
   clampTimerDelayMs,
   createSelfSyncThrottle,
@@ -273,205 +277,6 @@ function computePeriodWindows(now = new Date()) {
     today: { key: localTodayKey(now), endsAt: startOfNextDay.toISOString() },
     month: { key: monthKey, endsAt: startOfNextMonth.toISOString() }
   };
-}
-
-function isoFromDate(value) {
-  const date = value instanceof Date ? value : new Date(value || '');
-  return Number.isNaN(date.getTime()) ? '' : date.toISOString();
-}
-
-function timestampFromSessionId(id) {
-  const raw = String(id || '');
-  const isoMatch = raw.match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z/);
-  if (isoMatch) return isoFromDate(isoMatch[0]);
-  const localMatch = raw.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2})[:-](\d{2})(?:[:-](\d{2}))?/);
-  if (!localMatch) return '';
-  const [, year, month, day, hour, minute, second = '0'] = localMatch;
-  return isoFromDate(new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute), Number(second)));
-}
-
-function readFileTail(filePath, bytes = 64 * 1024) {
-  let fd;
-  try {
-    fd = fs.openSync(filePath, 'r');
-    const stat = fs.fstatSync(fd);
-    const length = Math.min(bytes, stat.size);
-    const buffer = Buffer.alloc(length);
-    fs.readSync(fd, buffer, 0, length, Math.max(0, stat.size - length));
-    return buffer.toString('utf8');
-  } catch (_) {
-    return '';
-  } finally {
-    if (fd !== undefined) {
-      try { fs.closeSync(fd); } catch (_) {}
-    }
-  }
-}
-
-function timestampFromJsonLine(line) {
-  try {
-    const obj = JSON.parse(line);
-    return isoFromDate(obj.timestamp || obj.updatedAt || obj.updated_at || obj.createdAt || obj.created_at);
-  } catch (_) {
-    return '';
-  }
-}
-
-const projectPathCache = new Map();
-
-function projectPathFromJsonl(filePath) {
-  let text;
-  let cacheKey;
-  try {
-    const stat = fs.statSync(filePath);
-    cacheKey = `${stat.size}:${stat.mtimeMs}`;
-    const cached = projectPathCache.get(filePath);
-    if (cached?.key === cacheKey) return cached.value;
-    const fd = fs.openSync(filePath, 'r');
-    try {
-      const size = Math.min(256 * 1024, fs.fstatSync(fd).size);
-      const buffer = Buffer.alloc(size);
-      fs.readSync(fd, buffer, 0, size, 0);
-      text = buffer.toString('utf8');
-    } finally { fs.closeSync(fd); }
-  } catch (_) { return ''; }
-  for (const line of text.split(/\r?\n/)) {
-    if (!line.trim()) continue;
-    try {
-      const obj = JSON.parse(line);
-      const payload = obj.payload && typeof obj.payload === 'object' ? obj.payload : obj;
-      const value = payload.cwd || payload.project_path || payload.projectPath || payload.workingDirectory || payload.working_directory;
-      if (typeof value === 'string' && value.trim()) {
-        const result = value.trim();
-        projectPathCache.set(filePath, { key: cacheKey, value: result });
-        return result;
-      }
-    } catch (_) { /* skip partial or non-JSON lines */ }
-  }
-  projectPathCache.set(filePath, { key: cacheKey, value: '' });
-  return '';
-}
-
-function normalizeProjectPath(value) {
-  let normalized = String(value || '').trim().replace(/\\/g, '/');
-  if (!normalized) return '';
-  const windows = /^[a-z]:\//i.test(normalized) || normalized.startsWith('//');
-  const root = normalized === '/' || /^[a-z]:\/$/i.test(normalized);
-  if (!root) normalized = normalized.replace(/\/+$/, '');
-  return windows ? normalized.toLowerCase() : normalized;
-}
-
-function projectIdentity(value) {
-  const normalized = normalizeProjectPath(value);
-  if (!normalized) return {};
-  const root = normalized === '/' || /^[a-z]:\/$/i.test(normalized);
-  let displayPath = String(value || '').trim().replace(/\\/g, '/');
-  if (!root) displayPath = displayPath.replace(/\/+$/, '');
-  const label = root ? (normalized === '/' ? '/' : `${normalized[0].toUpperCase()}:\\`) : displayPath.split('/').pop();
-  return { projectId: hashKey('project', normalized), projectLabel: label };
-}
-
-// Keyed by path -> { key: `size:mtimeMs`, value }, mirroring projectPathCache.
-// The tail timestamp only moves when the transcript grows, so a mtime match lets
-// a full-tick decoration skip re-reading every idle session (issue: periodic UI
-// stutter once project tracking made this run on every session each tick).
-const jsonlTimestampCache = new Map();
-
-function lastJsonlTimestamp(filePath) {
-  let stat;
-  try { stat = fs.statSync(filePath); } catch (_) { return ''; }
-  const cacheKey = `${stat.size}:${stat.mtimeMs}`;
-  const cached = jsonlTimestampCache.get(filePath);
-  if (cached?.key === cacheKey) return cached.value;
-  const tail = readFileTail(filePath);
-  const lines = tail.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-  let value = '';
-  for (let index = lines.length - 1; index >= 0; index -= 1) {
-    const timestamp = timestampFromJsonLine(lines[index]);
-    if (timestamp) { value = timestamp; break; }
-  }
-  if (!value) value = stat.mtime.toISOString();
-  jsonlTimestampCache.set(filePath, { key: cacheKey, value });
-  return value;
-}
-
-function sessionRefsForPeriods(periods) {
-  const refs = new Map();
-  for (const period of Object.values(periods || {})) {
-    for (const session of Object.values(period?.sessions || {})) {
-      if (!session?.client || !session?.sessionId) continue;
-      refs.set(`${session.client}:${session.sessionId}`, { client: session.client, sessionId: session.sessionId });
-    }
-  }
-  return refs;
-}
-
-function sessionTimestampMap(periods, home = os.homedir(), deps = {}) {
-  const refs = sessionRefsForPeriods(periods);
-  const metadata = deps.metadataCache || new Map();
-  const resolvedSessionKeys = deps.resolvedSessionKeys || new Set();
-  const attemptedSessionKeys = deps.attemptedSessionKeys || new Set();
-  // Timestamps are always backfilled (the session view sorts by recency); project
-  // identity is the part gated by the Projects opt-out (issue #182).
-  const resolveProjects = deps.resolveProjects !== false;
-  const byClient = new Map();
-  for (const ref of refs.values()) {
-    const key = `${ref.client}:${ref.sessionId}`;
-    if (resolvedSessionKeys.has(key)) continue;
-    if (!deps.retryMisses && attemptedSessionKeys.has(key)) continue;
-    if (!byClient.has(ref.client)) byClient.set(ref.client, new Set());
-    byClient.get(ref.client).add(ref.sessionId);
-  }
-
-  const applyFile = (client, sessionId, filePath) => {
-    const startedAt = timestampFromSessionId(sessionId);
-    const lastUsedAt = lastJsonlTimestamp(filePath) || startedAt;
-    const identity = resolveProjects ? projectIdentity(projectPathFromJsonl(filePath)) : {};
-    const key = `${client}:${sessionId}`;
-    metadata.set(key, { startedAt, lastUsedAt, ...identity });
-    if (identity.projectId) resolvedSessionKeys.add(key);
-  };
-
-  // OpenCode has no transcript file — its timestamps come from the opencode.db `session` table.
-  const opencodeIds = byClient.get('opencode') || new Set();
-  if (opencodeIds.size > 0) {
-    const readOpencodeMeta = deps.readOpencodeMeta || (deps.scopedHome
-      ? (ids) => opencodeSession.readSessionMetaForHome(ids, home, deps.opencodeDeps)
-      : (ids) => opencodeSession.readSessionMeta(ids, deps.opencodeDeps));
-    for (const [sessionId, meta] of readOpencodeMeta(opencodeIds)) {
-      const startedAt = meta.startedAt || '';
-      const lastUsedAt = meta.lastUsedAt || startedAt;
-      const identity = resolveProjects ? projectIdentity(meta.projectPath) : {};
-      const key = `opencode:${sessionId}`;
-      if (startedAt || lastUsedAt || identity.projectId) metadata.set(key, { startedAt, lastUsedAt, ...identity });
-      if (identity.projectId) resolvedSessionKeys.add(key);
-    }
-  }
-
-  const claudeFiles = findSessionFiles(path.join(home, '.claude', 'projects'), byClient.get('claude') || []);
-  for (const [sessionId, filePath] of claudeFiles) applyFile('claude', sessionId, filePath);
-
-  const codexIds = byClient.get('codex') || new Set();
-  const missingCodexIds = new Set();
-  for (const sessionId of codexIds) {
-    const filePath = codexSessionFile(home, sessionId);
-    if (filePath) applyFile('codex', sessionId, filePath);
-    else missingCodexIds.add(sessionId);
-  }
-  const codexFiles = findSessionFiles(path.join(home, '.codex', 'sessions'), missingCodexIds);
-  for (const [sessionId, filePath] of codexFiles) applyFile('codex', sessionId, filePath);
-
-  for (const ref of refs.values()) {
-    const key = `${ref.client}:${ref.sessionId}`;
-    if (resolvedSessionKeys.has(key)) continue;
-    if (metadata.has(key)) continue;
-    const timestamp = timestampFromSessionId(ref.sessionId);
-    if (timestamp) metadata.set(key, { startedAt: timestamp, lastUsedAt: timestamp });
-    if (!['claude', 'codex', 'opencode'].includes(ref.client)) resolvedSessionKeys.add(key);
-  }
-  for (const ref of refs.values()) attemptedSessionKeys.add(`${ref.client}:${ref.sessionId}`);
-
-  return metadata;
 }
 
 // Copy freshly decorated identities/timestamps from `today` onto the same session
@@ -732,16 +537,27 @@ async function collectUsageOnce(options) {
     : normalizeOsInfo(options.osInfo);
   const normalizedClients = normalizeClientsCsv(clients);
   const projectsEnabled = options.projectsEnabled !== false;
+  const metadataResolver = options.sessionMetadataResolver || createSessionMetadataResolver(options.sessionMetadataDeps);
   const localSessionMetadataDeps = {
     ...(options.sessionMetadataDeps || {}),
+    metadataResolver,
     metadataCache: new Map(),
     resolvedSessionKeys: new Set(),
-    attemptedSessionKeys: new Set()
+    attemptedSessionKeys: new Set(),
+    reconciledClients: new Set(),
+    processedChangedClients: new Set(),
+    changedPathsByClient: options.changedPathsByClient || {},
+    reconcileMetadataClients: options.reconcileMetadataClients || []
   };
   const decorateLocalPeriods = (periods, { retryMisses = false } = {}) => applySessionTimestamps(
     periods,
     options.homeDir || os.homedir(),
-    { ...localSessionMetadataDeps, retryMisses, resolveProjects: projectsEnabled }
+    {
+      ...localSessionMetadataDeps,
+      retryMisses,
+      resolveProjects: projectsEnabled,
+      reconcileMetadata: !anchorUsed
+    }
   );
   // tokscale doesn't know about Proma yet — filter it out of the subprocess
   // calls so --client doesn't reject an unknown value. Proma is parsed
@@ -899,7 +715,14 @@ async function collectUsageOnce(options) {
           pricingRevision: options.pricingRevision
         }),
         logger: options.logger,
-        decoratePeriods: (periods, home) => applySessionTimestamps(periods, home, { scopedHome: true, resolveProjects: projectsEnabled })
+        decoratePeriods: (periods, home) => applySessionTimestamps(periods, home, {
+          metadataResolver,
+          scopedHome: true,
+          resolveProjects: projectsEnabled,
+          reconcileMetadata: true,
+          reconciledClients: new Set(),
+          processedChangedClients: new Set()
+        })
       });
       wslBundle = wslResult.bundle;
       wslDetected = wslResult.detected;
@@ -919,7 +742,14 @@ async function collectUsageOnce(options) {
           pricingRevision: options.pricingRevision
         }),
         logger: options.logger,
-        decoratePeriods: (periods, home) => applySessionTimestamps(periods, home, { scopedHome: true, resolveProjects: projectsEnabled })
+        decoratePeriods: (periods, home) => applySessionTimestamps(periods, home, {
+          metadataResolver,
+          scopedHome: true,
+          resolveProjects: projectsEnabled,
+          reconcileMetadata: true,
+          reconciledClients: new Set(),
+          processedChangedClients: new Set()
+        })
       });
       wslBundle = wslResult.bundle;
       wslDetected = wslResult.detected;
@@ -979,7 +809,7 @@ async function collectUsageOnce(options) {
   }
 
   if (typeof options.onAnchorComputed === 'function') {
-    options.onAnchorComputed({ windowsPeriods, todayPartitions, wslBundle, wslStatus });
+    options.onAnchorComputed({ windowsPeriods, todayPartitions, wslBundle, wslStatus, fullScan: !anchorUsed });
   }
 
   // One filesystem probe per tick, shared by the legacy status and the health
@@ -2114,6 +1944,7 @@ function startCollector(options) {
   const watchUsePolling = resolveWatchUsePolling(options.watchUsePolling);
   const watchNativeForced = watchPollingEnvOverride() === false;
   const trackedClients = new Set(normalizeClientsCsv(clients).split(',').filter(Boolean));
+  const sessionMetadataResolver = options.sessionMetadataResolver || createSessionMetadataResolver(options.sessionMetadataDeps);
   const deviceOsInfo = options.osInfo === undefined
     ? hostOsInfo()
     : normalizeOsInfo(options.osInfo);
@@ -2132,6 +1963,8 @@ function startCollector(options) {
   // this Set is the union of targeted today-only requests waiting behind the
   // active tick. A broader request can upgrade this scope but never narrow it.
   let pendingTargetClients = null;
+  let pendingChangedPathsByClient = new Map();
+  let pendingReconcileMetadataClients = new Set();
   let pendingActivityRevision = null;
   let lastHistoryAt = 0;
   let lastHistoryAttemptAt = 0;
@@ -2171,6 +2004,9 @@ function startCollector(options) {
   let tickHadFailure = false;
   const scheduledWatchClients = new Set();
   let scheduledWatchNeedsFullScan = false;
+  const scheduledWatchPathsByClient = new Map();
+  const scheduledMetadataReconcileClients = new Set();
+  let scheduledMetadataReconcileAll = false;
   // Source events waiting on the shared throttle, and the timer that comes back
   // for them. Built here rather than at module scope because its timer has to
   // die with this collector; the throttle it reads deadlines from is shared, so
@@ -2298,6 +2134,7 @@ function startCollector(options) {
       let captured = null;
       const summary = await collectUsageOnce({
         ...options,
+        sessionMetadataResolver,
         clients,
         allTimeSince,
         commandTimeoutMs,
@@ -2328,6 +2165,8 @@ function startCollector(options) {
           kind
         ),
         targetClients: anchored && targetAnchorReady ? requestedTargetClients : [],
+        changedPathsByClient: tickOptions.changedPathsByClient || {},
+        reconcileMetadataClients: tickOptions.reconcileMetadataClients || [],
         todayOnlyAnchor: anchored ? anchor : null,
         wslAnchor: anchored ? wslAnchor : null,
         wslStatus: anchored ? wslStatusAnchor : null,
@@ -2414,7 +2253,9 @@ function startCollector(options) {
           wslStatusAnchor = captured.wslStatus || null;
         }
       }
-      const transformedSummary = await onUpdate?.(summary, reason);
+      const transformedSummary = await onUpdate?.(summary, reason, {
+        fullScan: captured?.fullScan ?? !anchored
+      });
       const visibleSummary = transformedSummary && typeof transformedSummary === 'object'
         ? transformedSummary
         : summary;
@@ -2474,13 +2315,14 @@ function startCollector(options) {
         scope: lastTickScope,
         durationMs: lastTickDurationMs
       });
-      // takeWatchClients() already drained the pending set, so the clients this
+      // takeWatchContext() already drained the pending set, so the clients this
       // tick was meant to cover are gone. Force the next tick to scan all of
       // them in every mode: in live mode the next watch event would otherwise
       // target only its own client and leave the failed one serving the stale
       // anchor partition until the 5–30 minute interval reconciles it, which
       // breaks the seconds-level freshness live mode promises.
       scheduledWatchNeedsFullScan = true;
+      scheduledMetadataReconcileAll = true;
       if (onError) onError(error, reason); else log(`collector tick failed (${reason}): ${error.message}`);
       return false;
     }
@@ -2498,6 +2340,27 @@ function startCollector(options) {
     for (const client of targets) pendingTargetClients.add(client);
   }
 
+  function mergePendingMetadata(tickOptions) {
+    for (const client of tickOptions.reconcileMetadataClients || []) {
+      pendingReconcileMetadataClients.add(client);
+      pendingChangedPathsByClient.delete(client);
+    }
+    for (const [client, paths] of Object.entries(tickOptions.changedPathsByClient || {})) {
+      for (const filePath of paths || []) {
+        addBoundedMetadataPath(pendingChangedPathsByClient, pendingReconcileMetadataClients, client, filePath);
+      }
+    }
+  }
+
+  function metadataTickOptions(pathsByClient, reconcileClients) {
+    return {
+      changedPathsByClient: Object.fromEntries(
+        [...pathsByClient].map(([client, paths]) => [client, [...paths]])
+      ),
+      reconcileMetadataClients: [...reconcileClients]
+    };
+  }
+
   async function runTick(reason, tickOptions = {}) {
     const tickActivityRevision = Number.isFinite(tickOptions.activityRevision)
       ? tickOptions.activityRevision
@@ -2512,6 +2375,7 @@ function startCollector(options) {
         ? Boolean(tickOptions.todayOnly)
         : pendingTodayOnly && Boolean(tickOptions.todayOnly);
       mergePendingTargetScope(tickOptions);
+      mergePendingMetadata(tickOptions);
       pendingActivityRevision = pendingActivityRevision === null
         ? tickActivityRevision
         : Math.max(pendingActivityRevision, tickActivityRevision);
@@ -2532,6 +2396,8 @@ function startCollector(options) {
           ? [...pendingTargetClients]
           : [];
         const activityRevision = pendingActivityRevision;
+        const changedPathsByClient = pendingChangedPathsByClient;
+        const reconcileMetadataClients = pendingReconcileMetadataClients;
         const waiters = pendingWaiters;
         pendingWaiters = [];
         tickPending = false;
@@ -2540,6 +2406,8 @@ function startCollector(options) {
         pendingSourceSelfSync = null;
         pendingTodayOnly = null;
         pendingTargetClients = null;
+        pendingChangedPathsByClient = new Map();
+        pendingReconcileMetadataClients = new Set();
         pendingActivityRevision = null;
         const acknowledgedSourceSync = sourceSyncQueue.acknowledge(forceSelfSync);
         const result = await performTick('coalesced', {
@@ -2549,6 +2417,7 @@ function startCollector(options) {
           acknowledgedSourceSync,
           todayOnly,
           targetClients,
+          ...metadataTickOptions(changedPathsByClient, reconcileMetadataClients),
           ...(activityRevision === null ? {} : { activityRevision })
         });
         resolveWaiters(waiters, result === true);
@@ -2564,25 +2433,48 @@ function startCollector(options) {
     }
   }
 
-  function recordWatchClients(eventClients) {
+  function recordWatchClients(eventClients, filePath, event) {
     if (Array.isArray(eventClients)) {
-      if (eventClients.length === 0) scheduledWatchNeedsFullScan = true;
-      else for (const client of eventClients) scheduledWatchClients.add(client);
+      if (eventClients.length === 0) {
+        scheduledWatchNeedsFullScan = true;
+        scheduledMetadataReconcileAll = true;
+      } else {
+        for (const client of eventClients) {
+          scheduledWatchClients.add(client);
+          if (event === 'addDir' || event === 'unlinkDir') {
+            scheduledMetadataReconcileClients.add(client);
+            scheduledWatchPathsByClient.delete(client);
+          } else {
+            addBoundedMetadataPath(scheduledWatchPathsByClient, scheduledMetadataReconcileClients, client, filePath);
+          }
+        }
+      }
     }
   }
 
-  function takeWatchClients(additionalClients = []) {
+  function takeWatchContext(additionalClients = []) {
     const targetClients = scheduledWatchNeedsFullScan
       ? []
       : [...new Set([...scheduledWatchClients, ...additionalClients])];
+    const reconcileMetadataClients = scheduledMetadataReconcileAll
+      ? [...trackedClients]
+      : [...scheduledMetadataReconcileClients];
+    const changedPathsByClient = Object.fromEntries(
+      [...scheduledWatchPathsByClient]
+        .filter(([client]) => !scheduledMetadataReconcileClients.has(client))
+        .map(([client, paths]) => [client, [...paths]])
+    );
     scheduledWatchClients.clear();
     scheduledWatchNeedsFullScan = false;
-    return targetClients;
+    scheduledWatchPathsByClient.clear();
+    scheduledMetadataReconcileClients.clear();
+    scheduledMetadataReconcileAll = false;
+    return { targetClients, changedPathsByClient, reconcileMetadataClients };
   }
 
-  function scheduleTick(reason, eventClients) {
+  function scheduleTick(reason, eventClients, filePath, event) {
     if (stopped) return;
-    recordWatchClients(eventClients);
+    recordWatchClients(eventClients, filePath, event);
     if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
       debounceTimer = null;
@@ -2593,9 +2485,10 @@ function startCollector(options) {
       // its sync drops to the short floor instead of waiting out the idle
       // cadence. Its cache is deliberately outside the watcher, so a sync here
       // cannot create the issue #15 self-trigger loop.
+      const watchContext = takeWatchContext();
       runTick(reason, {
         todayOnly: true,
-        targetClients: takeWatchClients(),
+        ...watchContext,
         sourceSelfSync: sourceSyncQueue.takeDue()
       });
     }, watchDebounceMs);
@@ -2693,9 +2586,11 @@ function startCollector(options) {
         if (watchTriggersCollection) {
           scheduleTick(
             `watch:${event}:${path.basename(filePath || '')}`,
-            eventClients
+            eventClients,
+            filePath,
+            event
           );
-        } else recordWatchClients(eventClients);
+        } else recordWatchClients(eventClients, filePath, event);
       });
       watcher.on('error', handleWatchError);
       watchers.push(watcher);
@@ -2732,9 +2627,11 @@ function startCollector(options) {
     // unparseable, or future timestamp) — force a full scan immediately.
     const anchorToday = Boolean(!fullScanDue && anchor && anchor.dateKey === localTodayKey());
     const sourceSelfSync = intervalRequiresActivity ? sourceSyncQueue.takeDue() : null;
-    const targetClients = intervalRequiresActivity ? takeWatchClients(selfSyncedClients) : [];
+    const watchContext = intervalRequiresActivity
+      ? takeWatchContext(selfSyncedClients)
+      : { targetClients: [], changedPathsByClient: {}, reconcileMetadataClients: [] };
     runTick('interval', {
-      ...(anchorToday ? { todayOnly: true, refreshWsl: true, targetClients } : {}),
+      ...(anchorToday ? { todayOnly: true, refreshWsl: true, ...watchContext } : {}),
       ...(sourceSelfSync ? { sourceSelfSync } : {}),
       activityRevision: activityRevisionAtStart
     }).finally(() => {
@@ -2810,6 +2707,7 @@ function startCollector(options) {
     return runTick(`client:${normalized}`, {
       todayOnly: true,
       targetClients: [normalized],
+      reconcileMetadataClients: [normalized],
       // Only the self-synced clients have a sync to force; naming any other here
       // would be read by nothing.
       forceSelfSync: refreshOptions.forceSync === true && SELF_SYNCED_CLIENTS.has(normalized) ? [normalized] : null

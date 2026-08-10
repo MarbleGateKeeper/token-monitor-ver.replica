@@ -327,6 +327,7 @@
     applyModelMappingsToRecord,
     applyModelMappingsToStats,
     inUseModelIds,
+    modelMappingResolver: resolverFor,
     normalizeModelId,
     normalizeModelMappings,
     removeModelMapping,

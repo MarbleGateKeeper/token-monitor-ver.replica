@@ -2344,6 +2344,7 @@ test('live watch events scan only changed clients and preserve the other client 
   try {
     const { startCollector } = freshCollector();
     const updates = [];
+    const metadataCalls = [];
     handle = startCollector({
       clients: 'claude,codex',
       allTimeSince: '2024-01-01',
@@ -2357,15 +2358,26 @@ test('live watch events scan only changed clients and preserve the other client 
       watchDebounceMs: 10,
       limitsEnabled: false,
       historyEnabled: false,
-      onUpdate: (summary, reason) => updates.push({ summary, reason })
+      sessionMetadataResolver: {
+        resolve(_periods, _home, deps) {
+          metadataCalls.push({
+            changedPathsByClient: JSON.parse(JSON.stringify(deps.changedPathsByClient || {})),
+            reconcileMetadataClients: [...(deps.reconcileMetadataClients || [])]
+          });
+          return deps.metadataCache || new Map();
+        }
+      },
+      onUpdate: (summary, reason, meta) => updates.push({ summary, reason, meta })
     });
 
     await waitForCondition(() => updates.length === 1);
     assert.equal(calls.length, 3, 'startup still performs one serial full scan');
+    assert.equal(updates[0].meta.fullScan, true);
     assert.ok(watchHandler, 'watcher handler captured');
 
     watchHandler('change', path.join(tmp, '.codex', 'sessions', 'active.jsonl'));
     await waitForCondition(() => updates.length === 2);
+    assert.equal(updates[1].meta.fullScan, false);
 
     const targeted = calls[3];
     assert.equal(targeted[targeted.indexOf('--client') + 1], 'codex');
@@ -2378,6 +2390,9 @@ test('live watch events scan only changed clients and preserve the other client 
     assert.equal(updates[1].summary.today.cacheReadTokens, 40);
     assert.equal(updates[1].summary.month.totalTokens, 40);
     assert.equal(updates[1].summary.allTime.totalTokens, 40);
+    assert.deepEqual(metadataCalls.at(-1).changedPathsByClient.codex, [
+      path.resolve(tmp, '.codex', 'sessions', 'active.jsonl')
+    ]);
 
     // Multiple clients changing inside one debounce window become one targeted
     // scan containing the union, not two subprocesses or an all-client fallback.
@@ -2392,6 +2407,7 @@ test('live watch events scan only changed clients and preserve the other client 
     await waitForCondition(() => updates.length === 4);
     const fallback = calls[5];
     assert.equal(fallback[fallback.indexOf('--client') + 1], 'claude,codex');
+    assert.deepEqual(new Set(metadataCalls.at(-1).reconcileMetadataClients), new Set(['claude', 'codex']));
 
     codexUnattributed = true;
     watchHandler('change', path.join(tmp, '.codex', 'sessions', 'unattributed.jsonl'));

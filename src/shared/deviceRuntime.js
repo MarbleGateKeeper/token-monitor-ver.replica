@@ -54,10 +54,10 @@ function createDeviceRuntime(options = {}, deps = {}) {
 
   const usageOptions = {
     ...(options.usageOptions || {}),
-    onUpdate(summary, reason) {
+    onUpdate(summary, reason, collectorMeta = {}) {
       if (!active) return;
       const transformed = options.transformUsage
-        ? options.transformUsage(summary, reason, { preview: false })
+        ? options.transformUsage(summary, reason, { ...collectorMeta, preview: false })
         : summary;
       deviceState.updateUsage(transformed, reason, { epoch, preview: false });
       return transformed;

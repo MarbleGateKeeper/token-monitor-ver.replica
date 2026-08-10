@@ -41,6 +41,8 @@ installSafeStdout();
 const electronClaudeWebFetch = createClaudeWebFetch(net);
 const { DEFAULT_CLIENTS, KNOWN_CLIENTS, clientsCsvForSetting } = require('../shared/clientTracking');
 const { clientDiagnosticRoots, lookupModelPricing, normalizeHistoryIntervalMs, visibleDiagnosticRoots } = require('../shared/collector');
+const { createSessionMetadataResolver } = require('../shared/sessionMetadata');
+const { backfillSessionMetadataArchives } = require('../shared/sessionArchiveMetadata');
 const { deviceRecordFromAnchor } = require('../shared/anchorSeed');
 const { sendWhenRendererReady } = require('./deferredWindowSend');
 const { createDeviceRuntime } = require('../shared/deviceRuntime');
@@ -48,7 +50,7 @@ const { createDiagnosticJournal } = require('../shared/diagnosticJournal');
 const { createDiagnosticReportGenerator } = require('./diagnostics');
 const { createDiagnosticSnapshotBuilder, diagnosticStreamDetailCode, selectLocalDeviceRecord } = require('./diagnosticSnapshot');
 const { customPricingPath } = require('../shared/tokscaleConfig');
-const { applyCustomPricing, normalizeCustomPricingSetting } = require('../shared/tokscaleCustomPricing');
+const { normalizeCustomPricingSetting, syncMappedPricing } = require('../shared/tokscaleCustomPricing');
 const { createHub } = require('../hub/server');
 const { claudeWebCookie, deepseekToken, fetchClaudeLimits, normalizeClaudeWebCookieInput, normalizeLimitsRefreshMs, parseBoolean, parseLimitProviders, runCodexLogin, minimaxToken, copilotToken, zaiToken, zaiRegion, zaiTeamToken, volcengineCredentials, qoderCookie, kimiToken, kimiWebToken, ollamaSessionCookie } = require('../shared/limitCollector');
 const { fetchOllamaLimits, rememberOllamaValidation } = require('../shared/ollamaLimits');
@@ -513,6 +515,21 @@ function electronUsageConfig(errorPrefix) {
     onError: (error, reason) => console.log(`[${errorPrefix}] ${reason}: ${error.message}`),
     logger: (message) => console.log(`[${errorPrefix}] ${message}`)
   });
+}
+
+function electronUsagePipeline(errorPrefix) {
+  const sessionMetadataResolver = createSessionMetadataResolver();
+  const usageOptions = {
+    ...electronUsageConfig(errorPrefix),
+    sessionMetadataResolver
+  };
+  return {
+    usageOptions,
+    transformUsage: (summary, reason, meta = {}) => summaryWithArchivedClientUsage(summary, reason, {
+      ...meta,
+      sessionMetadataResolver
+    })
+  };
 }
 
 function electronLimitsConfig() {
@@ -2152,7 +2169,22 @@ function ensureSessionUsageArchiveLoaded() {
   return sessionUsageArchive;
 }
 
-function updateSessionUsageArchive(summary, now) {
+function backfillLocalSessionMetadataArchives(sessionArchive, metadataResolver) {
+  const result = backfillSessionMetadataArchives({
+    sessionUsageArchive: sessionArchive,
+    archivedClientUsage: settings?.archivedClientUsage
+  }, {
+    metadataResolver,
+    resolveProjects: settings?.projectsEnabled !== false
+  });
+  if (result.archivedClientUsageChanged) {
+    settings.archivedClientUsage = result.archivedClientUsage;
+    saveSettings();
+  }
+  return result;
+}
+
+function updateSessionUsageArchive(summary, now, options = {}) {
   const startedAt = Date.now();
   const finish = (failureCode = null) => {
     lastSessionUsageArchiveUpdate = {
@@ -2161,9 +2193,12 @@ function updateSessionUsageArchive(summary, now) {
       failureCode
     };
   };
-  const previous = ensureSessionUsageArchiveLoaded();
+  const persisted = ensureSessionUsageArchiveLoaded();
+  const previous = options.metadataResolver
+    ? backfillLocalSessionMetadataArchives(persisted, options.metadataResolver).sessionUsageArchive
+    : persisted;
   const next = captureSessionUsageArchive(previous, summary, now);
-  if (JSON.stringify(next) === JSON.stringify(previous)) {
+  if (JSON.stringify(next) === JSON.stringify(persisted)) {
     finish();
     return previous;
   }
@@ -2195,14 +2230,21 @@ function summaryWithArchivesApplied(summary, sessionArchive, now) {
   return settings?.projectsEnabled === false ? visibleSummary : applyProjectRollups(visibleSummary);
 }
 
-function summaryWithArchivedClientUsage(summary) {
+function summaryWithArchivedClientUsage(summary, _reason, runtimeMeta = {}) {
   const now = sessionUsageArchiveDate(summary);
-  if (settings?.sessionUsageArchiveEnabled === false) return summaryWithArchivesApplied(summary, null, now);
+  const metadataResolver = settings?.projectsEnabled !== false && runtimeMeta.fullScan === true
+    ? runtimeMeta.sessionMetadataResolver
+    : null;
+  if (settings?.sessionUsageArchiveEnabled === false) {
+    if (metadataResolver) backfillLocalSessionMetadataArchives(null, metadataResolver);
+    return summaryWithArchivesApplied(summary, null, now);
+  }
   if (isExternalAgentActive()) {
+    if (metadataResolver) backfillLocalSessionMetadataArchives(null, metadataResolver);
     sessionUsageArchive = null;
     return summaryWithArchivesApplied(summary, ensureSessionUsageArchiveLoaded(), now);
   }
-  return summaryWithArchivesApplied(summary, updateSessionUsageArchive(summary, now), now);
+  return summaryWithArchivesApplied(summary, updateSessionUsageArchive(summary, now, { metadataResolver }), now);
 }
 
 function applyMacActivationPolicy(state = {}) {
@@ -3214,6 +3256,7 @@ function stopSyncCollector(options = {}) {
 function startSyncCollector() {
   stopSyncCollector();
   if (!effectiveHubConfig().url) return;
+  const usagePipeline = electronUsagePipeline('sync-collector');
   const syncUploadScheduler = createSyncUploadScheduler({
     intervalMs: syncUploadIntervalMs(),
     upload: postToHub,
@@ -3241,8 +3284,8 @@ function startSyncCollector() {
     envelope: electronDeviceEnvelope(),
     initialLimits: lastCollectedDevice?.limits,
     limitsOptions: electronLimitsConfig(),
-    transformUsage: summaryWithArchivedClientUsage,
-    usageOptions: electronUsageConfig('sync-collector'),
+    transformUsage: usagePipeline.transformUsage,
+    usageOptions: usagePipeline.usageOptions,
     sink,
     onDiagnosticEvent: recordDiagnosticEvent,
     onError: (error, reason) => console.log(`[sync-collector] ${reason}: ${error.message}`)
@@ -3257,6 +3300,7 @@ function startSyncCollector() {
 // Monitor's own outbound connections can't zero out the widget's own usage (#17).
 function startHostCollector() {
   stopSyncCollector();
+  const usagePipeline = electronUsagePipeline('host-collector');
   const sink = {
     enqueue(summary) {
       if (isExternalAgentActive()) { sessionUsageArchive = null; return; }
@@ -3286,8 +3330,8 @@ function startHostCollector() {
     envelope: electronDeviceEnvelope(),
     initialLimits: lastCollectedDevice?.limits,
     limitsOptions: electronLimitsConfig(),
-    transformUsage: summaryWithArchivedClientUsage,
-    usageOptions: electronUsageConfig('host-collector'),
+    transformUsage: usagePipeline.transformUsage,
+    usageOptions: usagePipeline.usageOptions,
     sink,
     onDiagnosticEvent: recordDiagnosticEvent,
     onError: (error, reason) => console.log(`[host-collector] ${reason}: ${error.message}`)
@@ -3573,13 +3617,14 @@ function startLocalCollector() {
   sendStatus(false, { reason: 'collecting' });
   // One config object for both, so the fingerprint the seed validates against
   // cannot drift from the one the collector will compute.
-  const usageOptions = electronUsageConfig('collector');
+  const usagePipeline = electronUsagePipeline('collector');
+  const usageOptions = usagePipeline.usageOptions;
   primeLocalStatsFromAnchor(usageOptions);
   deviceRuntimeHandle = createDeviceRuntime({
     envelope: electronDeviceEnvelope(),
     initialLimits: lastCollectedDevice?.limits,
     limitsOptions: electronLimitsConfig(),
-    transformUsage: summaryWithArchivedClientUsage,
+    transformUsage: usagePipeline.transformUsage,
     usageOptions,
     progressive: true,
     onRecord: (summary, meta) => {
@@ -4446,15 +4491,31 @@ function managedPricingSidecarPath() {
   return path.join(app.getPath('userData'), 'tokscale-managed-pricing.json');
 }
 
+let pricingRegenerationLane = Promise.resolve();
+
 function regenerateTokscalePricing() {
-  try {
-    applyCustomPricing(settings.customModelPricing || [], {
-      pricingPath: customPricingPath(),
-      sidecarPath: managedPricingSidecarPath()
-    });
-  } catch (error) {
-    console.warn(`[pricing] failed to write custom-pricing.json: ${error.message}`);
-  }
+  const customModelPricing = JSON.parse(JSON.stringify(settings.customModelPricing || []));
+  const modelMappings = JSON.parse(JSON.stringify(settings.modelMappings || []));
+  const run = async () => {
+    try {
+      const result = await syncMappedPricing(customModelPricing, modelMappings, {
+        pricingPath: customPricingPath(),
+        sidecarPath: managedPricingSidecarPath(),
+        cacheRevision: appVersion(),
+        lookupModelPricing
+      });
+      if (result.unresolvedTargets.length > 0) {
+        console.warn(`[pricing] no canonical price for mapped model(s): ${result.unresolvedTargets.join(', ')}`);
+      }
+      return result;
+    } catch (error) {
+      console.warn(`[pricing] failed to write custom-pricing.json: ${error.message}`);
+      return null;
+    }
+  };
+  const operation = pricingRegenerationLane.then(run, run);
+  pricingRegenerationLane = operation.then(() => undefined, () => undefined);
+  return operation;
 }
 
 async function refreshAfterPricingChange() {
@@ -5233,9 +5294,10 @@ function rebuildWindow() {
   });
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   if (process.platform === 'darwin' && app.dock) app.dock.setIcon(APP_ICON_PATH);
   ensureSettingsLoaded();
+  await regenerateTokscalePricing();
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     callback({
       responseHeaders: {
@@ -5251,7 +5313,6 @@ app.whenReady().then(() => {
   cleanupStaleStaging().catch((error) => console.log(`[tokscale] staging cleanup failed: ${error.message}`));
   ensureTray();
   if (settings.trayMode) enterTrayMode();
-  regenerateTokscalePricing();
   startMode();
   void hydrateCodexManagedWorkspaceLabels();
   if (settings.discordRpcEnabled) startDiscordRpc();
@@ -5491,11 +5552,12 @@ app.whenReady().then(() => {
       settings = previousSettingsState;
       throw error;
     }
-    if (JSON.stringify(settings.customModelPricing || []) !== previousCustomModelPricing) {
-      regenerateTokscalePricing();
-      refreshAfterPricingChange();
+    const customModelPricingChanged = JSON.stringify(settings.customModelPricing || []) !== previousCustomModelPricing;
+    const modelMappingsChanged = JSON.stringify(settings.modelMappings || []) !== previousModelMappings;
+    if (customModelPricingChanged || modelMappingsChanged) {
+      void regenerateTokscalePricing().then(refreshAfterPricingChange);
     }
-    if (JSON.stringify(settings.modelMappings || []) !== previousModelMappings) {
+    if (modelMappingsChanged) {
       void refreshAfterModelMappingChange();
     }
     configureWindowToggleShortcut();

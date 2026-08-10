@@ -75,14 +75,18 @@ test('usage transforms run only for usage events, not limits-only publishes', ()
   const transformed = [];
   const { limitsDeps, records, usageOptions } = harness({
     transformUsage(summary, reason, meta) {
-      transformed.push({ reason, preview: meta.preview });
+      transformed.push({ reason, preview: meta.preview, fullScan: meta.fullScan });
       return { ...summary, transformed: true };
     }
   });
-  const visible = usageOptions.onUpdate({ updatedAt: 'usage-time', today: { totalTokens: 4 } }, 'startup');
+  const visible = usageOptions.onUpdate(
+    { updatedAt: 'usage-time', today: { totalTokens: 4 } },
+    'startup',
+    { fullScan: true }
+  );
   limitsDeps.onUpdate({ updatedAt: 'limits-time', refreshMs: 300000, providers: [] });
 
-  assert.deepEqual(transformed, [{ reason: 'startup', preview: false }]);
+  assert.deepEqual(transformed, [{ reason: 'startup', preview: false, fullScan: true }]);
   assert.equal(visible.transformed, true);
   assert.equal(records.length, 2);
   assert.equal(records[1].record.transformed, true);

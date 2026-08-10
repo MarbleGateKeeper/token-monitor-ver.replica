@@ -9,8 +9,11 @@ const path = require('node:path');
 const {
   normalizeCustomPricingSetting,
   buildTokscaleModels,
+  mappedPricingEntry,
+  resolveMappedPricing,
   mergeManaged,
-  applyCustomPricing
+  applyCustomPricing,
+  syncMappedPricing
 } = require('../../src/shared/tokscaleCustomPricing');
 
 function tmpDir() {
@@ -81,6 +84,68 @@ test('buildTokscaleModels emits per-million keys, omitting undefined fields', ()
     },
     z: { output_cost_per_million_tokens: 0.5 }
   });
+});
+
+test('mappedPricingEntry converts canonical per-token pricing including explicit free rates', () => {
+  assert.deepEqual(mappedPricingEntry('canonical', {
+    pricing: {
+      inputCostPerToken: 3e-7,
+      outputCostPerToken: 1.2e-6,
+      cacheReadInputTokenCost: 6e-8
+    }
+  }), {
+    modelId: 'canonical',
+    inputPerM: 0.3,
+    outputPerM: 1.2,
+    cacheReadPerM: 0.06
+  });
+  assert.deepEqual(mappedPricingEntry('free', {
+    pricing: { inputCostPerToken: 0, outputCostPerToken: 0, cacheReadInputTokenCost: 0 }
+  }), {
+    modelId: 'free',
+    inputPerM: 0,
+    outputPerM: 0,
+    cacheReadPerM: 0
+  });
+});
+
+test('resolveMappedPricing follows mapping chains and looks up each canonical target once', async () => {
+  const lookups = [];
+  const result = await resolveMappedPricing([
+    { source: 'alias-a', target: 'alias-b' },
+    { source: 'alias-b', target: 'canonical' },
+    { source: 'alias-c', target: 'canonical' }
+  ], [], async (modelId) => {
+    lookups.push(modelId);
+    return { pricing: { inputCostPerToken: 2e-7, outputCostPerToken: 8e-7 } };
+  });
+
+  assert.deepEqual(lookups, ['canonical']);
+  assert.deepEqual(result, {
+    entries: [
+      { modelId: 'alias-a', inputPerM: 0.2, outputPerM: 0.8, cacheReadPerM: undefined },
+      { modelId: 'alias-b', inputPerM: 0.2, outputPerM: 0.8, cacheReadPerM: undefined },
+      { modelId: 'alias-c', inputPerM: 0.2, outputPerM: 0.8, cacheReadPerM: undefined }
+    ],
+    unresolvedTargets: []
+  });
+});
+
+test('resolveMappedPricing prefers the canonical custom price and ignores a source price', async () => {
+  let lookups = 0;
+  const result = await resolveMappedPricing(
+    [{ source: 'vendor/model', target: 'canonical' }],
+    [
+      { modelId: 'vendor/model', inputPerM: 99, outputPerM: 99 },
+      { modelId: 'canonical', inputPerM: 0.4, outputPerM: 1.1, cacheReadPerM: 0.04 }
+    ],
+    async () => { lookups += 1; }
+  );
+
+  assert.equal(lookups, 0);
+  assert.deepEqual(result.entries, [
+    { modelId: 'vendor/model', inputPerM: 0.4, outputPerM: 1.1, cacheReadPerM: 0.04 }
+  ]);
 });
 
 test('mergeManaged preserves manual entries, overlays managed, drops removed managed', () => {
@@ -161,6 +226,124 @@ test('applyCustomPricing is a no-op when no overrides and no prior state (no fil
     assert.equal(fs.existsSync(pricingPath), false);
     assert.equal(fs.existsSync(sidecarPath), false);
     assert.deepEqual(result, { models: {}, managedIds: [] });
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('syncMappedPricing caches canonical lookups and writes source aliases for tokscale', async () => {
+  const dir = tmpDir();
+  try {
+    const pricingPath = path.join(dir, 'custom-pricing.json');
+    const sidecarPath = path.join(dir, 'sidecar.json');
+    let lookups = 0;
+    const options = {
+      pricingPath,
+      sidecarPath,
+      cacheRevision: 'app-v1',
+      async lookupModelPricing(modelId) {
+        lookups += 1;
+        assert.equal(modelId, 'minimax-m3');
+        return { pricing: { inputCostPerToken: 3e-7, outputCostPerToken: 1.2e-6, cacheReadInputTokenCost: 6e-8 } };
+      }
+    };
+
+    const first = await syncMappedPricing([], [{ source: 'minimax m3', target: 'minimax-m3' }], options);
+    const second = await syncMappedPricing([], [{ source: 'minimax m3', target: 'minimax-m3' }], options);
+    const afterRevision = await syncMappedPricing([], [{ source: 'minimax m3', target: 'minimax-m3' }], {
+      ...options,
+      cacheRevision: 'app-v2'
+    });
+
+    assert.equal(first.cacheHit, false);
+    assert.equal(second.cacheHit, true);
+    assert.equal(afterRevision.cacheHit, false);
+    assert.equal(lookups, 2);
+    assert.deepEqual(JSON.parse(fs.readFileSync(pricingPath, 'utf8')), {
+      models: {
+        'minimax m3': {
+          input_cost_per_million_tokens: 0.3,
+          output_cost_per_million_tokens: 1.2,
+          cache_read_input_token_cost_per_million_tokens: 0.06
+        }
+      }
+    });
+    assert.deepEqual(JSON.parse(fs.readFileSync(sidecarPath, 'utf8')), {
+      version: 2,
+      managedIds: ['minimax m3'],
+      mappingPricingRevision: JSON.parse(fs.readFileSync(sidecarPath, 'utf8')).mappingPricingRevision,
+      mappingPricing: [
+        { modelId: 'minimax m3', inputPerM: 0.3, outputPerM: 1.2, cacheReadPerM: 0.06 }
+      ]
+    });
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('syncMappedPricing removes a stale alias when its canonical price no longer resolves', async () => {
+  const dir = tmpDir();
+  try {
+    const pricingPath = path.join(dir, 'custom-pricing.json');
+    const sidecarPath = path.join(dir, 'sidecar.json');
+    const mappings = [{ source: 'raw-id', target: 'canonical' }];
+    await syncMappedPricing([], mappings, {
+      pricingPath,
+      sidecarPath,
+      cacheRevision: 'one',
+      async lookupModelPricing() {
+        return { pricing: { inputCostPerToken: 1e-6, outputCostPerToken: 2e-6 } };
+      }
+    });
+    const unresolved = await syncMappedPricing([], mappings, {
+      pricingPath,
+      sidecarPath,
+      cacheRevision: 'two',
+      async lookupModelPricing() {
+        throw new Error('not found');
+      }
+    });
+
+    assert.deepEqual(unresolved.unresolvedTargets, ['canonical']);
+    assert.deepEqual(JSON.parse(fs.readFileSync(pricingPath, 'utf8')), { models: {} });
+    assert.deepEqual(JSON.parse(fs.readFileSync(sidecarPath, 'utf8')).managedIds, []);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('syncMappedPricing clears a removed canonical custom price before lookup', async () => {
+  const dir = tmpDir();
+  try {
+    const pricingPath = path.join(dir, 'custom-pricing.json');
+    const sidecarPath = path.join(dir, 'sidecar.json');
+    const mappings = [{ source: 'raw-id', target: 'canonical' }];
+    await syncMappedPricing(
+      [{ modelId: 'canonical', inputPerM: 9, outputPerM: 18 }],
+      mappings,
+      { pricingPath, sidecarPath, cacheRevision: 'same', async lookupModelPricing() { throw new Error('unused'); } }
+    );
+
+    let configSeenByLookup;
+    await syncMappedPricing([], mappings, {
+      pricingPath,
+      sidecarPath,
+      cacheRevision: 'same',
+      async lookupModelPricing() {
+        configSeenByLookup = JSON.parse(fs.readFileSync(pricingPath, 'utf8'));
+        return { pricing: { inputCostPerToken: 1e-6, outputCostPerToken: 2e-6 } };
+      }
+    });
+
+    assert.deepEqual(configSeenByLookup, { models: {} });
+    assert.deepEqual(JSON.parse(fs.readFileSync(pricingPath, 'utf8')), {
+      models: {
+        'raw-id': {
+          input_cost_per_million_tokens: 1,
+          output_cost_per_million_tokens: 2
+        }
+      }
+    });
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
