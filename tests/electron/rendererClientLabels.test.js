@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
+const { sessionRowsForPeriod } = require('../../src/electron/renderer/sessionRows');
 
 function rendererSource() {
   return fs.readFileSync(path.join(__dirname, '..', '..', 'src', 'electron', 'renderer', 'app.js'), 'utf8');
@@ -39,7 +40,7 @@ test('renderer client labels cover every known client', () => {
 
 test('renderer known clients include current tokscale-supported tools', () => {
   const clients = knownClientIds(rendererSource());
-  for (const client of ['cline', 'kimi', 'qwen', 'grok', 'copilot', 'pi', 'zed', 'kilocode', 'micode', 'zcode', 'kiro', 'codebuddy', 'workbuddy']) {
+  for (const client of ['cline', 'kimi', 'qwen', 'grok', 'copilot', 'pi', 'zed', 'kilocode', 'micode', 'zcode', 'kiro', 'codebuddy', 'workbuddy', 'reasonix']) {
     assert.ok(clients.includes(client), `${client} should be a known renderer client`);
   }
 });
@@ -83,18 +84,19 @@ test('renderer wires the Doubao vendor icon for Doubao model rows', () => {
   assert.match(styles, /\.row-icon-doubao\s*\{[^}]*assets\/icons\/doubao\.svg/s);
 });
 
-test('renderer wires color-tinted LongCat and Tencent vendor icons for model rows', () => {
+test('renderer wires color-tinted LongCat and Hunyuan vendor icons for model rows', () => {
   const source = rendererSource();
   const styles = rendererStyles();
 
-  assert.match(source, /clientsWithIcon = new Set\(\[[\s\S]*'doubao', 'meituan', 'tencent', 'volcengine'/);
+  assert.match(source, /clientsWithIcon = new Set\(\[[\s\S]*'doubao', 'meituan', 'hunyuan', 'volcengine'/);
   assert.match(styles, /\.row-icon-meituan\s*\{[^}]*assets\/icons\/meituan\.svg/s);
-  assert.match(styles, /\.row-icon-tencent\s*\{[^}]*assets\/icons\/tencent\.svg/s);
+  assert.match(styles, /\.row-icon-hunyuan\s*\{[^}]*assets\/icons\/hunyuan\.svg/s);
   assert.match(source, /if \(iconKind\.kind === 'icon'\) \{[\s\S]*?mark\.style\.color = color \|\| '';/);
   assert.match(source, /function applyHomeListMark[\s\S]*?mark\.style\.color = color \|\| '';/);
   assert.match(iconAsset('meituan.svg'), /<title>LongCat<\/title>/);
-  assert.match(iconAsset('tencent.svg'), /<title>Tencent<\/title>/);
+  assert.match(iconAsset('hunyuan.svg'), /<title>Hunyuan<\/title>/);
   assert.match(iconAsset('THIRD_PARTY_NOTICES.md'), /@lobehub\/icons-static-svg` 1\.90\.0/);
+  assert.equal(fs.existsSync(path.join(__dirname, '..', '..', 'assets', 'icons', 'hunyuan.svg')), true);
 });
 
 test('renderer maps MiMo provider rows to the Xiaomi brand icon', () => {
@@ -109,4 +111,37 @@ test('renderer uses the CodeBuddy and WorkBuddy brand icons for their tool rows'
   const styles = rendererStyles();
   assert.match(styles, /\.row-icon-codebuddy\s*\{[^}]*assets\/icons\/codebuddy\.svg/s);
   assert.match(styles, /\.row-icon-workbuddy\s*\{[^}]*assets\/icons\/workbuddy\.svg/s);
+});
+
+test('renderer uses the Reasonix icon for the Reasonix tool row', () => {
+  const styles = rendererStyles();
+  assert.match(styles, /\.row-icon-reasonix\s*\{[^}]*assets\/icons\/reasonix\.svg/s);
+});
+
+test('Reasonix icon keeps the official color in a mask-safe SVG path', () => {
+  const icon = fs.readFileSync(path.join(__dirname, '..', '..', 'assets', 'icons', 'reasonix.svg'), 'utf8');
+  assert.match(icon, /fill="#0153e5"/);
+  assert.match(icon, /fill-rule="evenodd"/);
+  assert.doesNotMatch(icon, /stroke=/);
+});
+
+test('Reasonix native session keeps presentation identity for the brand icon path', () => {
+  const source = rendererSource();
+  assert.match(source, /clientsWithIcon = new Set\([\s\S]*'reasonix'/);
+  assert.match(source, /if \(breakdown === 'session'\) \{[\s\S]*rowData\.client && clientsWithIcon\.has\(rowData\.client\)[\s\S]*row-icon-\$\{rowData\.client\}/);
+
+  const [row] = sessionRowsForPeriod({ sessions: {} }, {
+    nativeSessions: {
+      'reasonix:branch-id': {
+        client: 'reasonix',
+        sessionId: 'reasonix:branch-id',
+        model: 'deepseek/deepseek-v4-flash',
+        totalTokens: 140
+      }
+    },
+    clientLabels: { reasonix: 'Reasonix' },
+    clientColors: { reasonix: '#4d6bfe' }
+  });
+  assert.equal(row.client, 'reasonix');
+  assert.equal(row.name, 'Reasonix · deepseek/deepseek-v4-flash');
 });

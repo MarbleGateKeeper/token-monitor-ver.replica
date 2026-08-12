@@ -151,8 +151,29 @@ const {
   normalizeMimoCookieHeader
 } = require('../shared/mimoLimits');
 const { historyPreview, historyRevision } = require('../shared/history');
+const { completeHistorySource, resolveCompleteHistory } = require('./historySource');
 const { readSessionDetailForPlatform } = require('../shared/sessionDetailResolver');
 const { startDiscordRpc, stopDiscordRpc, updateDiscordRpc } = require('./discordRpc');
+const {
+  commitMacWidgetSnapshot,
+  discardMacWidgetSnapshot,
+  prepareMacWidgetSnapshotUpdate,
+  resolveMacWidgetSnapshotPath,
+  syncMacWidgetSnapshotDirectory
+} = require('./macWidgetBridge');
+const { createMacWidgetSnapshotController } = require('./macWidgetSnapshotController');
+const { macWidgetHistorySourceKey, resolveMacWidgetHistory } = require('./macWidgetHistory');
+const {
+  macWidgetHistoryCachePath,
+  readMacWidgetHistoryCache,
+  writeMacWidgetHistoryCache
+} = require('./macWidgetHistoryStore');
+const { parseMacWidgetDeepLink } = require('./macWidgetDeepLink');
+const { createMacWidgetLaunchServicesRecovery } = require('./macWidgetLaunchServicesRecovery');
+const { projectLimitStatsForDisplay } = require('./limitStatsPresentation');
+const { normalizeWidgetURLScheme } = require('../shared/macWidgetConfig');
+const { DEFAULT_WIDGET_KIND, requestMacWidgetReload, resetMacWidgetReloadThrottle } = require('./macWidgetReloader');
+const { WIDGET_DEMAND_MARKER, WIDGET_DEMAND_PROVISIONAL_MARKER, createMacWidgetDemandState } = require('./macWidgetDemand');
 const linuxAutostart = require('./linuxAutostart');
 const { codexAccountIdForProvider, localLiveCodexProvider } = require('./renderer/accountIdentity');
 const {
@@ -176,7 +197,11 @@ const {
 } = require('./trayModeSettings');
 const { SERVICE_STATUS_PROVIDERS, createServiceStatusClient } = require('./serviceStatus');
 const { classifyStreamFailure } = require('./syncConnection');
-const { composeLocalSyncStats } = require('./syncDisplayStats');
+const {
+  attachLocalNativeViews,
+  attachLocalPresentationNativeViews,
+  composeLocalSyncStats
+} = require('./syncDisplayStats');
 const { createSyncUploadScheduler, normalizeSyncUploadIntervalMs } = require('./syncUploadScheduler');
 const {
   classifySettingsChange,
@@ -279,6 +304,7 @@ let rendererViewState = normalizeInitialRendererViewState();
 const serviceStatusClient = createServiceStatusClient();
 const STATUS_PAGE_HOSTS = new Set(SERVICE_STATUS_PROVIDERS.map((provider) => new URL(provider.pageUrl).hostname));
 const diagnosticJournal = createDiagnosticJournal();
+const recoverMacWidgetLaunchServicesRegistration = createMacWidgetLaunchServicesRecovery();
 
 app.setName(APP_NAME);
 if (process.platform === 'win32') app.setAppUserModelId('com.javis.tokenmonitor');
@@ -294,6 +320,16 @@ function normalizeHomeLimitAccountCount(value) {
   if (!Number.isFinite(count)) return HOME_LIMIT_ACCOUNT_COUNT_DEFAULT;
   return Math.max(1, Math.min(HOME_LIMIT_ACCOUNT_COUNT_MAX, count));
 }
+
+let pendingMacWidgetOpen = null;
+app.on('open-url', (event, url) => {
+  const urlScheme = macWidgetConfiguration()?.urlScheme || 'token-monitor';
+  const destination = parseMacWidgetDeepLink(url, urlScheme);
+  if (!destination) return;
+  event.preventDefault();
+  pendingMacWidgetOpen = destination;
+  if (app.isReady()) setImmediate(openMainWindowFromWidget);
+});
 
 function defaultSettings() {
   const envHubUrl = process.env.TOKEN_MONITOR_HUB_URL || '';
@@ -373,6 +409,7 @@ function defaultSettings() {
     showLimitSource: parseBoolean(process.env.TOKEN_MONITOR_SHOW_LIMIT_SOURCE, false),
     maskLimitAccountEmails: false,
     claudePrepaidBalanceEnabled: parseBoolean(process.env.TOKEN_MONITOR_CLAUDE_PREPAID_BALANCE, true),
+    opencodeLocalLimitsEnabled: false,
     showLimitUsed: parseBoolean(process.env.TOKEN_MONITOR_SHOW_LIMIT_USED, false),
     // Manual subscription metadata. Plain preferences, not credentials, so they
     // live in settings.json and cross to the renderer unredacted.
@@ -498,6 +535,7 @@ function electronUsageConfig(errorPrefix) {
     defaultDeviceId: defaultDeviceId(),
     intervalMs: collectorIntervalMs(),
     historyIntervalMs: normalizeHistoryIntervalMs(settings.historyIntervalMs),
+    reasonixNativeSessionsEnabled: true,
     watchEnabled: collectorWatchEnabled(),
     // No watchUsePolling on purpose. The widget states no preference so the
     // shared default in resolveWatchUsePolling() governs and the widget cannot
@@ -1996,6 +2034,7 @@ function readSettings() {
     }
     merged.showHomeLimitBars = parseBoolean(merged.showHomeLimitBars, false);
     merged.showHomeLimitProviderNames = parseBoolean(merged.showHomeLimitProviderNames, false);
+    merged.opencodeLocalLimitsEnabled = parseBoolean(merged.opencodeLocalLimitsEnabled, false);
     merged.windowMaximized = parseBoolean(merged.windowMaximized, false);
     // Removed in the source-only release channel. Ignore legacy preferences so
     // old settings files cannot re-enable the retired download/install path.
@@ -2376,9 +2415,21 @@ let latestHubStatsIdentity = null;
 let hubModeGeneration = 0;
 let tray = null;
 let latestStats = null;
+let macWidgetSnapshotController = null;
+let macWidgetDemand = null;
+let macWidgetPublicationReady = false;
+let cachedMacWidgetConfiguration;
 let trayRefreshInFlight = false;
 let trayCodexActiveAccountId = '';
 let trayCodexPendingAccountId = '';
+
+function electronPresentationStats(stats) {
+  return projectLimitStatsForDisplay(stats, {
+    localDeviceId: settings?.deviceId,
+    syncActive: mode === 'sync' || Boolean(String(settings?.hubUrl || '').trim()),
+    opencodeLocalLimitsEnabled: settings?.opencodeLocalLimitsEnabled === true
+  });
+}
 let trayCodexPendingSince = 0;
 let trayCodexSwitchInFlight = false;
 const DEFAULT_EXPORT_INTERVAL_MS = 60 * 1000;
@@ -3257,6 +3308,7 @@ function startSyncCollector() {
   stopSyncCollector();
   if (!effectiveHubConfig().url) return;
   const usagePipeline = electronUsagePipeline('sync-collector');
+  const widgetProducerOwner = captureMacWidgetProducerOwner();
   const syncUploadScheduler = createSyncUploadScheduler({
     intervalMs: syncUploadIntervalMs(),
     upload: postToHub,
@@ -3273,7 +3325,7 @@ function startSyncCollector() {
       const displayStats = composeLocalSyncStats(latestHubStats, lastCollectedDevice);
       if (displayStats) {
         updateDiscordRpcDisplay(displayStats);
-        sendPush({ event: 'stats', data: { type: 'stats', reason: 'local', stats: displayStats, at: new Date().toISOString() } });
+        sendPush({ event: 'stats', data: { type: 'stats', reason: 'local', stats: displayStats, at: new Date().toISOString() } }, { widgetProducerOwner });
       }
       await syncUploadScheduler.enqueue(visibleSummary, revision);
     },
@@ -3350,6 +3402,7 @@ function startHostStats() {
   stopHostStats();
   if (!embeddedHub) return;
   const generation = hubModeGeneration;
+  const widgetProducerOwner = captureMacWidgetProducerOwner();
   const cacheIdentity = currentHubStatsIdentity('host');
   // Host mode presents the same multi-device hub aggregate as connecting to a
   // remote hub, so it reuses the renderer's 'sync' status path (Live / synced
@@ -3360,7 +3413,7 @@ function startHostStats() {
     if (!hubModeRequestIsCurrent(generation, 'host', cacheIdentity)) return;
     setLatestHubStatsCache(stats, 'host', generation, cacheIdentity);
     updateDiscordRpcDisplay(stats);
-    sendPush({ event: 'stats', data: { type: 'stats', reason, stats, at: new Date().toISOString() } });
+    sendPush({ event: 'stats', data: { type: 'stats', reason, stats, at: new Date().toISOString() } }, { widgetProducerOwner });
   };
   embeddedHubUnsub = embeddedHub.hub.onStats((stats, reason) => emit(stats, reason || 'hub'));
   // Prime the renderer with the current snapshot so it isn't blank until the
@@ -3375,6 +3428,11 @@ function startHostStats() {
 // being redeployed to preserve these fields.
 function injectLocalDeviceStatus(stats) {
   if (!stats || !Array.isArray(stats.devices)) return stats;
+  attachLocalPresentationNativeViews(stats, {
+    lastCollectedDevice,
+    seededLocalDevice: localDevice,
+    mode
+  });
   if (lastCollectedDevice) {
     const device = stats.devices.find((entry) => entry.deviceId === lastCollectedDevice.deviceId);
     if (device) {
@@ -3399,6 +3457,209 @@ function injectLocalDeviceStatus(stats) {
   return stats;
 }
 
+function macWidgetConfiguration() {
+  if (process.platform !== 'darwin') return null;
+  if (cachedMacWidgetConfiguration !== undefined) return cachedMacWidgetConfiguration;
+
+  let appGroup = String(process.env.TOKEN_MONITOR_APP_GROUP || '').trim();
+  let urlScheme = String(process.env.TOKEN_MONITOR_WIDGET_URL_SCHEME || 'token-monitor').trim();
+  let snapshotFileName = 'snapshot.json';
+  let widgetKind = DEFAULT_WIDGET_KIND;
+  const configCandidates = [
+    path.join(process.resourcesPath, 'token-monitor-widget.json'),
+    path.resolve(__dirname, '..', '..', 'build', 'macos-widget', 'widget-config.json')
+  ];
+  if (!appGroup) {
+    for (const configPath of configCandidates) {
+      try {
+        const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        appGroup = String(config.appGroup || '').trim();
+        urlScheme = String(config.urlScheme || urlScheme).trim();
+        widgetKind = String(config.widgetKind || widgetKind).trim();
+        snapshotFileName = String(config.snapshotFileName || snapshotFileName).trim();
+        if (appGroup) break;
+      } catch (_) {}
+    }
+  }
+  const snapshotPath = resolveMacWidgetSnapshotPath({
+    appGroup,
+    home: app.getPath('home'),
+    snapshotFileName
+  });
+  if (!snapshotPath) {
+    cachedMacWidgetConfiguration = null;
+    return cachedMacWidgetConfiguration;
+  }
+  cachedMacWidgetConfiguration = {
+    appGroup,
+    snapshotPath,
+    widgetKind,
+    urlScheme: (() => {
+      try { return normalizeWidgetURLScheme(urlScheme); } catch (_) { return 'token-monitor'; }
+    })()
+  };
+  return cachedMacWidgetConfiguration;
+}
+
+function historyResolverOptions() {
+  const { url: hubUrl, secret } = effectiveHubConfig();
+  return {
+    aggregateHistory,
+    embeddedHub,
+    historyEnabled: settings?.historyEnabled !== false,
+    hubMode: settings?.hubMode,
+    hubUrl,
+    localDevice,
+    mode,
+    secret
+  };
+}
+
+async function getCompleteHistory(options = historyResolverOptions()) {
+  return mappedHistoryForDisplay(await resolveCompleteHistory(options));
+}
+
+function macWidgetPresentation() {
+  return Object.freeze({
+    currencyCode: settings?.currency,
+    currencyRate: effectiveRates?.[normalizeCurrency(settings?.currency)] || 1,
+    compactNumbers: settings?.showCompactTotalTokens !== false,
+    compactTokenUnits: settings?.compactTokenUnits,
+    showCost: true,
+    locale: settings?.language,
+    theme: Object.keys(settings?.themeColors || {}).length ? 'custom' : 'system'
+  });
+}
+
+function ensureMacWidgetDemand() {
+  if (process.platform !== 'darwin') return null;
+  if (macWidgetDemand) return macWidgetDemand;
+  const widget = macWidgetConfiguration();
+  if (!widget) return null;
+  // The demand leases live beside the snapshot in the app group container. The
+  // widget extension touches the full marker on every timeline() request and
+  // the short provisional marker on a non-gallery snapshot() (the add flow),
+  // so a fresh marker here means "a Widget is on screen or being placed". The
+  // watcher arms immediately so a first placement primes the initial snapshot
+  // within moments; the reconcile poll catches anything the watcher missed.
+  const markerDirectory = path.dirname(widget.snapshotPath);
+  macWidgetDemand = createMacWidgetDemandState({
+    markerPath: path.join(markerDirectory, WIDGET_DEMAND_MARKER),
+    provisionalMarkerPath: path.join(markerDirectory, WIDGET_DEMAND_PROVISIONAL_MARKER),
+    onActivation: () => {
+      const visibleStats = electronPresentationStats(latestStats);
+      scheduleMacWidgetSnapshot(visibleStats, captureMacWidgetProducerOwner());
+    },
+    logger: (message) => console.warn(message)
+  });
+  macWidgetDemand.start();
+  return macWidgetDemand;
+}
+
+function captureMacWidgetWork({ stats, owner }) {
+  const widget = macWidgetConfiguration();
+  if (!widget) return null;
+  // No Widget on screen means no WidgetKit render loop is asking for data, so
+  // the whole snapshot pipeline (history resolution, serialization, fsync and
+  // the reload helper spawn) can be skipped. Only a confirmed missing or stale
+  // demand marker closes this gate; an unarmed state must not starve someone
+  // who does have a Widget.
+  if (macWidgetDemand && !macWidgetDemand.isInstalled()) return null;
+  const resolverConfig = Object.freeze({ ...historyResolverOptions() });
+  const sourceKey = macWidgetHistorySourceKey(resolverConfig);
+  return {
+    stats,
+    owner: Object.freeze({
+      epoch: owner.epoch,
+      sourceKey
+    }),
+    resolverConfig,
+    historyCachePath: completeHistorySource(resolverConfig) === 'remote'
+      ? macWidgetHistoryCachePath(app.getPath('userData'), sourceKey)
+      : null,
+    presentation: macWidgetPresentation(),
+    snapshotPath: widget.snapshotPath,
+    widgetKind: widget.widgetKind
+  };
+}
+
+function ensureMacWidgetSnapshotController() {
+  if (process.platform !== 'darwin') return null;
+  if (macWidgetSnapshotController) return macWidgetSnapshotController;
+  macWidgetSnapshotController = createMacWidgetSnapshotController({
+    startPaused: !macWidgetPublicationReady,
+    captureWork: captureMacWidgetWork,
+    resolveHistory: (work) => resolveMacWidgetHistory({
+      generation: work.owner.epoch,
+      sourceKey: work.owner.sourceKey,
+      revision: work.stats?.historyRevision,
+      fetchHistory: () => getCompleteHistory(work.resolverConfig),
+      ...(work.historyCachePath ? {
+        loadCachedHistory: () => readMacWidgetHistoryCache(
+          work.historyCachePath,
+          work.owner.sourceKey,
+          { logger: (message) => console.warn(message) }
+        ),
+        saveCachedHistory: (history) => writeMacWidgetHistoryCache(
+          work.historyCachePath,
+          work.owner.sourceKey,
+          history,
+          { logger: (message) => console.warn(message) }
+        )
+      } : {}),
+      minIntervalMs: completeHistorySource(work.resolverConfig) === 'remote' ? undefined : 0,
+      logger: (message) => console.warn(message)
+    }),
+    prepareSnapshot: (work, history) => prepareMacWidgetSnapshotUpdate(work.stats, {
+      snapshotPath: work.snapshotPath,
+      snapshotOptions: {
+        presentation: work.presentation,
+        history
+      },
+      logger: (message) => console.warn(message)
+    }),
+    commitSnapshot: (prepared, options) => commitMacWidgetSnapshot(prepared, {
+      isCurrent: options.isCurrent,
+      logger: (message) => console.warn(message)
+    }),
+    syncSnapshot: (_work, committed, prepared) => syncMacWidgetSnapshotDirectory({
+      ...committed,
+      fs: prepared?.fs
+    }),
+    discardSnapshot: discardMacWidgetSnapshot,
+    reloadSnapshot: (work, options) => requestMacWidgetReload({
+      widgetKind: work.widgetKind,
+      isCurrent: options.isCurrent,
+      logger: (message) => console.warn(message)
+    }),
+    logger: (message) => console.warn(message)
+  });
+  return macWidgetSnapshotController;
+}
+
+function captureMacWidgetProducerOwner() {
+  return ensureMacWidgetSnapshotController()?.captureProducerOwner() || null;
+}
+
+function advanceMacWidgetProducerAndSourceEpoch() {
+  ensureMacWidgetSnapshotController()?.advanceProducerAndSourceEpoch();
+}
+
+function advanceMacWidgetSourceEpoch() {
+  ensureMacWidgetSnapshotController()?.advanceSourceEpoch();
+}
+
+function refreshMacWidgetHistorySource() {
+  advanceMacWidgetSourceEpoch();
+  const visibleStats = electronPresentationStats(latestStats);
+  scheduleMacWidgetSnapshot(visibleStats, captureMacWidgetProducerOwner());
+}
+
+function scheduleMacWidgetSnapshot(stats, producerOwner) {
+  if (process.platform !== 'darwin' || !stats) return false;
+  return ensureMacWidgetSnapshotController()?.enqueue({ stats, producerOwner }) || false;
+}
+
 // Two options, both for the cold-start seed and neither for live stats.
 // `skipExport` keeps a republished snapshot from spending the auto-export
 // interval that this run's first real scan needs. `deferToRenderer` waits for
@@ -3409,10 +3670,17 @@ function injectLocalDeviceStatus(stats) {
 function sendPush(payload, options = {}) {
   const previousHistoryRevision = statsHistoryRevision(latestStats);
   let outgoing = payload;
+  let acceptedStats = null;
   if (payload?.data?.stats) {
     const stats = mappedStatsForDisplay(injectLocalDeviceStatus(payload.data.stats));
-    outgoing = { ...payload, data: { ...payload.data, stats } };
+    acceptedStats = stats;
     latestStats = stats;
+    const visibleStats = electronPresentationStats(latestStats);
+    outgoing = {
+      ...payload,
+      data: { ...payload.data, stats: visibleStats }
+    };
+    scheduleMacWidgetSnapshot(visibleStats, options.widgetProducerOwner);
     syncTrayCodexActiveAccount();
     updateTrayDisplay();
     if (settings?.discordRpcEnabled) updateDiscordRpcDisplay(stats);
@@ -3426,7 +3694,7 @@ function sendPush(payload, options = {}) {
     // Only while it is still the newest thing published. A slow load can outlast
     // the first real collection, and delivering the queued snapshot then would
     // walk the numbers backwards until the next push.
-    const deferred = outgoing?.data?.stats;
+    const deferred = acceptedStats;
     sendMainWindowEvent('stats:push', outgoing, () => !deferred || latestStats === deferred);
   } else if (mainWindow && !mainWindow.isDestroyed()) {
     try { mainWindow.webContents.send('stats:push', outgoing); } catch (_) {}
@@ -3499,10 +3767,11 @@ function updateDiscordRpcDisplay(stats) {
 
 function updateTrayDisplay() {
   if (!tray || tray.isDestroyed()) return;
+  const visibleStats = electronPresentationStats(latestStats);
   const mode = settings?.trayContent || 'tokens';
   const currency = normalizeCurrency(settings?.currency);
   const compactOptions = compactTokenDisplayOptions();
-  const limitText = formatTrayText(latestStats, mode, currency, {
+  const limitText = formatTrayText(visibleStats, mode, currency, {
     limitProviderOrder: settings?.limitProviderOrder,
     limitProviders: settings?.limitProviders,
     showLimitUsed: settings?.showLimitUsed,
@@ -3517,14 +3786,14 @@ function updateTrayDisplay() {
   const text = trayImageMode || customImageMode ? '' : limitText;
   if (trayShowsTitle(process.platform)) tray.setTitle(text);
   // Tooltip always shows a useful summary, even in icon-only mode where setTitle is blank.
-  const tip = formatTrayText(latestStats, 'both', currency, compactOptions);
+  const tip = formatTrayText(visibleStats, 'both', currency, compactOptions);
   tray.setToolTip(`Token Monitor - ${tip}`);
   // Icon: rendered bars image in bar modes, otherwise the app icon.
   let icon = null;
   if (barsImageMode || trayImageMode || customImageMode) {
     icon = providerTrayIcons[mode];
   } else {
-    const usageIconId = pickUsageTrayIconId(latestStats, mode, Object.keys(providerTrayIcons));
+    const usageIconId = pickUsageTrayIconId(visibleStats, mode, Object.keys(providerTrayIcons));
     if (usageIconId) icon = providerTrayIcons[usageIconId];
   }
   tray.setImage(icon || getDefaultTrayIcon());
@@ -3568,7 +3837,7 @@ function stopLocalCollector(options = {}) {
 // going, instead of zeros for the tens of seconds it takes. deviceRecordFromAnchor
 // owns the trust rules; anything it rejects leaves the renderer on its normal
 // wait-for-real-data path.
-function primeLocalStatsFromAnchor(usageOptions) {
+function primeLocalStatsFromAnchor(usageOptions, widgetProducerOwner) {
   // Cold start only. startMode() re-enters here on structural settings changes
   // as well, and there the numbers already collected are newer than any anchor.
   if (lastCollectedDevice) return;
@@ -3608,18 +3877,19 @@ function primeLocalStatsFromAnchor(usageOptions) {
   sendPush({
     event: 'stats',
     data: { type: 'stats', reason: 'anchor', stats: localStats, at: deviceRecord.receivedAt }
-  }, { skipExport: true, deferToRenderer: true });
+  }, { skipExport: true, deferToRenderer: true, widgetProducerOwner });
 }
 
 function startLocalCollector() {
   stopLocalCollector();
+  const widgetProducerOwner = captureMacWidgetProducerOwner();
   mode = 'local';
   sendStatus(false, { reason: 'collecting' });
   // One config object for both, so the fingerprint the seed validates against
   // cannot drift from the one the collector will compute.
   const usagePipeline = electronUsagePipeline('collector');
   const usageOptions = usagePipeline.usageOptions;
-  primeLocalStatsFromAnchor(usageOptions);
+  primeLocalStatsFromAnchor(usageOptions, widgetProducerOwner);
   deviceRuntimeHandle = createDeviceRuntime({
     envelope: electronDeviceEnvelope(),
     initialLimits: lastCollectedDevice?.limits,
@@ -3633,8 +3903,9 @@ function startLocalCollector() {
       localDevice = { ...visibleSummary, receivedAt: new Date().toISOString() };
       lastCollectedDevice = localDevice;
       localStats = withHistoryPreview(aggregateDevices([localDevice], 0), [localDevice]);
+      attachLocalNativeViews(localStats, localDevice);
       updateDiscordRpcDisplay(localStats);
-      sendPush({ event: 'stats', data: { type: 'stats', reason, stats: localStats, at: new Date().toISOString() } });
+      sendPush({ event: 'stats', data: { type: 'stats', reason, stats: localStats, at: new Date().toISOString() } }, { widgetProducerOwner });
       sendStatus(true, { reason });
     },
     onDiagnosticEvent: recordDiagnosticEvent,
@@ -3671,6 +3942,7 @@ function parseSseChunk(chunk) {
 async function startStatsStream(options = {}) {
   stopStatsStream();
   const generation = hubModeGeneration;
+  const widgetProducerOwner = captureMacWidgetProducerOwner();
   if (settings?.hubMode !== 'client') return;
   const cacheIdentity = currentHubStatsIdentity('client');
   if (options.resetSnapshot) {
@@ -3715,7 +3987,7 @@ async function startStatsStream(options = {}) {
             parsed = { ...parsed, data: { ...parsed.data, stats: displayStats } };
             updateDiscordRpcDisplay(displayStats);
           }
-          sendPush(parsed);
+          sendPush(parsed, { widgetProducerOwner });
         }
       }
     }
@@ -3743,6 +4015,37 @@ function showPopover() {
   // case where macOS fires blur immediately after show because the click that
   // opened us still has the menu bar as the focused element.
   setTimeout(() => { suppressNextBlurHide = false; }, 250);
+}
+
+function openMainWindowFromWidget() {
+  if (!app.isReady()) return;
+  const destination = pendingMacWidgetOpen || { page: 'overview', view: 'home', settings: false };
+  pendingMacWidgetOpen = null;
+  updateRendererViewState({ breakdown: destination.view });
+  applyMacActivationPolicy({ mainWindowVisible: true });
+  // Closing the window with the tray icon off destroys it while macOS keeps the
+  // app alive, so a widget click has to be able to build one again — the same
+  // recovery focusExistingWindow() performs for the dock and the shortcut.
+  // Bailing out instead consumed the open-url event and left the widget dead
+  // for the rest of the session, since nothing else reads pendingMacWidgetOpen.
+  if (!mainWindow || mainWindow.isDestroyed()) createWindow();
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  const sendDestination = () => {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    if (destination.settings) mainWindow.webContents.send('settings:open');
+    else mainWindow.webContents.send('view:open', destination.view);
+  };
+  if (mainWindow.webContents.isLoadingMainFrame()) mainWindow.webContents.once('did-finish-load', sendDestination);
+  else sendDestination();
+  if (settings?.trayMode && tray) {
+    showPopover();
+    return;
+  }
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  applyMacSpaceBehavior(false);
+  // A collapsed bubble would otherwise swallow the navigation we just sent.
+  if (floatingBubbleState.collapsed) expandFloatingBubble();
+  else mainWindow.show();
 }
 
 function hidePopover() {
@@ -3974,6 +4277,21 @@ function pushSettingsToRenderer() {
   }
 }
 
+function refreshLimitStatsPresentation() {
+  if (!latestStats) return;
+  const visibleStats = electronPresentationStats(latestStats);
+  scheduleMacWidgetSnapshot(visibleStats, captureMacWidgetProducerOwner());
+  updateTrayDisplay();
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    try {
+      mainWindow.webContents.send('stats:push', {
+        event: 'stats',
+        data: { type: 'stats', reason: 'presentation', mode, stats: visibleStats }
+      });
+    } catch (_) {}
+  }
+}
+
 function sendMimoAccountsPush() {
   if (!mainWindow || mainWindow.isDestroyed()) return;
   try { mainWindow.webContents.send('mimo:accounts', mimoAccountsForRenderer()); } catch (_) {}
@@ -4023,6 +4341,7 @@ function sendMainWindowEvent(channel, payload, isStillCurrent) {
 
 async function refreshFromTray() {
   if (trayRefreshInFlight) return;
+  const widgetProducerOwner = captureMacWidgetProducerOwner();
   trayRefreshInFlight = true;
   try {
     const stats = await fetchStats({ force: true });
@@ -4030,7 +4349,7 @@ async function refreshFromTray() {
     // result when fetchStats returned a different object (for example, a remote hub
     // fetch while an external headless agent owns collection).
     if (stats && stats !== latestStats) {
-      sendPush({ event: 'stats', data: { stats, mode, reason: 'manual' } });
+      sendPush({ event: 'stats', data: { stats, mode, reason: 'manual' } }, { widgetProducerOwner });
     }
   } catch (error) {
     console.warn(`[tray] refresh failed: ${error.message}`);
@@ -4265,6 +4584,7 @@ function exitTrayMode() {
 
 function startMode() {
   hubModeGeneration += 1;
+  advanceMacWidgetProducerAndSourceEpoch();
   clearLatestHubStatsCache();
   // Tear down collectors synchronously so they can't double-run while the
   // async reconciliation below is queued.
@@ -4359,6 +4679,11 @@ function stopAll() {
   stopStatsStream();
   stopHostStats();
   stopSyncCollector({ skipCloseWatchers: true });
+  macWidgetSnapshotController?.stop();
+  if (macWidgetDemand) {
+    macWidgetDemand.stop();
+    macWidgetDemand = null;
+  }
   // Fire-and-forget on purpose. server.close() does not complete until every
   // in-flight request does, so awaiting it hands a remote device on the embedded
   // hub the power to hold our own exit open. The listening socket closes with
@@ -5226,35 +5551,7 @@ function createDashboardWindow() {
 }
 
 async function getDashboardHistory() {
-  if (settings?.historyEnabled === false) return aggregateHistory([]);
-  if (mode === 'local') {
-    // The local collector keeps localDevice.history current (watch + interval
-    // ticks, with carry-forward), so read it directly — exactly as the hub
-    // branch reads /api/history. Forcing a full collection tick here made the
-    // fetch take seconds; on a quick close/reopen the response outlived the
-    // renderer and was dropped, stranding the dashboard on its empty state.
-    return mappedHistoryForDisplay(aggregateHistory(localDevice ? [localDevice] : []));
-  }
-  if (settings.hubMode === 'host' && embeddedHub) {
-    // Host mode reads its own hub store in-process, so the dashboard history
-    // doesn't depend on a loopback fetch the local firewall/proxy might block.
-    return mappedHistoryForDisplay(embeddedHub.hub.getHistory());
-  }
-  const { url: hubUrl, secret } = effectiveHubConfig();
-  if (!hubUrl) return mappedHistoryForDisplay(aggregateHistory([]));
-  const url = `${hubUrl.replace(/\/$/, '')}/api/history`;
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 15000);
-  try {
-    const response = await fetch(url, {
-      headers: secret ? { authorization: `Bearer ${secret}` } : {},
-      signal: controller.signal
-    });
-    if (!response.ok) throw new Error(`Hub ${response.status}: ${(await response.text()).slice(0, 200)}`);
-    return mappedHistoryForDisplay(await response.json());
-  } finally {
-    clearTimeout(timeout);
-  }
+  return getCompleteHistory();
 }
 
 let cursorStatusCache = { value: null, at: 0 };
@@ -5298,6 +5595,17 @@ app.whenReady().then(async () => {
   if (process.platform === 'darwin' && app.dock) app.dock.setIcon(APP_ICON_PATH);
   ensureSettingsLoaded();
   await regenerateTokscalePricing();
+  const widgetRecoveryAbort = new AbortController();
+  const abortWidgetRecovery = () => widgetRecoveryAbort.abort();
+  app.once('before-quit', abortWidgetRecovery);
+  const widgetRecovery = recoverMacWidgetLaunchServicesRegistration({
+    platform: process.platform,
+    isPackaged: app.isPackaged,
+    resourcesPath: process.resourcesPath,
+    userDataPath: app.getPath('userData'),
+    signal: widgetRecoveryAbort.signal,
+    logger: (message) => console.warn(message)
+  });
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     callback({
       responseHeaders: {
@@ -5312,8 +5620,17 @@ app.whenReady().then(async () => {
   configureWindowToggleShortcut();
   cleanupStaleStaging().catch((error) => console.log(`[tokscale] staging cleanup failed: ${error.message}`));
   ensureTray();
+  if (pendingMacWidgetOpen) setImmediate(openMainWindowFromWidget);
   if (settings.trayMode) enterTrayMode();
+  ensureMacWidgetDemand();
   startMode();
+  void widgetRecovery.finally(() => {
+    app.removeListener('before-quit', abortWidgetRecovery);
+    if (!widgetRecoveryAbort.signal.aborted) {
+      macWidgetPublicationReady = true;
+      macWidgetSnapshotController?.resume();
+    }
+  });
   void hydrateCodexManagedWorkspaceLabels();
   if (settings.discordRpcEnabled) startDiscordRpc();
   rateCache = readRateCache();
@@ -5378,6 +5695,7 @@ app.whenReady().then(async () => {
     const previousTrayCustomLayout = JSON.stringify(settings.trayCustomLayout || {});
     const previousFloatingBubbleCustomLayout = JSON.stringify(settings.floatingBubbleCustomLayout || {});
     const previousShowTrayProviderBadge = settings.showTrayProviderBadge;
+    const previousOpenCodeLocalLimitsEnabled = settings.opencodeLocalLimitsEnabled === true;
     const previousCurrency = settings.currency;
     const previousCompactTokenUnits = settings.compactTokenUnits;
     const previousLanguage = settings.language;
@@ -5500,6 +5818,7 @@ app.whenReady().then(async () => {
       showLimitSource: parseBoolean(patch.showLimitSource ?? settings.showLimitSource, false),
       maskLimitAccountEmails: parseBoolean(patch.maskLimitAccountEmails ?? settings.maskLimitAccountEmails, false),
       claudePrepaidBalanceEnabled: parseBoolean(patch.claudePrepaidBalanceEnabled ?? settings.claudePrepaidBalanceEnabled, true),
+      opencodeLocalLimitsEnabled: parseBoolean(patch.opencodeLocalLimitsEnabled ?? settings.opencodeLocalLimitsEnabled, false),
       showLimitUsed: parseBoolean(patch.showLimitUsed ?? settings.showLimitUsed, false),
       windowMaximized: parseBoolean(settings.windowMaximized, false),
       zoomFactor: clampZoom(patch.zoomFactor ?? settings.zoomFactor),
@@ -5588,6 +5907,10 @@ app.whenReady().then(async () => {
       applyNativeMaterial();
     }
     const runtimeChange = classifySettingsChange(previousRuntimeSettings, settings);
+    const widgetHistorySourceChanged = previousRuntimeSettings.historyEnabled !== settings.historyEnabled;
+    if (widgetHistorySourceChanged && !runtimeChange.modeStructural) {
+      refreshMacWidgetHistorySource();
+    }
     const limitInvalidations = settingsLimitInvalidationPlan(runtimeChange);
     if (runtimeChange.modeStructural) {
       for (const { scope, reason, options } of limitInvalidations) {
@@ -5632,6 +5955,11 @@ app.whenReady().then(async () => {
       updateTrayDisplay();
       if (settings.discordRpcEnabled && latestStats) updateDiscordRpcDisplay(latestStats);
       refreshExchangeRates();              // async: fetch if stale, then re-push
+    }
+    if ((settings.opencodeLocalLimitsEnabled === true) !== previousOpenCodeLocalLimitsEnabled) {
+      // Re-project the cached aggregate immediately. The Hub can be offline and
+      // therefore may not send another frame after this local-only setting changes.
+      refreshLimitStatsPresentation();
     }
     pushSettingsToRenderer();
     return settingsForRenderer();
@@ -5747,7 +6075,7 @@ app.whenReady().then(async () => {
     // The stream normally carries the stamp, but it is precisely when the stream
     // is down that this read is the only thing still arriving from the hub.
     maybeAdoptSharedSubscriptionRevision(stats);
-    return stats;
+    return electronPresentationStats(stats);
   });
   ipcMain.handle('export:now', async () => {
     const result = await dialog.showOpenDialog({
@@ -6595,6 +6923,7 @@ app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(
 // OS-initiated logout or restart on macOS.
 app.on('before-quit', () => {
   quitRequested = true;
+  resetMacWidgetReloadThrottle();
   if (rateRefreshTimer) clearInterval(rateRefreshTimer);
   if (appUpdateBackgroundTimer) clearInterval(appUpdateBackgroundTimer);
   unregisterWindowToggleShortcut();

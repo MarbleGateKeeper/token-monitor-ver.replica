@@ -7,7 +7,7 @@
   </p>
   <p>
     <a href="https://github.com/MarbleGateKeeper/token-monitor-ver.replica/releases"><img src="https://img.shields.io/github/v/release/MarbleGateKeeper/token-monitor-ver.replica?include_prereleases&style=flat-square&label=replica&color=22c55e" alt="Replica release"></a>
-    <img src="https://img.shields.io/badge/version-0.42.1--replica.2-64748b?style=flat-square" alt="Version 0.42.1-replica.2">
+    <img src="https://img.shields.io/badge/version-0.43.0--replica.1-64748b?style=flat-square" alt="Version 0.43.0-replica.1">
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-A855F7?style=flat-square" alt="MIT License"></a>
   </p>
   <img src=".github/assets/demo.gif" alt="Token Monitor demo">
@@ -25,7 +25,7 @@
 - **上游项目：** [Javis603/token-monitor](https://github.com/Javis603/token-monitor)，提供 Token Monitor 的主体架构、采集器、桌面组件、多设备 Hub、AI 工具额度和绝大多数功能。
 - **本仓库：** [MarbleGateKeeper/token-monitor-ver.replica](https://github.com/MarbleGateKeeper/token-monitor-ver.replica)，用于保留个人需要但尚未进入上游的修复与功能。
 - **Git 远程：** 通常以 `upstream` 跟踪原项目，以 `origin` 跟踪本 fork。同步上游时应先审阅差异，再保留下文列出的 fork 功能。
-- **版本规则：** 使用 `<上游版本>-replica.<修订号>`，例如当前版本 `0.42.1-replica.2`。同一上游版本继续发布时递增修订号；同步到新的上游版本后从 `replica.1` 重新开始。
+- **版本规则：** 使用 `<上游版本>-replica.<修订号>`，例如当前版本 `0.43.0-replica.1`。同一上游版本继续发布时递增修订号；同步到新的上游版本后从 `replica.1` 重新开始。
 - **更新来源：** 应用只把本 fork 的 `*-replica.N` Release 当作可用版本；同时独立查询上游最新 Release，用于提醒维护者何时需要同步上游。两类提醒都只打开对应 Release 页面，不会下载或安装更新。
 - **许可与署名：** 代码继续使用上游的 MIT 许可证，保留原作者 Javis 的版权声明；打包产物会携带完整 `LICENSE`。
 
@@ -40,14 +40,14 @@
 
 本 fork 在模型供应商分类中将这两个精确 ID 识别为 Kimi，因此模型配色、图标选择和相关展示与其他 Kimi 模型保持一致。
 
-#### 2. 补齐 LongCat 与 Hy3 的厂商识别
+#### 2. 补齐 LongCat 识别，并沿用上游 Hy3 / Hunyuan 支持
 
 - [美团 LongCat](https://github.com/meituan-longcat) 系列（例如 `LongCat-Flash-Chat`、`LongCat-Flash-Thinking-2601`、`LongCat-2.0`）识别为 **Meituan**。
-- [腾讯 Hy3](https://github.com/Tencent-Hunyuan/Hy3) 系列（例如 `hy3`、`hy3-fp8`）以及带 `Tencent` / `Hunyuan` 命名空间的模型识别为 **Tencent**。
+- [腾讯 Hy3](https://github.com/Tencent-Hunyuan/Hy3) 系列（例如 `hy3`、`hy3-fp8`）和 Hunyuan 命名模型使用上游 `0.43.0` 提供的 **Hunyuan** 厂商识别与图标，不在本 fork 维护平行规则。
 
-识别规则不区分大小写，并要求 `LongCat` / `Hy3` 出现在完整的模型名分段中，避免仅因名称中偶然包含相同字符而误判。两个厂商都有独立的默认配色，也会出现在 **设置 → 外观 → 厂商颜色** 中供手动调整。
+LongCat 识别不区分大小写，并要求名称出现在完整的模型名分段中，避免偶然子串误判。Meituan 与 Hunyuan 都有独立默认配色，也会出现在 **设置 → 外观 → 厂商颜色** 中供手动调整。
 
-模型列表会分别使用 LongCat 与 Tencent 标志，并通过 CSS 遮罩染成当前厂商颜色；因此默认显示美团黄与腾讯蓝，手动调整厂商颜色后图标会同步变化。新增 SVG 来自固定版本的 MIT 许可 [Lobe Icons](https://github.com/lobehub/lobe-icons)，来源、许可证文本和商标用途声明见 [`assets/icons/THIRD_PARTY_NOTICES.md`](assets/icons/THIRD_PARTY_NOTICES.md)。
+模型列表分别使用 LongCat 与上游 Hunyuan 标志，并通过 CSS 遮罩染成当前厂商颜色；因此手动调整厂商颜色后，图标也会同步变化。LongCat SVG 来自固定版本的 MIT 许可 [Lobe Icons](https://github.com/lobehub/lobe-icons)，来源、许可证文本和商标用途声明见 [`assets/icons/THIRD_PARTY_NOTICES.md`](assets/icons/THIRD_PARTY_NOTICES.md)。
 
 #### 3. 增加手动模型映射
 
@@ -117,13 +117,15 @@ Tokscale 继续负责 Token、费用、模型和会话 ID；本 fork 在本机�
 
 ### 功能概览
 
-Token Monitor 是一个本地优先的 Electron 桌面组件，用于汇总 AI 编程工具的 token、成本、会话、模型和账号额度。下方工具表列出 28 种工具，其中 21 种提供 token 用量，18 种提供 AI 工具额度。
+Token Monitor 是一个本地优先的 Electron 桌面组件，用于汇总 AI 编程工具的 token、成本、会话、模型和账号额度。下方工具表列出 29 种工具，其中 22 种提供 token 用量，18 种提供 AI 工具额度。
 
 - 实时扫描本机日志，并在数秒内刷新用量。
 - 按工具、设备、模型、会话、项目和账号拆分。
 - 显示输入、输出、缓存命中和成本。
 - 保存历史趋势、活动热力图并导出 CSV/JSON。
 - 支持本地模式、内置 Hub、Node Hub 和 Cloudflare Worker 多设备同步。
+- 支持 Reasonix 用量及本机原生会话/项目视图；原生元数据和合成会话不会进入 Hub、归档或同步载荷。
+- 可选构建 macOS 14+ 原生 WidgetKit 小组件，提供概览、额度、模型、活动和趋势页面；本 fork 的 Release 仍不发布预构建应用。
 - 提示词、回复、源代码和文件内容不会上传到项目维护者。
 - 项目补全只在本机读取工具保存的目录、结构化元数据前缀和只读数据库字段；原始项目路径会先哈希，再进入现有本地或 Hub 统计流程。
 
@@ -165,7 +167,7 @@ Token Monitor 是一个本地优先的 Electron 桌面组件，用于汇总 AI �
 
 ### 从源码运行与构建
 
-需要 Node.js 22.13 或更高版本，并应在目标操作系统上构建：
+需要 Node.js 22.13 或更高版本，并应在目标操作系统上构建；macOS 构建要求 macOS 14 或更高版本：
 
 ```bash
 npm ci
@@ -176,9 +178,11 @@ npm run dist:win      # Windows x64 installer + portable
 npm run dist:mac      # macOS arm64
 npm run dist:mac:x64  # macOS Intel x64
 npm run dist:linux    # Linux x64 AppImage
+
+npm run pack:mac:widget # macOS 原生 Widget 的本地 ad-hoc 签名预览
 ```
 
-输出位于 `dist/`，仅保留在本机，不会被 Release 工作流上传。默认本地构建不要求签名：Windows 可能显示 SmartScreen 警告，macOS 也可能因未签名、未公证而触发 Gatekeeper；如需对外分发，请自行配置相应平台的签名与公证。
+输出位于 `dist/`，仅保留在本机，不会被 Release 工作流上传。普通本地构建不要求签名：Windows 可能显示 SmartScreen 警告，macOS 也可能因未签名、未公证而触发 Gatekeeper。Widget 的正式分发构建需要 App Group、Provisioning Profile 与签名配置，详见 [native/macos/README.md](native/macos/README.md)。
 
 ---
 
@@ -189,7 +193,7 @@ npm run dist:linux    # Linux x64 AppImage
 - **Upstream:** [Javis603/token-monitor](https://github.com/Javis603/token-monitor) provides the core architecture, collectors, desktop widget, multi-device Hub, AI Tool Limits, and most product functionality.
 - **This repository:** [MarbleGateKeeper/token-monitor-ver.replica](https://github.com/MarbleGateKeeper/token-monitor-ver.replica) carries personal fixes and features that have not been incorporated upstream.
 - **Git remotes:** `upstream` normally tracks the original project and `origin` tracks this fork. Review upstream changes before merging and preserve the fork behavior documented below.
-- **Versioning:** releases use `<upstream-version>-replica.<revision>`, currently `0.42.1-replica.2`. Increment the replica revision on the same upstream base; restart at `replica.1` after adopting a new upstream version.
+- **Versioning:** releases use `<upstream-version>-replica.<revision>`, currently `0.43.0-replica.1`. Increment the replica revision on the same upstream base; restart at `replica.1` after adopting a new upstream version.
 - **Updates:** only this fork's `*-replica.N` Releases enter the fork update channel. The app also checks upstream independently to tell maintainers when the fork needs syncing. Both channels only open their matching Release page and never download or install updates.
 - **License and credit:** the upstream MIT license and Javis copyright notice are preserved, and packaged applications include the complete `LICENSE`.
 
@@ -204,14 +208,14 @@ Upstream recognizes `kimi-k3` as Kimi, but the official Kimi Code tool can repor
 
 This fork classifies both exact IDs as Kimi models, keeping vendor colors, icon selection, and related presentation consistent with other Kimi models.
 
-#### 2. LongCat and Hy3 vendor recognition
+#### 2. LongCat recognition with upstream Hy3 / Hunyuan support
 
 - The [Meituan LongCat](https://github.com/meituan-longcat) family, including names such as `LongCat-Flash-Chat`, `LongCat-Flash-Thinking-2601`, and `LongCat-2.0`, is classified as **Meituan**.
-- The [Tencent Hy3](https://github.com/Tencent-Hunyuan/Hy3) family, including `hy3` and `hy3-fp8`, plus models carrying a `Tencent` or `Hunyuan` namespace, is classified as **Tencent**.
+- The [Tencent Hy3](https://github.com/Tencent-Hunyuan/Hy3) family, including `hy3` and `hy3-fp8`, plus Hunyuan-named models use the upstream `0.43.0` **Hunyuan** classification and icon instead of a parallel fork rule.
 
-Matching is case-insensitive and requires `LongCat` / `Hy3` to occupy a complete model-name segment, avoiding accidental substring matches. Both vendors have distinct default colors and appear under **Settings → Appearance → Vendor colors** for manual customization.
+LongCat matching is case-insensitive and requires the name to occupy a complete model-name segment, avoiding accidental substring matches. Meituan and Hunyuan have distinct defaults and appear under **Settings → Appearance → Vendor colors** for manual customization.
 
-Model rows use the LongCat and Tencent marks as CSS masks tinted with the active vendor color. They therefore default to Meituan yellow and Tencent blue and follow any manual vendor-color override. The added SVGs come from a fixed version of the MIT-licensed [Lobe Icons](https://github.com/lobehub/lobe-icons); source, license text, and the trademark-use notice are recorded in [`assets/icons/THIRD_PARTY_NOTICES.md`](assets/icons/THIRD_PARTY_NOTICES.md).
+Model rows use the LongCat and upstream Hunyuan marks as CSS masks tinted with the active vendor color, so both follow manual vendor-color overrides. The LongCat SVG comes from a fixed version of the MIT-licensed [Lobe Icons](https://github.com/lobehub/lobe-icons); its source, license text, and trademark-use notice are recorded in [`assets/icons/THIRD_PARTY_NOTICES.md`](assets/icons/THIRD_PARTY_NOTICES.md).
 
 #### 3. Manual model mappings
 
@@ -281,13 +285,15 @@ Full scans also use the same local resolver to backfill the retained-session arc
 
 ### Highlights
 
-Token Monitor is a local-first Electron widget for AI coding-tool tokens, cost, sessions, models, and account limits. The table below lists 28 tools: 21 provide token usage and 18 provide AI Tool Limits.
+Token Monitor is a local-first Electron widget for AI coding-tool tokens, cost, sessions, models, and account limits. The table below lists 29 tools: 22 provide token usage and 18 provide AI Tool Limits.
 
 - Live local-log collection with updates appearing within seconds.
 - Breakdowns by tool, device, model, session, project, and account.
 - Input, output, cache-hit, and cost metrics.
 - Historical trends, activity heatmaps, and CSV/JSON export.
 - Local mode plus embedded, Node, or Cloudflare Worker hubs for multi-device sync.
+- Reasonix usage plus local native Session and Project views; native metadata and synthetic sessions stay out of Hub, Archive, and sync payloads.
+- An optional macOS 14+ WidgetKit build with Overview, Quota, Models, Activity, and Trend pages; this fork still publishes no prebuilt applications.
 - Prompts, responses, source code, and file contents are not sent to the project maintainer.
 - Project enrichment reads only local directory structure, bounded structured-metadata prefixes, and read-only database fields; raw project paths are hashed before entering the existing local or Hub statistics flow.
 
@@ -320,7 +326,7 @@ Choose one Hub and connect every device to the same URL and secret:
 
 ### Run and build from source
 
-Node.js 22.13 or newer is required. Build on the target operating system:
+Node.js 22.13 or newer is required. Build on the target operating system; macOS builds require macOS 14 or newer:
 
 ```bash
 npm ci
@@ -331,9 +337,11 @@ npm run dist:win      # Windows x64 installer + portable
 npm run dist:mac      # macOS arm64
 npm run dist:mac:x64  # macOS Intel x64
 npm run dist:linux    # Linux x64 AppImage
+
+npm run pack:mac:widget # local ad-hoc-signed native macOS Widget preview
 ```
 
-Artifacts are written to `dist/` and remain local; the Release workflow does not upload them. Local builds do not require signing by default. Windows may show SmartScreen warnings, and unsigned or unnotarized macOS builds may trigger Gatekeeper. Configure platform signing and notarization yourself before distributing a build.
+Artifacts are written to `dist/` and remain local; the Release workflow does not upload them. Ordinary local builds do not require signing. Windows may show SmartScreen warnings, and unsigned or unnotarized macOS builds may trigger Gatekeeper. Formal Widget distribution additionally requires App Group, provisioning-profile, and signing configuration; see [native/macos/README.md](native/macos/README.md).
 
 ---
 
@@ -362,6 +370,7 @@ Artifacts are written to `dist/` and remain local; the Release workflow does not
 | <img src=".github/assets/tools-icon/codebuddy.png" width="28" alt="CodeBuddy" /> | CodeBuddy | Project data plus IDE and VS Code extension logs | ✅ | — | — |
 | <img src=".github/assets/tools-icon/workbuddy.png" width="28" alt="WorkBuddy" /> | WorkBuddy | `~/.workbuddy/projects/`, `~/.workbuddy/workbuddy.db` | ✅ | — | — |
 | <img src=".github/assets/tools-icon/proma.png" width="28" alt="Proma" /> | Proma | `~/.proma/agent-sessions/*.jsonl` | ✅ | — | — |
+| <img src=".github/assets/tools-icon/reasonix.png" width="28" alt="Reasonix" /> | Reasonix | `~/.reasonix/` 中的 `stats/`、`sessions/` 与 `projects/*/sessions/` | ✅ | — | — |
 | <img src=".github/assets/tools-icon/deepseek.png" width="28" alt="DeepSeek" /> | DeepSeek | DeepSeek API key and balance API | — | ✅ | — |
 | <img src=".github/assets/tools-icon/openrouter.png" width="28" alt="OpenRouter" /> | OpenRouter | OpenRouter API key, usage, limits, and authorized credits | — | ✅ | — |
 | <img src=".github/assets/tools-icon/minimax.png" width="28" alt="Minimax" /> | Minimax | Minimax API key and Token Plan API | — | ✅ | — |
@@ -370,11 +379,11 @@ Artifacts are written to `dist/` and remain local; the Release workflow does not
 | <img src=".github/assets/tools-icon/ollama.png" width="28" alt="Ollama" /> | Ollama | Ollama Cloud cookie and settings usage | — | ✅ | — |
 | <img src=".github/assets/tools-icon/newapi.png" width="28" alt="Third-party APIs" /> | Third-party APIs | New API and compatible One API forks, API-key mode, or a declarative Custom balance endpoint | — | ✅ | — |
 
-表中路径是默认值；Token Monitor 会遵循 Tokscale 支持的 `$XDG_DATA_HOME`，以及 `$CODEX_HOME`、`$GROK_HOME`、`$HERMES_HOME`、`$KIMI_CODE_HOME` 和 `$CLINE_*` 等工具专用环境变量。
+表中路径是默认值；Token Monitor 会遵循 Tokscale 支持的 `$XDG_DATA_HOME`，以及 `$CODEX_HOME`、`$GROK_HOME`、`$HERMES_HOME`、`$KIMI_CODE_HOME`、`$REASONIX_STATE_HOME`、`$REASONIX_HOME` 和 `$CLINE_*` 等工具专用环境变量。
 
 第三方 Custom 适配器只读取一个 GET 余额接口中声明的数值字段；仅兼容 OpenAI 或 Anthropic API 并不足以自动提供额度数据。
 
-Paths in the table are defaults. Token Monitor follows Tokscale's supported `$XDG_DATA_HOME` override and tool-specific variables including `$CODEX_HOME`, `$GROK_HOME`, `$HERMES_HOME`, `$KIMI_CODE_HOME`, and the `$CLINE_*` family.
+Paths in the table are defaults. Token Monitor follows Tokscale's supported `$XDG_DATA_HOME` override and tool-specific variables including `$CODEX_HOME`, `$GROK_HOME`, `$HERMES_HOME`, `$KIMI_CODE_HOME`, `$REASONIX_STATE_HOME`, `$REASONIX_HOME`, and the `$CLINE_*` family.
 
 The third-party Custom adapter reads declared numeric fields from one GET balance endpoint. OpenAI or Anthropic API compatibility alone does not provide account-limit data.
 

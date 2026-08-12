@@ -62,8 +62,8 @@
   // synthetic "default" fallback is shown last.
   const VENDOR_ORDER = [
     'claude', 'codex', 'hermes', 'opencode', 'openrouter', 'openclaw', 'cline', 'cursor',
-    'gemini', 'antigravity', 'kimi', 'qwen', 'grok', 'copilot', 'pi', 'zed', 'kilocode', 'micode', 'zcode', 'kiro', 'codebuddy', 'workbuddy', 'proma', 'deepseek', 'xai', 'meta', 'mistral',
-    'moonshot', 'zai', 'zaiteam', 'cohere', 'xiaomi', 'minimax', 'doubao', 'meituan', 'tencent', 'volcengine', 'qoder', 'ollama', 'thirdparty'
+    'gemini', 'antigravity', 'kimi', 'qwen', 'grok', 'copilot', 'pi', 'zed', 'kilocode', 'micode', 'zcode', 'kiro', 'codebuddy', 'workbuddy', 'proma', 'reasonix', 'deepseek', 'xai', 'meta', 'mistral',
+    'moonshot', 'zai', 'zaiteam', 'cohere', 'xiaomi', 'minimax', 'doubao', 'meituan', 'hunyuan', 'volcengine', 'qoder', 'ollama', 'thirdparty'
   ];
 
   // Display labels for every vendor in the clientColors map. The widget also
@@ -92,6 +92,7 @@
     codebuddy: 'CodeBuddy',
     workbuddy: 'WorkBuddy',
     proma: 'Proma',
+    reasonix: 'Reasonix',
     deepseek: 'DeepSeek',
     xai: 'xAI',
     meta: 'Meta',
@@ -105,7 +106,7 @@
     minimax: 'MiniMax',
     doubao: 'Doubao',
     meituan: 'Meituan',
-    tencent: 'Tencent',
+    hunyuan: 'Hunyuan',
     volcengine: 'Volcengine',
     qoder: 'Qoder',
     ollama: 'Ollama',

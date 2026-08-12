@@ -4,8 +4,15 @@
 
 <!-- app-update-notes:en:start -->
 ### Added
-- **Per-tool model usage:** Every tool now lists all of its models below the usage bar, ordered by token count. Manual mappings are applied before display, and long IDs retain their full name and exact token total in hover and assistive text.
-- **Dominant-model activity outlines:** Home activity cells keep their token- or cost-intensity fill and gain a two-CSS-pixel outline in the day's top-token model color. A dedicated top layer uses CSP-safe SVG color attributes after the spotlight, while same-color dates share one SVG path, so the blue fill cannot cover colors such as Claude orange. The tooltip also names that model, with live data for today and cached historical winners for past days.
+- **Reasonix tracking:** Adds Tokscale-backed Reasonix usage plus local native Session and Project views. Native metadata and synthetic sessions stay out of Hub, Archive, and sync payloads.
+- **Optional native macOS Widget:** Source builds can opt into Small, Medium, and Large WidgetKit views for Overview, Quota, Models, Activity, and Trend on macOS 14+.
+- **Broader project attribution:** Local bounded metadata readers now enrich Grok Build, ZCode, Pi / Oh My Pi, CodeBuddy, OpenCode, Hermes, WorkBuddy, Qwen Code, and Kimi Code sessions. Model mappings also price source IDs through their canonical target.
+
+### Changed
+- **Upstream 0.43.0 base:** Uses Tokscale 4.13.0 and adopts upstream Hunyuan recognition and artwork for Hy3 models while retaining this fork's configurable vendor-color tinting.
+
+### Fixed
+- Refreshes Codex plan metadata and classifies the standard 30-day quota as Monthly, keeps Kiro's unbounded IDE storage off the live watcher, persists remote Widget history fallback, and bounds Reasonix sidecar reads.
 <!-- app-update-notes:en:end -->
 
 ## Build from source
@@ -20,8 +27,15 @@ This repository does not publish prebuilt installers or application archives. To
 
 <!-- app-update-notes:zh:start -->
 ### 新增
-- **工具模型用量：** 每个工具现在会在用量进度条下方列出全部模型，并按 Token 用量排序。显示前会应用手动映射；长模型 ID 可通过悬浮和辅助技术读取完整名称及精确 Token。
-- **主导模型活动描边：** 主页活动格保留 Token 或费用强度填色，并以当天 Token 最多模型的颜色增加两 CSS 像素轮廓。独立顶层会在聚光效果之后通过符合应用 CSP 的 SVG 属性绘制原始配置色，同色日期共用一条 SVG path，因此蓝色填充无法遮住 Claude 橙等颜色。悬浮提示同时显示该模型；今天使用实时数据，历史日期使用缓存后的主导模型结果。
+- **Reasonix 跟踪：** 增加由 Tokscale 提供的 Reasonix 用量，以及仅限本机的原生会话与项目视图；原生元数据和合成会话不会进入 Hub、归档或同步载荷。
+- **可选原生 macOS Widget：** 源码构建可在 macOS 14+ 选择启用 Small、Medium、Large WidgetKit 小组件，提供概览、额度、模型、活动和趋势页面。
+- **更完整的项目归属：** 使用受限的本机元数据读取，为 Grok Build、ZCode、Pi / Oh My Pi、CodeBuddy、OpenCode、Hermes、WorkBuddy、Qwen Code 和 Kimi Code 补全项目；模型映射也会按规范目标价格为源 ID 计费。
+
+### 变更
+- **同步上游 0.43.0：** 升级 Tokscale 4.13.0，并直接采用上游对 Hy3 的 Hunyuan 识别和图标，同时保留本 fork 可配置的厂商颜色染色。
+
+### 修复
+- 刷新 Codex 套餐元数据并把标准 30 天额度归类为月额度；避免实时监听无界的 Kiro IDE 存储；持久化远端 Widget 历史回退；限制 Reasonix sidecar 读取大小。
 <!-- app-update-notes:zh:end -->
 
 ## 从源码构建
@@ -30,7 +44,7 @@ This repository does not publish prebuilt installers or application archives. To
 
 ---
 
-**Full Changelog:** [v0.42.1-replica.1...v0.42.1-replica.2](https://github.com/MarbleGateKeeper/token-monitor-ver.replica/compare/v0.42.1-replica.1...v0.42.1-replica.2)
+**Full Changelog:** [v0.42.1-replica.2...v0.43.0-replica.1](https://github.com/MarbleGateKeeper/token-monitor-ver.replica/compare/v0.42.1-replica.2...v0.43.0-replica.1)
 
 <details>
 <summary>繁體中文 · 한국어 · 日本語</summary>
@@ -44,8 +58,15 @@ This repository does not publish prebuilt installers or application archives. To
 
 <!-- app-update-notes:zh-TW:start -->
 ### 新增
-- **工具模型用量：** 每個工具現在會在用量進度條下方列出全部模型，並依 Token 用量排序。顯示前會套用手動映射；長模型 ID 可透過懸停和輔助技術讀取完整名稱及精確 Token。
-- **主導模型活動描邊：** 首頁活動格保留 Token 或費用強度填色，並以當天 Token 最多模型的顏色增加兩 CSS 像素輪廓。獨立頂層會在聚光效果之後透過符合應用程式 CSP 的 SVG 屬性繪製原始設定色，同色日期共用一條 SVG path，因此藍色填色無法遮住 Claude 橙等顏色。懸停提示同時顯示該模型；今天使用即時資料，歷史日期使用快取後的主導模型結果。
+- **Reasonix 追蹤：** 新增 Tokscale 支援的 Reasonix 用量，以及僅限本機的原生工作階段與專案檢視；原生中繼資料和合成工作階段不會進入 Hub、封存或同步負載。
+- **可選原生 macOS Widget：** 原始碼建置可在 macOS 14+ 選擇啟用 Small、Medium、Large WidgetKit 小工具，提供概覽、額度、模型、活動和趨勢頁面。
+- **更完整的專案歸屬：** 以受限的本機中繼資料讀取補全更多工具的專案，模型映射也會依規範目標價格為來源 ID 計費。
+
+### 變更
+- **同步上游 0.43.0：** 升級 Tokscale 4.13.0，直接採用上游 Hy3 的 Hunyuan 識別與圖示，同時保留本 fork 可設定的廠商顏色染色。
+
+### 修復
+- 更新 Codex 方案中繼資料與月額度分類、排除 Kiro 無界 IDE 儲存的即時監聽、保存遠端 Widget 歷史備援，並限制 Reasonix sidecar 讀取大小。
 <!-- app-update-notes:zh-TW:end -->
 
 ## 從原始碼建置
@@ -63,8 +84,15 @@ This repository does not publish prebuilt installers or application archives. To
 
 <!-- app-update-notes:ko:start -->
 ### 추가
-- **도구별 모델 사용량:** 각 도구가 이제 사용량 막대 아래에 모든 모델을 토큰 수 순서로 표시합니다. 표시 전에 수동 매핑을 적용하며, 긴 모델 ID도 마우스 오버와 보조 기술에서 전체 이름과 정확한 토큰 수를 확인할 수 있습니다.
-- **주요 모델 활동 테두리:** 홈 활동 셀은 토큰 또는 비용 강도 채우기를 유지하면서 그날 토큰이 가장 많은 모델의 색으로 2 CSS 픽셀 테두리를 표시합니다. 독립된 최상위 레이어가 스포트라이트 뒤에 앱 CSP가 허용하는 SVG 색상 속성으로 원래 설정 색을 그리며, 같은 색의 날짜는 하나의 SVG path를 공유하므로 파란색 채우기가 Claude 주황색 같은 색을 가릴 수 없습니다. 툴팁에도 해당 모델을 표시하며, 오늘은 실시간 데이터, 과거 날짜는 캐시된 주요 모델 결과를 사용합니다.
+- **Reasonix 추적:** Tokscale 기반 사용량과 로컬 전용 세션/프로젝트 보기를 추가합니다. 네이티브 메타데이터와 합성 세션은 Hub, 보관 또는 동기화 페이로드에 포함되지 않습니다.
+- **선택형 macOS Widget:** macOS 14+ 소스 빌드에서 Overview, Quota, Models, Activity, Trend를 제공하는 Small, Medium, Large WidgetKit 보기를 활성화할 수 있습니다.
+- **프로젝트 귀속 확대:** 제한된 로컬 메타데이터 읽기로 더 많은 도구의 프로젝트를 보완하며, 모델 매핑의 원본 ID도 정규 대상 가격으로 계산합니다.
+
+### 변경
+- **업스트림 0.43.0 동기화:** Tokscale 4.13.0과 업스트림 Hy3/Hunyuan 인식 및 아이콘을 사용하면서 이 fork의 설정 가능한 공급업체 색상 적용을 유지합니다.
+
+### 수정
+- Codex 플랜/월간 할당량 분류, Kiro 라이브 감시 범위, 원격 Widget 기록 대체 데이터, Reasonix sidecar 읽기 한계를 개선했습니다.
 <!-- app-update-notes:ko:end -->
 
 ## 소스에서 빌드
@@ -82,8 +110,15 @@ This repository does not publish prebuilt installers or application archives. To
 
 <!-- app-update-notes:ja:start -->
 ### 追加
-- **ツール別モデル使用量：** 各ツールの使用量バーの下に、すべてのモデルをトークン数順で表示するようになりました。表示前に手動マッピングを適用し、長いモデル ID もホバー表示と支援技術で完全な名前と正確なトークン数を確認できます。
-- **主要モデルによる活動枠線：** ホームの活動セルはトークンまたは費用の強度による塗りを維持しつつ、その日に最も多くのトークンを使用したモデルの色で 2 CSS ピクセルの枠線を表示します。独立した最上位レイヤーがスポットライトの後にアプリの CSP で許可される SVG の色属性を使って元の設定色を描画し、同色の日付は 1 本の SVG path を共有するため、青い塗りが Claude のオレンジなどを覆うことはありません。ツールチップにもそのモデルを表示し、今日にはリアルタイムデータ、過去の日付にはキャッシュ済みの主要モデル結果を使用します。
+- **Reasonix 追跡：** Tokscale ベースの使用量と、ローカル専用のセッション／プロジェクト表示を追加しました。ネイティブメタデータと合成セッションは Hub、アーカイブ、同期ペイロードに入りません。
+- **任意の macOS Widget：** macOS 14+ のソースビルドで、Overview、Quota、Models、Activity、Trend を備えた Small／Medium／Large WidgetKit 表示を有効化できます。
+- **プロジェクト帰属の拡張：** 制限付きローカルメタデータ読み取りでより多くのツールを補完し、モデルマッピング元 ID も正規ターゲットの価格で計算します。
+
+### 変更
+- **アップストリーム 0.43.0 同期：** Tokscale 4.13.0 とアップストリームの Hy3／Hunyuan 判定・アイコンを採用しつつ、この fork の設定可能なベンダーカラー着色を維持します。
+
+### 修正
+- Codex プランと月次枠の分類、Kiro のライブ監視範囲、リモート Widget 履歴フォールバック、Reasonix sidecar 読み取り上限を改善しました。
 <!-- app-update-notes:ja:end -->
 
 ## ソースからビルド

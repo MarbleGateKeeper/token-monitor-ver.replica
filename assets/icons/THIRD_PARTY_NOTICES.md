@@ -3,7 +3,6 @@
 The following local SVG assets were copied from `@lobehub/icons-static-svg` 1.90.0:
 
 - `meituan.svg` is the LongCat icon from `icons/longcat.svg`.
-- `tencent.svg` is the Tencent icon from `icons/tencent.svg`.
 
 Source: https://github.com/lobehub/lobe-icons
 

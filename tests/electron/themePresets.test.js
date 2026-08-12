@@ -280,11 +280,11 @@ test('OpenAI marks stay monochrome while Codex usage retains its vendor color', 
   assert.match(app, /classList\.toggle\(\s*'theme-surface-light',[\s\S]*isLightHex\(resolvedThemeColor\('bg'\)\)/);
 });
 
-test('LongCat and Hy3 vendors expose brand colors and labels', () => {
+test('LongCat and upstream Hunyuan vendors expose brand colors and labels', () => {
   assert.equal(VENDOR_ORDER.filter((id) => id === 'meituan').length, 1);
-  assert.equal(VENDOR_ORDER.filter((id) => id === 'tencent').length, 1);
+  assert.equal(VENDOR_ORDER.filter((id) => id === 'hunyuan').length, 1);
   assert.equal(VENDOR_LABELS.meituan, 'Meituan');
-  assert.equal(VENDOR_LABELS.tencent, 'Tencent');
+  assert.equal(VENDOR_LABELS.hunyuan, 'Hunyuan');
   assert.equal(clientColors.meituan, '#FFD100');
-  assert.equal(clientColors.tencent, '#0052D9');
+  assert.equal(clientColors.hunyuan, '#0053E0');
 });

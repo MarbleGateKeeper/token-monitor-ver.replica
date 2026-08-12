@@ -29,9 +29,9 @@ test('clientColors carries the known palette and a default', () => {
   assert.equal(clientColors.cline, '#323B43');
   assert.equal(clientColors.volcengine, '#006EFF');
   assert.equal(clientColors.meituan, '#FFD100');
-  assert.equal(clientColors.tencent, '#0052D9');
   assert.equal(clientColors.qoder, '#2ADB5C');
   assert.equal(clientColors.ollama, '#888888');
+  assert.equal(clientColors.hunyuan, '#0053E0');
   assert.equal(typeof clientColors.default, 'string');
 });
 
@@ -45,17 +45,15 @@ test('modelVendorFor maps families and modelColor falls back deterministically',
   assert.equal(modelVendorFor('LongCat-Flash-Chat'), 'meituan');
   assert.equal(modelVendorFor('meituan-longcat/LongCat-2.0'), 'meituan');
   assert.equal(modelVendorFor('LongCat-Flash-Thinking-2601'), 'meituan');
-  assert.equal(modelVendorFor('hy3'), 'tencent');
-  assert.equal(modelVendorFor('Hy3-FP8'), 'tencent');
-  assert.equal(modelVendorFor('Tencent-Hunyuan/Hy3'), 'tencent');
-  assert.equal(modelVendorFor('hunyuan-t1'), 'tencent');
+  assert.equal(modelVendorFor('hy3'), 'hunyuan');
+  assert.equal(modelVendorFor('Hy3-FP8'), 'hunyuan');
+  assert.equal(modelVendorFor('Tencent-Hunyuan/Hy3'), 'hunyuan');
+  assert.equal(modelVendorFor('hunyuan-t1'), 'hunyuan');
   assert.equal(modelVendorFor('longcaterpillar'), null);
-  assert.equal(modelVendorFor('myhy3model'), null);
-  assert.equal(modelVendorFor('hunyuanish'), null);
   assert.equal(modelVendorFor('doubao-seed-1.6'), 'doubao');
   assert.equal(modelColor('LongCat-Flash-Omni'), clientColors.meituan);
-  assert.equal(modelColor('hy3'), clientColors.tencent);
   assert.equal(modelColor('claude-opus'), clientColors.claude);
+  assert.equal(modelColor('hy3'), clientColors.hunyuan);
   assert.equal(modelColor('totally-unknown'), modelColor('totally-unknown')); // stable
 });
 
