@@ -7,7 +7,7 @@
   </p>
   <p>
     <a href="https://github.com/MarbleGateKeeper/token-monitor-ver.replica/releases"><img src="https://img.shields.io/github/v/release/MarbleGateKeeper/token-monitor-ver.replica?include_prereleases&style=flat-square&label=replica&color=22c55e" alt="Replica release"></a>
-    <img src="https://img.shields.io/badge/version-0.43.0--replica.1-64748b?style=flat-square" alt="Version 0.43.0-replica.1">
+    <img src="https://img.shields.io/badge/version-0.44.0--replica.1-64748b?style=flat-square" alt="Version 0.44.0-replica.1">
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-A855F7?style=flat-square" alt="MIT License"></a>
   </p>
   <img src=".github/assets/demo.gif" alt="Token Monitor demo">
@@ -25,7 +25,7 @@
 - **上游项目：** [Javis603/token-monitor](https://github.com/Javis603/token-monitor)，提供 Token Monitor 的主体架构、采集器、桌面组件、多设备 Hub、AI 工具额度和绝大多数功能。
 - **本仓库：** [MarbleGateKeeper/token-monitor-ver.replica](https://github.com/MarbleGateKeeper/token-monitor-ver.replica)，用于保留个人需要但尚未进入上游的修复与功能。
 - **Git 远程：** 通常以 `upstream` 跟踪原项目，以 `origin` 跟踪本 fork。同步上游时应先审阅差异，再保留下文列出的 fork 功能。
-- **版本规则：** 使用 `<上游版本>-replica.<修订号>`，例如当前版本 `0.43.0-replica.1`。同一上游版本继续发布时递增修订号；同步到新的上游版本后从 `replica.1` 重新开始。
+- **版本规则：** 使用 `<上游版本>-replica.<修订号>`，例如当前版本 `0.44.0-replica.1`。同一上游版本继续发布时递增修订号；同步到新的上游版本后从 `replica.1` 重新开始。
 - **更新来源：** 应用只把本 fork 的 `*-replica.N` Release 当作可用版本；同时独立查询上游最新 Release，用于提醒维护者何时需要同步上游。两类提醒都只打开对应 Release 页面，不会下载或安装更新。
 - **许可与署名：** 代码继续使用上游的 MIT 许可证，保留原作者 Javis 的版权声明；打包产物会携带完整 `LICENSE`。
 
@@ -109,7 +109,7 @@ Tokscale 继续负责 Token、费用、模型和会话 ID；本 fork 在本机�
 - 应用和 Worker 版本统一使用 `replica` 后缀。
 - GitHub 仓库链接、更新提示和发行模板全部指向本 fork。
 - 本 fork 更新和上游同步提醒是两个独立通道；plain 上游版本不会进入 replica 更新通道。
-- 推送 `v*-replica.*` tag 时，GitHub Actions 只创建 latest Release 并使用仓库内的发行说明；plain 上游 tag 不触发本 fork Release，也不会构建或上传安装包、应用压缩包、更新元数据和 blockmap。
+- 推送 `v*-replica.*` tag 时，GitHub Actions 只创建 latest Release，并在仓库内发行说明中补充 GitHub 生成的变更明细；plain 上游 tag 不触发本 fork Release，也不会构建或上传安装包、应用压缩包、更新元数据和 blockmap。
 - GitHub 自动显示的 “Source code (zip/tar.gz)” 是平台生成的源码快照，不是可直接运行的应用。
 - 由于仓库不发布二进制更新，发行流程不需要 Windows/macOS 代码签名凭证。
 - 根 MIT 许可证作为可见的 `resources/LICENSE` 随桌面应用分发。
@@ -123,9 +123,12 @@ Token Monitor 是一个本地优先的 Electron 桌面组件，用于汇总 AI �
 - 按工具、设备、模型、会话、项目和账号拆分。
 - 显示输入、输出、缓存命中和成本。
 - 保存历史趋势、活动热力图并导出 CSV/JSON。
+- 主页 `MONTH` 菜单可切换本周、最近 7 天和最近 30 天；工具、模型和设备视图会按所选范围展示 Token 组成与成本，无法重建组成的数据归入“未分类”。
 - 支持本地模式、内置 Hub、Node Hub 和 Cloudflare Worker 多设备同步。
+- 客户端模式会显示远端 Hub / Node Hub / Worker 的部署版本状态。
+- 托盘项目可跟随最近活动工具，并可独立设置费用缩写格式与小数位数；本地 Windows 安装包允许选择安装目录。
 - 支持 Reasonix 用量及本机原生会话/项目视图；原生元数据和合成会话不会进入 Hub、归档或同步载荷。
-- 可选构建 macOS 14+ 原生 WidgetKit 小组件，提供概览、额度、模型、活动和趋势页面；本 fork 的 Release 仍不发布预构建应用。
+- 主应用支持 macOS 12+；可选的原生 WidgetKit 小组件仍要求 macOS 14+，提供概览、额度、模型、活动和趋势页面。本 fork 的 Release 仍不发布预构建应用。
 - 提示词、回复、源代码和文件内容不会上传到项目维护者。
 - 项目补全只在本机读取工具保存的目录、结构化元数据前缀和只读数据库字段；原始项目路径会先哈希，再进入现有本地或 Hub 统计流程。
 
@@ -167,7 +170,7 @@ Token Monitor 是一个本地优先的 Electron 桌面组件，用于汇总 AI �
 
 ### 从源码运行与构建
 
-需要 Node.js 22.13 或更高版本，并应在目标操作系统上构建；macOS 构建要求 macOS 14 或更高版本：
+需要 Node.js 22.13 或更高版本，并应在目标操作系统上构建；macOS 主应用要求 macOS 12 或更高版本，可选 Widget 要求 macOS 14 或更高版本：
 
 ```bash
 npm ci
@@ -193,7 +196,7 @@ npm run pack:mac:widget # macOS 原生 Widget 的本地 ad-hoc 签名预览
 - **Upstream:** [Javis603/token-monitor](https://github.com/Javis603/token-monitor) provides the core architecture, collectors, desktop widget, multi-device Hub, AI Tool Limits, and most product functionality.
 - **This repository:** [MarbleGateKeeper/token-monitor-ver.replica](https://github.com/MarbleGateKeeper/token-monitor-ver.replica) carries personal fixes and features that have not been incorporated upstream.
 - **Git remotes:** `upstream` normally tracks the original project and `origin` tracks this fork. Review upstream changes before merging and preserve the fork behavior documented below.
-- **Versioning:** releases use `<upstream-version>-replica.<revision>`, currently `0.43.0-replica.1`. Increment the replica revision on the same upstream base; restart at `replica.1` after adopting a new upstream version.
+- **Versioning:** releases use `<upstream-version>-replica.<revision>`, currently `0.44.0-replica.1`. Increment the replica revision on the same upstream base; restart at `replica.1` after adopting a new upstream version.
 - **Updates:** only this fork's `*-replica.N` Releases enter the fork update channel. The app also checks upstream independently to tell maintainers when the fork needs syncing. Both channels only open their matching Release page and never download or install updates.
 - **License and credit:** the upstream MIT license and Javis copyright notice are preserved, and packaged applications include the complete `LICENSE`.
 
@@ -277,7 +280,7 @@ Full scans also use the same local resolver to backfill the retained-session arc
 - App and Worker versions share the `replica` suffix.
 - Repository links, update notices, and release templates point to this fork.
 - Fork updates and upstream-sync notices are separate channels; plain upstream versions never enter the replica update channel.
-- Pushing a `v*-replica.*` tag makes GitHub Actions create a latest Release from the checked-in notes only. Plain upstream tags do not trigger a fork Release, and the workflow does not build or upload installers, app archives, updater metadata, or blockmaps.
+- Pushing a `v*-replica.*` tag makes GitHub Actions create a latest Release and enrich the checked-in notes with GitHub-generated changelog details. Plain upstream tags do not trigger a fork Release, and the workflow does not build or upload installers, app archives, updater metadata, or blockmaps.
 - GitHub's automatic “Source code (zip/tar.gz)” entries are source snapshots, not ready-to-run applications.
 - Because no binary updates are published, the release workflow needs no Windows or macOS signing credentials.
 - The root MIT license ships visibly as `resources/LICENSE`.
@@ -291,9 +294,12 @@ Token Monitor is a local-first Electron widget for AI coding-tool tokens, cost, 
 - Breakdowns by tool, device, model, session, project, and account.
 - Input, output, cache-hit, and cost metrics.
 - Historical trends, activity heatmaps, and CSV/JSON export.
+- Home's `MONTH` menu switches among this week, the last 7 days, and the last 30 days; Tools, Models, and Devices show token components and cost for the selected range, with unreconstructable components grouped as Unclassified.
 - Local mode plus embedded, Node, or Cloudflare Worker hubs for multi-device sync.
+- Client mode reports the deployment status of the remote Hub, Node Hub, or Worker.
+- Tray items can follow the most recently active tool and configure compact cost formatting and decimal precision independently; locally built Windows installers allow choosing the installation directory.
 - Reasonix usage plus local native Session and Project views; native metadata and synthetic sessions stay out of Hub, Archive, and sync payloads.
-- An optional macOS 14+ WidgetKit build with Overview, Quota, Models, Activity, and Trend pages; this fork still publishes no prebuilt applications.
+- The host app supports macOS 12+, while the optional WidgetKit build still requires macOS 14+ and provides Overview, Quota, Models, Activity, and Trend pages. This fork still publishes no prebuilt applications.
 - Prompts, responses, source code, and file contents are not sent to the project maintainer.
 - Project enrichment reads only local directory structure, bounded structured-metadata prefixes, and read-only database fields; raw project paths are hashed before entering the existing local or Hub statistics flow.
 
@@ -326,7 +332,7 @@ Choose one Hub and connect every device to the same URL and secret:
 
 ### Run and build from source
 
-Node.js 22.13 or newer is required. Build on the target operating system; macOS builds require macOS 14 or newer:
+Node.js 22.13 or newer is required. Build on the target operating system; the macOS host app requires macOS 12 or newer, while the optional Widget requires macOS 14 or newer:
 
 ```bash
 npm ci

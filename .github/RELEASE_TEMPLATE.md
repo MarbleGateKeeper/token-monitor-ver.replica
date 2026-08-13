@@ -4,15 +4,18 @@
 
 <!-- app-update-notes:en:start -->
 ### Added
-- **Reasonix tracking:** Adds Tokscale-backed Reasonix usage plus local native Session and Project views. Native metadata and synthetic sessions stay out of Hub, Archive, and sync payloads.
-- **Optional native macOS Widget:** Source builds can opt into Small, Medium, and Large WidgetKit views for Overview, Quota, Models, Activity, and Trend on macOS 14+.
-- **Broader project attribution:** Local bounded metadata readers now enrich Grok Build, ZCode, Pi / Oh My Pi, CodeBuddy, OpenCode, Hermes, WorkBuddy, Qwen Code, and Kimi Code sessions. Model mappings also price source IDs through their canonical target.
+- **Usage ranges:** Clicking Home's `MONTH` tab opens a menu with `This week`, `Last 7 days`, and `Last 30 days`. After switching, `Tools`, `Models`, and `Devices` show token-component and cost details for the selected period; usage whose components cannot be reconstructed is grouped under `Unclassified`. (#393, #398)
+- **Hub deployment status:** `Connect to a hub` now reports whether the remote `Hub`, `Node Hub`, or `Worker` is current, needs redeployment, was deployed by a newer Token Monitor version, or has unrecognized build information. (#399)
+- **Tray activity source:** Tray icons and `Tokens`/`Cost` items can follow the `Most recently active tool`, while their values continue to use the selected period aggregates. (#397)
 
-### Changed
-- **Upstream 0.43.0 base:** Uses Tokscale 4.13.0 and adopts upstream Hunyuan recognition and artwork for Hy3 models while retaining this fork's configurable vendor-color tinting.
+### Improved
+- **Tray cost display:** Each tray cost item can use `Cost format` (`Compact` or `Full number`) and `Decimal places` (`Automatic` or 0–4). New cost items default to compact two-decimal display; existing layouts keep their previous full-number presentation. (#396)
+- **Windows installer:** Locally built installers now let users choose the installation directory. (#390)
 
 ### Fixed
-- Refreshes Codex plan metadata and classifies the standard 30-day quota as Monthly, keeps Kiro's unbounded IDE storage off the live watcher, persists remote Widget history fallback, and bounds Reasonix sidecar reads.
+- **Proma usage:** Assistant messages with incomplete IDs are still counted instead of disappearing from usage totals. (#392)
+- **Tray composer:** Open picker menus stay attached to the active composer item during live updates, so an in-progress selection is not lost. (#395)
+- **macOS compatibility:** The host app now supports macOS 12+, while the optional native Widget remains gated to macOS 14+. (#394)
 <!-- app-update-notes:en:end -->
 
 ## Build from source
@@ -27,15 +30,18 @@ This repository does not publish prebuilt installers or application archives. To
 
 <!-- app-update-notes:zh:start -->
 ### 新增
-- **Reasonix 跟踪：** 增加由 Tokscale 提供的 Reasonix 用量，以及仅限本机的原生会话与项目视图；原生元数据和合成会话不会进入 Hub、归档或同步载荷。
-- **可选原生 macOS Widget：** 源码构建可在 macOS 14+ 选择启用 Small、Medium、Large WidgetKit 小组件，提供概览、额度、模型、活动和趋势页面。
-- **更完整的项目归属：** 使用受限的本机元数据读取，为 Grok Build、ZCode、Pi / Oh My Pi、CodeBuddy、OpenCode、Hermes、WorkBuddy、Qwen Code 和 Kimi Code 补全项目；模型映射也会按规范目标价格为源 ID 计费。
+- **用量范围：**在主页顶部点击 `MONTH` 标签，会打开期间菜单，可切换到“本周”“最近 7 天”和“最近 30 天”。切换后，可按所选期间查看“工具”“模型”和“设备”的 Token 组成及成本明细；无法还原组成的用量会归入“未分类”。（#393、#398）
+- **Hub 部署状态：**“连接到 Hub”现在会显示远程 `Hub`、`Node Hub` 或 `Worker` 是否为最新版本、需要重新部署、由较新的 Token Monitor 版本部署，或部署版本无法识别。（#399）
+- **托盘活动来源：**托盘图标以及 Tokens/费用项目现在可以跟随“最近有活动的工具”，显示数值仍使用所选期间的聚合数据。（#397）
 
-### 变更
-- **同步上游 0.43.0：** 升级 Tokscale 4.13.0，并直接采用上游对 Hy3 的 Hunyuan 识别和图标，同时保留本 fork 可配置的厂商颜色染色。
+### 改进
+- **托盘费用显示：**每个托盘费用项目都可选择“缩写”或“完整数字”，并选择“自动”或 0–4 位小数。新费用项目默认使用两位小数的缩写显示；现有布局保留之前的完整数字显示。（#396）
+- **Windows 安装版：**本地构建的安装包现在允许选择安装目录。（#390）
 
 ### 修复
-- 刷新 Codex 套餐元数据并把标准 30 天额度归类为月额度；避免实时监听无界的 Kiro IDE 存储；持久化远端 Widget 历史回退；限制 Reasonix sidecar 读取大小。
+- **Proma 用量：**ID 信息不完整的助手消息现在也会计入用量，不再从统计总量中消失。（#392）
+- **托盘编辑器：**实时更新期间，打开的选择菜单会继续附着在当前编辑项目上，不会丢失正在进行的选择。（#395）
+- **macOS 兼容性：**主应用现在支持 macOS 12 及以上版本，可选原生 Widget 仍只在 macOS 14 及以上版本启用。（#394）
 <!-- app-update-notes:zh:end -->
 
 ## 从源码构建
@@ -44,7 +50,12 @@ This repository does not publish prebuilt installers or application archives. To
 
 ---
 
-**Full Changelog:** [v0.42.1-replica.2...v0.43.0-replica.1](https://github.com/MarbleGateKeeper/token-monitor-ver.replica/compare/v0.42.1-replica.2...v0.43.0-replica.1)
+<details>
+<summary><strong>Full Changelog:</strong> <a href="https://github.com/MarbleGateKeeper/token-monitor-ver.replica/compare/0.43.0-replica.1...v0.44.0-replica.1">0.43.0-replica.1...v0.44.0-replica.1</a></summary>
+
+<!-- github-generated-release-notes -->
+
+</details>
 
 <details>
 <summary>繁體中文 · 한국어 · 日本語</summary>
@@ -58,15 +69,18 @@ This repository does not publish prebuilt installers or application archives. To
 
 <!-- app-update-notes:zh-TW:start -->
 ### 新增
-- **Reasonix 追蹤：** 新增 Tokscale 支援的 Reasonix 用量，以及僅限本機的原生工作階段與專案檢視；原生中繼資料和合成工作階段不會進入 Hub、封存或同步負載。
-- **可選原生 macOS Widget：** 原始碼建置可在 macOS 14+ 選擇啟用 Small、Medium、Large WidgetKit 小工具，提供概覽、額度、模型、活動和趨勢頁面。
-- **更完整的專案歸屬：** 以受限的本機中繼資料讀取補全更多工具的專案，模型映射也會依規範目標價格為來源 ID 計費。
+- **用量範圍：**主頁的 `MONTH` 選單可切換「本星期」「最近 7 日」與「最近 30 日」，並在工具、模型與裝置檢視中顯示所選期間的 Token 組成及成本；無法還原組成的用量會歸入「未分類」。（#393、#398）
+- **Hub 部署狀態：**「連接到 Hub」會顯示遠端 Hub、Node Hub 或 Worker 是否為最新版本、需要重新部署、來自較新的版本，或部署資訊無法辨識。（#399）
+- **系統匣活動來源：**系統匣圖示與 Tokens/成本項目可以跟隨「最近有活動的工具」。（#397）
 
-### 變更
-- **同步上游 0.43.0：** 升級 Tokscale 4.13.0，直接採用上游 Hy3 的 Hunyuan 識別與圖示，同時保留本 fork 可設定的廠商顏色染色。
+### 改進
+- **系統匣成本顯示：**每個成本項目可選擇縮寫或完整數字，以及自動或 0–4 位小數。（#396）
+- **Windows 安裝程式：**本機建置的安裝程式現在允許選擇安裝目錄。（#390）
 
 ### 修復
-- 更新 Codex 方案中繼資料與月額度分類、排除 Kiro 無界 IDE 儲存的即時監聽、保存遠端 Widget 歷史備援，並限制 Reasonix sidecar 讀取大小。
+- **Proma 用量：**ID 資訊不完整的助理訊息也會計入用量。（#392）
+- **系統匣編輯器：**即時更新期間，開啟的選單會保持附著在目前項目上。（#395）
+- **macOS 相容性：**主 App 支援 macOS 12+，可選 Widget 仍要求 macOS 14+。（#394）
 <!-- app-update-notes:zh-TW:end -->
 
 ## 從原始碼建置
@@ -84,15 +98,18 @@ This repository does not publish prebuilt installers or application archives. To
 
 <!-- app-update-notes:ko:start -->
 ### 추가
-- **Reasonix 추적:** Tokscale 기반 사용량과 로컬 전용 세션/프로젝트 보기를 추가합니다. 네이티브 메타데이터와 합성 세션은 Hub, 보관 또는 동기화 페이로드에 포함되지 않습니다.
-- **선택형 macOS Widget:** macOS 14+ 소스 빌드에서 Overview, Quota, Models, Activity, Trend를 제공하는 Small, Medium, Large WidgetKit 보기를 활성화할 수 있습니다.
-- **프로젝트 귀속 확대:** 제한된 로컬 메타데이터 읽기로 더 많은 도구의 프로젝트를 보완하며, 모델 매핑의 원본 ID도 정규 대상 가격으로 계산합니다.
+- **사용량 기간:** 홈의 `MONTH` 메뉴에서 이번 주, 최근 7일, 최근 30일을 선택하고 도구, 모델, 기기별 토큰 구성과 비용을 볼 수 있습니다. 복원할 수 없는 구성은 미분류로 표시됩니다. (#393, #398)
+- **Hub 배포 상태:** 원격 Hub, Node Hub 또는 Worker가 최신인지, 재배포가 필요한지, 더 최신 버전에서 배포되었는지, 정보를 인식할 수 없는지 표시합니다. (#399)
+- **트레이 활동 소스:** 트레이 아이콘과 토큰/비용 항목이 최근 활동한 도구를 따를 수 있습니다. (#397)
 
-### 변경
-- **업스트림 0.43.0 동기화:** Tokscale 4.13.0과 업스트림 Hy3/Hunyuan 인식 및 아이콘을 사용하면서 이 fork의 설정 가능한 공급업체 색상 적용을 유지합니다.
+### 개선
+- **트레이 비용 표시:** 각 비용 항목에서 축약/전체 숫자 형식과 자동 또는 0–4자리 소수를 설정할 수 있습니다. (#396)
+- **Windows 설치 프로그램:** 로컬에서 빌드한 설치 프로그램의 설치 디렉터리를 선택할 수 있습니다. (#390)
 
 ### 수정
-- Codex 플랜/월간 할당량 분류, Kiro 라이브 감시 범위, 원격 Widget 기록 대체 데이터, Reasonix sidecar 읽기 한계를 개선했습니다.
+- **Proma 사용량:** ID가 불완전한 어시스턴트 메시지도 사용량에 포함됩니다. (#392)
+- **트레이 편집기:** 실시간 업데이트 중에도 열린 선택 메뉴가 현재 항목에 유지됩니다. (#395)
+- **macOS 호환성:** 호스트 앱은 macOS 12+, 선택형 Widget은 macOS 14+를 요구합니다. (#394)
 <!-- app-update-notes:ko:end -->
 
 ## 소스에서 빌드
@@ -110,15 +127,18 @@ This repository does not publish prebuilt installers or application archives. To
 
 <!-- app-update-notes:ja:start -->
 ### 追加
-- **Reasonix 追跡：** Tokscale ベースの使用量と、ローカル専用のセッション／プロジェクト表示を追加しました。ネイティブメタデータと合成セッションは Hub、アーカイブ、同期ペイロードに入りません。
-- **任意の macOS Widget：** macOS 14+ のソースビルドで、Overview、Quota、Models、Activity、Trend を備えた Small／Medium／Large WidgetKit 表示を有効化できます。
-- **プロジェクト帰属の拡張：** 制限付きローカルメタデータ読み取りでより多くのツールを補完し、モデルマッピング元 ID も正規ターゲットの価格で計算します。
+- **使用期間:** ホームの `MONTH` メニューから今週、過去 7 日間、過去 30 日間を選択し、ツール、モデル、デバイスごとのトークン構成とコストを確認できます。復元できない構成は未分類になります。（#393、#398）
+- **Hub デプロイ状態:** リモート Hub、Node Hub、Worker が最新か、再デプロイが必要か、より新しいバージョンからデプロイされたか、情報を認識できないかを表示します。（#399）
+- **トレイのアクティブソース:** トレイアイコンとトークン／コスト項目が最近使用したツールに追従できます。（#397）
 
-### 変更
-- **アップストリーム 0.43.0 同期：** Tokscale 4.13.0 とアップストリームの Hy3／Hunyuan 判定・アイコンを採用しつつ、この fork の設定可能なベンダーカラー着色を維持します。
+### 改善
+- **トレイのコスト表示:** 各コスト項目で省略／完全な数値形式と、自動または 0～4 桁の小数を設定できます。（#396）
+- **Windows インストーラー:** ローカルビルドしたインストーラーでインストール先を選択できます。（#390）
 
 ### 修正
-- Codex プランと月次枠の分類、Kiro のライブ監視範囲、リモート Widget 履歴フォールバック、Reasonix sidecar 読み取り上限を改善しました。
+- **Proma の使用量:** ID が不完全なアシスタントメッセージも使用量に含まれます。（#392）
+- **トレイエディター:** ライブ更新中も開いた選択メニューが現在の項目に維持されます。（#395）
+- **macOS 互換性:** ホストアプリは macOS 12+、任意の Widget は macOS 14+ が必要です。（#394）
 <!-- app-update-notes:ja:end -->
 
 ## ソースからビルド
