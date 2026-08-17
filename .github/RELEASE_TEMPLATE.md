@@ -4,6 +4,7 @@
 
 <!-- app-update-notes:en:start -->
 ### Added
+- **Expanded model-vendor recognition:** StepFun, NVIDIA Nemotron, Huawei Pangu, RedNote dots, and additional verified model families now use the correct vendor colors and available brand icons.
 - **Command Code usage:** Command Code usage now appears in the usage views. (#411)
 - **Qoder CN usage:** Turn on `Qoder CN` in `Settings → Tools` to see Qoder CN usage. (#301)
 - **OpenCode Go quotas:** Go accounts signed in on this computer are detected automatically, so their quotas appear without copying a Cookie by hand. (#406, #414, #416)
@@ -32,6 +33,7 @@ This repository does not publish prebuilt installers or application archives. To
 
 <!-- app-update-notes:zh:start -->
 ### 新增
+- **扩展模型厂商识别：** StepFun、NVIDIA Nemotron、华为 Pangu、小红书 dots 及更多经验证的模型系列现在会使用正确的厂商配色和可用品牌图标。
 - **Command Code 用量：** 现在可以在用量视图中查看 Command Code 用量。（#411）
 - **Qoder CN 用量：** 在“设置 → 工具”中启用 `Qoder CN` 后，即可查看 Qoder CN 用量。（#301）
 - **OpenCode Go 额度：** 本机已登录的 Go 账号会自动检测并显示额度，不再需要手动复制 Cookie。（#406、#414、#416）
@@ -55,7 +57,7 @@ This repository does not publish prebuilt installers or application archives. To
 ---
 
 <details>
-<summary><strong>Full Changelog:</strong> <a href="https://github.com/MarbleGateKeeper/token-monitor-ver.replica/compare/0.44.0-replica.1...v0.45.0-replica.1">0.44.0-replica.1...v0.45.0-replica.1</a></summary>
+<summary><strong>Full Changelog:</strong> <a href="https://github.com/MarbleGateKeeper/token-monitor-ver.replica/compare/0.45.0-replica.1...v0.45.0-replica.2">0.45.0-replica.1...v0.45.0-replica.2</a></summary>
 
 <!-- github-generated-release-notes -->
 
@@ -73,6 +75,7 @@ This repository does not publish prebuilt installers or application archives. To
 
 <!-- app-update-notes:zh-TW:start -->
 ### 新增
+- **擴充模型廠商辨識：** StepFun、NVIDIA Nemotron、華為 Pangu、小紅書 dots 與更多經驗證的模型系列，現在會使用正確的廠商配色和可用品牌圖示。
 - **Command Code 用量：** 現在可以在用量檢視中查看 Command Code 用量。（#411）
 - **Qoder CN 用量：** 在「設定 → 工具」中啟用 `Qoder CN` 後，即可查看 Qoder CN 用量。（#301）
 - **OpenCode Go 額度：** 本機已登入的 Go 帳號會自動偵測並顯示額度，不再需要手動複製 Cookie。（#406、#414、#416）
@@ -104,6 +107,7 @@ This repository does not publish prebuilt installers or application archives. To
 
 <!-- app-update-notes:ko:start -->
 ### 추가
+- **모델 공급업체 인식 확대:** StepFun, NVIDIA Nemotron, Huawei Pangu, RedNote dots 및 추가로 검증된 모델 계열에 올바른 공급업체 색상과 사용 가능한 브랜드 아이콘을 적용합니다.
 - **Command Code 사용량:** 사용량 보기에서 Command Code 사용량을 확인할 수 있습니다. (#411)
 - **Qoder CN 사용량:** `설정 → 도구`에서 `Qoder CN`을 켜면 Qoder CN 사용량을 확인할 수 있습니다. (#301)
 - **OpenCode Go 한도:** 이 컴퓨터에 로그인된 Go 계정을 자동으로 감지해 한도를 표시하므로 Cookie를 수동으로 복사할 필요가 없습니다. (#406, #414, #416)
@@ -135,6 +139,7 @@ This repository does not publish prebuilt installers or application archives. To
 
 <!-- app-update-notes:ja:start -->
 ### 追加
+- **モデルベンダー認識の拡充:** StepFun、NVIDIA Nemotron、Huawei Pangu、RedNote dots、および追加で検証したモデル系統に、正しいベンダーカラーと利用可能なブランドアイコンを適用します。
 - **Command Code 使用量:** 使用量ビューで Command Code の使用量を確認できます。（#411）
 - **Qoder CN 使用量:** `設定 → ツール` で `Qoder CN` を有効にすると、Qoder CN の使用量を確認できます。（#301）
 - **OpenCode Go の上限:** このコンピューターでログイン中の Go アカウントを自動検出して上限を表示するため、Cookie を手動でコピーする必要がありません。（#406、#414、#416）

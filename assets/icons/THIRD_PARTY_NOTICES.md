@@ -4,6 +4,29 @@ The following local SVG assets were copied from `@lobehub/icons-static-svg` 1.90
 
 - `meituan.svg` is the LongCat icon from `icons/longcat.svg`.
 
+The following local SVG assets were copied from `@lobehub/icons-static-svg` 1.94.0:
+
+- `stepfun.svg` from `icons/stepfun.svg`
+- `nvidia.svg` from `icons/nvidia.svg`
+- `huawei.svg` from `icons/huawei.svg`
+- `baidu.svg` from `icons/baidu.svg`
+- `yi.svg` from `icons/yi.svg`
+- `baichuan.svg` from `icons/baichuan.svg`
+- `internlm.svg` from `icons/internlm.svg`
+- `kwai.svg` from `icons/kwaikat.svg`
+- `skywork.svg` from `icons/skywork.svg`
+- `sensenova.svg` from `icons/sensenova.svg`
+- `microsoft.svg` from `icons/microsoft.svg`
+- `amazon.svg` from `icons/aws.svg`
+- `ibm.svg` from `icons/ibm.svg`
+- `perplexity.svg` from `icons/perplexity.svg`
+- `poolside.svg` from `icons/poolside.svg`
+- `arcee.svg` from `icons/arcee.svg`
+- `inception.svg` from `icons/inception.svg`
+- `ai21.svg` from `icons/ai21.svg`
+- `allenai.svg` from `icons/ai2.svg`
+- `liquid.svg` from `icons/liquid.svg`
+
 Source: https://github.com/lobehub/lobe-icons
 
 Lobe Icons is distributed under the MIT License:

@@ -4,10 +4,13 @@
 // Pure data + functions so it can be unit-tested under node:test and shared by
 // the widget and dashboard renderers. No DOM / Node built-ins here.
 (function exposeThemePresets(root, factory) {
-  const api = factory();
+  const modelVendors = typeof module === 'object' && module.exports
+    ? require('./modelVendors')
+    : root?.TokenMonitorModelVendors;
+  const api = factory(modelVendors || {});
   if (typeof module === 'object' && module.exports) module.exports = api;
   if (root) root.TokenMonitorThemePresets = api;
-})(typeof window !== 'undefined' ? window : null, function createThemePresetsApi() {
+})(typeof window !== 'undefined' ? window : null, function createThemePresetsApi(modelVendors) {
   // The customisable interface colours, in display order. Each maps to a CSS
   // custom property on :root (see styles.css). `bg` drives the glass tint
   // (--glass-rgb, an "r, g, b" triplet); `text` also drives --number (the big
@@ -60,27 +63,25 @@
   // Vendors shown in the vendor-colour list, tracked clients first. Vendors not
   // listed here but present in clientColors are appended after these, then the
   // synthetic "default" fallback is shown last.
-  const VENDOR_ORDER = [
+  const TRACKED_VENDOR_ORDER = [
     'claude', 'codex', 'hermes', 'opencode', 'openrouter', 'openclaw', 'cline', 'cursor',
-    'gemini', 'antigravity', 'kimi', 'qwen', 'grok', 'copilot', 'pi', 'zed', 'kilocode', 'commandcode', 'micode', 'zcode', 'kiro', 'codebuddy', 'workbuddy', 'proma', 'qodercn', 'qoder', 'reasonix', 'deepseek', 'xai', 'meta', 'mistral',
-    'moonshot', 'zai', 'zaiteam', 'cohere', 'xiaomi', 'minimax', 'doubao', 'meituan', 'hunyuan', 'volcengine', 'ollama', 'thirdparty'
+    'gemini', 'antigravity', 'kimi', 'qwen', 'grok', 'copilot', 'pi', 'zed', 'kilocode', 'commandcode', 'micode', 'zcode', 'kiro', 'codebuddy', 'workbuddy', 'proma', 'qodercn', 'qoder', 'reasonix'
   ];
+  const VENDOR_ORDER = [...new Set([
+    ...TRACKED_VENDOR_ORDER,
+    ...(modelVendors.MODEL_VENDOR_ORDER || []),
+    'moonshot', 'zaiteam', 'volcengine', 'ollama', 'thirdparty'
+  ])];
 
   // Display labels for every vendor in the clientColors map. The widget also
   // has its own clientLabels for tracked clients; this map is the complete set
   // so the appearance picker is self-contained.
   const VENDOR_LABELS = {
-    claude: 'Claude Code',
-    codex: 'Codex',
-    hermes: 'Hermes Agent',
-    opencode: 'OpenCode',
+    ...(modelVendors.MODEL_VENDOR_LABELS || {}),
     openrouter: 'OpenRouter',
     openclaw: 'OpenClaw',
     cline: 'Cline',
-    cursor: 'Cursor',
-    gemini: 'Gemini',
     antigravity: 'Antigravity',
-    kimi: 'Kimi',
     grok: 'Grok Build',
     copilot: 'GitHub Copilot',
     pi: 'Pi',
@@ -95,20 +96,8 @@
     proma: 'Proma',
     qodercn: 'Qoder CN',
     reasonix: 'Reasonix',
-    deepseek: 'DeepSeek',
-    xai: 'xAI',
-    meta: 'Meta',
-    mistral: 'Mistral',
-    qwen: 'Qwen',
     moonshot: 'Moonshot',
-    zai: 'GLM',
     zaiteam: 'GLM Team',
-    cohere: 'Cohere',
-    xiaomi: 'Xiaomi',
-    minimax: 'MiniMax',
-    doubao: 'Doubao',
-    meituan: 'Meituan',
-    hunyuan: 'Hunyuan',
     volcengine: 'Volcengine',
     qoder: 'Qoder',
     ollama: 'Ollama',

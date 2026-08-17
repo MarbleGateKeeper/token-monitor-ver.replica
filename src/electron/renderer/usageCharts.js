@@ -1,10 +1,15 @@
 'use strict';
 
 (function exposeUsageCharts(root, factory) {
-  const api = factory();
+  const modelVendors = typeof module === 'object' && module.exports
+    ? require('./modelVendors')
+    : root?.TokenMonitorModelVendors;
+  const api = factory(modelVendors || {});
   if (typeof module === 'object' && module.exports) module.exports = api;
   if (root) root.TokenMonitorUsageCharts = api;
-})(typeof window !== 'undefined' ? window : null, function createUsageChartsApi() {
+})(typeof window !== 'undefined' ? window : null, function createUsageChartsApi(modelVendors) {
+  const modelVendorFor = modelVendors.modelVendorFor || (() => null);
+  const modelVendorColors = modelVendors.MODEL_VENDOR_COLORS || {};
   function n(value) {
     const x = Number(value);
     return Number.isFinite(x) ? x : 0;
@@ -368,37 +373,14 @@
   }
 
   const clientColors = {
-    claude: '#cc7c5e', codex: '#007CCB', hermes: '#d4af37', gemini: '#4285f4',
-    antigravity: '#4285f4', cline: '#323B43', kimi: '#1783FF', grok: '#64748B', copilot: '#000000', deepseek: '#4d6bfe', cursor: '#000000', opencode: '#B85F00', openrouter: '#6566F1',
-    openclaw: '#ff4d4d', xai: '#64748B', meta: '#1d65c1', mistral: '#fa520f', qwen: '#615ced',
-    pi: '#000', zed: '#4173e7', kilocode: '#F8F676', commandcode: '#8C4EDD', micode: '#000000', zcode: '#3859FF', kiro: '#9046FF', codebuddy: '#6C4DFF', workbuddy: '#0DC8A5', proma: '#000000', qodercn: '#2ADB5C', reasonix: '#4d6bfe',
-    moonshot: '#1783FF', zai: '#3859FF', zaiteam: '#3859FF', cohere: '#39594d', xiaomi: '#ff6700', minimax: '#f23f5d', doubao: '#1E37FC', meituan: '#FFD100', hunyuan: '#0053E0', volcengine: '#006EFF', qoder: '#2ADB5C', ollama: '#888888', thirdparty: '#DD2E57',
+    ...modelVendorColors,
+    antigravity: modelVendorColors.gemini || '#4285f4', cline: '#323B43', grok: '#64748B', copilot: '#000000', openrouter: '#6566F1',
+    openclaw: '#ff4d4d', pi: '#000', zed: '#4173e7', kilocode: '#F8F676', commandcode: '#8C4EDD', micode: '#000000', zcode: '#3859FF', kiro: '#9046FF',
+    codebuddy: '#6C4DFF', workbuddy: '#0DC8A5', proma: '#000000', qodercn: '#2ADB5C', reasonix: '#4d6bfe',
+    moonshot: modelVendorColors.kimi || '#1783FF', zaiteam: modelVendorColors.zai || '#3859FF', volcengine: '#006EFF', qoder: '#2ADB5C', ollama: '#888888', thirdparty: '#DD2E57',
     default: '#6ab4f0'
   };
   const fallbackModelColors = ['#6ab4f0', '#cc7c5e', '#a57df0', '#49a3b0', '#f0d66a', '#f06a7b'];
-
-  function modelVendorFor(model) {
-    const name = String(model || '').toLowerCase();
-    if (/^(cursor-)?auto$/.test(name)) return 'cursor';
-    if (/claude|anthropic|sonnet|opus|haiku/.test(name)) return 'claude';
-    if (/gpt|openai|codex|^o[134](?:-|$)|o[134]-(mini|pro|preview)|chatgpt/.test(name)) return 'codex';
-    if (/gemini|gemma|google/.test(name)) return 'gemini';
-    if (/grok|xai/.test(name)) return 'xai';
-    if (/deepseek/.test(name)) return 'deepseek';
-    if (/llama|meta/.test(name)) return 'meta';
-    if (/mistral|mixtral|codestral/.test(name)) return 'mistral';
-    if (/qwen|qwq|qvq/.test(name)) return 'qwen';
-    if (/(?:^|[/:_.-])(?:meituan|longcat)(?:$|[/:_.-])/.test(name)) return 'meituan';
-    if (/kimi|moonshot/.test(name) || /^k3(?:-256)?$/.test(name)) return 'kimi';
-    if (/chatglm|\bglm-|\bzai\b|z\.ai|zhipu/.test(name)) return 'zai';
-    if (/cohere|command-r/.test(name)) return 'cohere';
-    if (/mimo|xiaomi/.test(name)) return 'xiaomi';
-    if (/minimax|\babab/.test(name)) return 'minimax';
-    if (/doubao|\bseed(?:-|$)/.test(name)) return 'doubao';
-    if (/hy3|hunyuan/.test(name)) return 'hunyuan';
-    if (/^big-pickle$/.test(name)) return 'opencode'; // OpenCode Zen stealth model — no vendor hint in the name
-    return null;
-  }
 
   function modelColor(model) {
     const vendor = modelVendorFor(model);

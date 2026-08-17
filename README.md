@@ -7,7 +7,7 @@
   </p>
   <p>
     <a href="https://github.com/MarbleGateKeeper/token-monitor-ver.replica/releases"><img src="https://img.shields.io/github/v/release/MarbleGateKeeper/token-monitor-ver.replica?include_prereleases&style=flat-square&label=replica&color=22c55e" alt="Replica release"></a>
-    <img src="https://img.shields.io/badge/version-0.45.0--replica.1-64748b?style=flat-square" alt="Version 0.45.0-replica.1">
+    <img src="https://img.shields.io/badge/version-0.45.0--replica.2-64748b?style=flat-square" alt="Version 0.45.0-replica.2">
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-A855F7?style=flat-square" alt="MIT License"></a>
   </p>
   <img src=".github/assets/demo.gif" alt="Token Monitor demo">
@@ -25,31 +25,28 @@
 - **上游项目：** [Javis603/token-monitor](https://github.com/Javis603/token-monitor)，提供 Token Monitor 的主体架构、采集器、桌面组件、多设备 Hub、AI 工具额度和绝大多数功能。
 - **本仓库：** [MarbleGateKeeper/token-monitor-ver.replica](https://github.com/MarbleGateKeeper/token-monitor-ver.replica)，用于保留个人需要但尚未进入上游的修复与功能。
 - **Git 远程：** 通常以 `upstream` 跟踪原项目，以 `origin` 跟踪本 fork。同步上游时应先审阅差异，再保留下文列出的 fork 功能。
-- **版本规则：** 使用 `<上游版本>-replica.<修订号>`，例如当前版本 `0.45.0-replica.1`。同一上游版本继续发布时递增修订号；同步到新的上游版本后从 `replica.1` 重新开始。
+- **版本规则：** 使用 `<上游版本>-replica.<修订号>`，例如当前版本 `0.45.0-replica.2`。同一上游版本继续发布时递增修订号；同步到新的上游版本后从 `replica.1` 重新开始。
 - **更新来源：** 应用只把本 fork 的 `*-replica.N` Release 当作可用版本；同时独立查询上游最新 Release，用于提醒维护者何时需要同步上游。两类提醒都只打开对应 Release 页面，不会下载或安装更新。
 - **许可与署名：** 代码继续使用上游的 MIT 许可证，保留原作者 Javis 的版权声明；打包产物会携带完整 `LICENSE`。
 
 ### 本 fork 的功能改动
 
-#### 1. 修复 Kimi Code 的 K3 模型识别
+#### 1. 扩展模型厂商识别
 
-上游能够将 `kimi-k3` 识别为 Kimi 模型，但 Kimi Code 官方工具直接上报的以下模型 ID 原本会落入未知供应商：
+模型列表、图表和主页活动描边会按下表识别厂商；这里只列代表性 ID，采集结果、Hub 数据和费用计算不会因此被改写。
 
-- `k3`
-- `k3-256`
+| 厂商 / 系列 | 代表性匹配 |
+|---|---|
+| Moonshot / Kimi | `kimi-*`、`moonshot-*`，以及 Kimi Code 直接上报的精确 ID `k3`、`k3-256` |
+| Meituan / Tencent | [LongCat](https://github.com/meituan-longcat)；沿用上游的 [Hy3 / Hunyuan](https://github.com/Tencent-Hunyuan/Hy3) 支持 |
+| 重点新增 | [StepFun / Step](https://platform.stepfun.com/docs/zh/guides/models/overview)、[NVIDIA / Nemotron](https://huggingface.co/nvidia/collections)、[Huawei / Pangu](https://support.huaweicloud.com/productdesc-pangulm/pangulm_01_0033.html)、[RedNote / dots](https://huggingface.co/rednote-hilab/dots.llm1.inst) |
+| 中国其他模型 | Baidu / ERNIE、01.AI / Yi、Baichuan、InternLM / InternVL、OpenBMB / MiniCPM、InclusionAI / Ling / Ring、Kuaishou / KAT-Coder、Skywork、SenseNova |
+| 国际其他模型 | Microsoft / Phi / WizardLM、Amazon / Nova / Titan、IBM / Granite、Perplexity / Sonar、Poolside / Laguna、Arcee / Trinity、Inception / Mercury、AI21 / Jamba、Ai2 / OLMo / Molmo / Tülu、Liquid / LFM |
+| 既有规则补充 | Cohere 的 Aya / Command A，以及 NousResearch / Hermes |
 
-本 fork 在模型供应商分类中将这两个精确 ID 识别为 Kimi，因此模型配色、图标选择和相关展示与其他 Kimi 模型保持一致。
+匹配不区分大小写并感知模型名分段；厂商专属衍生模型优先于名称中附带的 Llama、Qwen 等基础架构，短词只在厂商命名空间或规范化版本前缀中生效，未知模型仍使用稳定回退色。新增厂商会出现在 **设置 → 外观 → 厂商颜色**；有可靠图标的模型行使用固定版本的 MIT 许可 [Lobe Icons](https://github.com/lobehub/lobe-icons) SVG 并随厂商色着色，其余使用颜色圆点，来源与许可见 [`assets/icons/THIRD_PARTY_NOTICES.md`](assets/icons/THIRD_PARTY_NOTICES.md)。模型归属以厂商资料为准，[OpenRouter](https://openrouter.ai/docs/guides/overview/models)、[Ollama](https://ollama.com/search) 和 OpenCode 使用的 [Models.dev](https://github.com/anomalyco/models.dev) 仅用于核对公开可访问性与常见别名。
 
-#### 2. 补齐 LongCat 识别，并沿用上游 Hy3 / Hunyuan 支持
-
-- [美团 LongCat](https://github.com/meituan-longcat) 系列（例如 `LongCat-Flash-Chat`、`LongCat-Flash-Thinking-2601`、`LongCat-2.0`）识别为 **Meituan**。
-- [腾讯 Hy3](https://github.com/Tencent-Hunyuan/Hy3) 系列（例如 `hy3`、`hy3-fp8`）和 Hunyuan 命名模型使用上游 `0.43.0` 提供的 **Hunyuan** 厂商识别与图标，不在本 fork 维护平行规则。
-
-LongCat 识别不区分大小写，并要求名称出现在完整的模型名分段中，避免偶然子串误判。Meituan 与 Hunyuan 都有独立默认配色，也会出现在 **设置 → 外观 → 厂商颜色** 中供手动调整。
-
-模型列表分别使用 LongCat 与上游 Hunyuan 标志，并通过 CSS 遮罩染成当前厂商颜色；因此手动调整厂商颜色后，图标也会同步变化。LongCat SVG 来自固定版本的 MIT 许可 [Lobe Icons](https://github.com/lobehub/lobe-icons)，来源、许可证文本和商标用途声明见 [`assets/icons/THIRD_PARTY_NOTICES.md`](assets/icons/THIRD_PARTY_NOTICES.md)。
-
-#### 3. 增加手动模型映射
+#### 2. 增加手动模型映射
 
 在 **设置 → 采集 → 模型映射** 中，可以把多个本质相同的模型 ID 合并到一个规范名称，例如：
 
@@ -68,13 +65,13 @@ k3-256   → kimi-k3
 - 不改写采集器原始数据、Hub 设备记录或保留的原始统计快照；删除映射后即可恢复原始模型拆分。
 - 不自动扫描或重算已经进入会话保留归档的数据；需要修正旧费用时应执行一次性迁移。
 
-#### 4. 仅提示新 tag，不自动更新
+#### 3. 仅提示新 tag，不自动更新
 
 应用启动后和手动检查时会查询本仓库最新的 GitHub Release。本 fork 的更新通道只接受 `<上游版本>-replica.<修订号>`：同一基础版本按 replica 修订号比较，基础版本不同时先比较上游版本。因此 plain 上游 `0.42.0` 永远不会被视为高于同一基础版本的 `0.42.0-replica.N`；只有更高的 replica 修订号或基于更高上游版本的 replica Release 才会触发本 fork 更新提示。
 
 上游 [Javis603/token-monitor](https://github.com/Javis603/token-monitor) 使用独立检查和独立提醒。它把当前安装版本与本 fork 最新 replica Release 中较高的基础版本视为“本分支已跟进版本”；只有上游版本真正更高时才显示橙色“上游”提示，提醒维护者同步本分支。该提示可以单独忽略，也可直接打开上游 Release。项目不包含应用更新器，不会在后台下载安装包，也没有“重启安装”流程。
 
-#### 5. 区分厂商默认配色
+#### 4. 区分厂商默认配色
 
 本 fork 调整了容易挤在黑色附近的默认厂商色，并让同一厂商的客户端、模型和额度入口保持一致：
 
@@ -88,15 +85,15 @@ k3-256   → kimi-k3
 
 OpenAI 的蓝色用于图表、色点和统计数据。根据 [OpenAI 品牌规范](https://openai.com/brand/)，Blossom 标志本身保持黑白，并直接显示 SVG，而不再作为 CSS 遮罩染成厂商色；深色和浅色主题会选择相应的单色呈现。
 
-#### 6. 工具页内嵌模型用量
+#### 5. 工具页内嵌模型用量
 
 **工具**视图会在每个工具的进度条下方列出该工具使用过的全部模型，并按 Token 用量从高到低排列。模型名较长时会在窄窗口中省略显示，悬浮或辅助技术仍可读取完整名称和精确 Token；手动模型映射会在生成列表前合并等价模型。该列表直接复用现有 `clientModels` 统计，不增加采集或 Hub 协议字段，并按模型 ID 增量复用界面节点，避免每次实时刷新重建完整列表。
 
-#### 7. 按主导模型标记主页活动
+#### 6. 按主导模型标记主页活动
 
 主页活动热力图继续使用用户选择的 Token 或费用强度作为填色，同时以当天 Token 用量最高模型的颜色绘制两 CSS 像素轮廓；悬浮提示会显示对应模型名。轮廓位于热度填充和聚光高亮之后的独立顶层，直接使用当前厂商色或用户覆盖色，因此不会被蓝色方格遮盖，也不会通过明暗混色改变 Claude 橙等原始颜色。颜色通过应用 CSP 允许的 SVG 属性传入，而不是会被拒绝的内联 `style`；同色日期会合并成一条 SVG path，以控制节点数量。今天使用实时模型统计，历史日期使用已经存在的逐日模型明细，并缓存主导模型结果，因此不需要增加网络负载，也不会在每次统计刷新时重新扫描全年模型。缺少模型明细的日期保持无描边。
 
-#### 8. 补全更多工具的项目归属
+#### 7. 补全更多工具的项目归属
 
 Tokscale 继续负责 Token、费用、模型和会话 ID；本 fork 在本机增加独立的会话元数据补全层，将这些会话 ID 与工具已经保存的工作目录相匹配。它通过受限的目录结构、最多 64 KiB 的 JSON/JSONL 元数据前缀或只读 SQLite 查询，为 Grok Build、ZCode、Pi / Oh My Pi、CodeBuddy、OpenCode、Hermes、WorkBuddy、Qwen Code 和 Kimi Code 补全项目归属，不会解析或重新计算 Token，也不会增加 Tokscale 子进程、网络请求或 Hub 字段。
 
@@ -198,31 +195,28 @@ npm run pack:mac:widget # macOS 原生 Widget 的本地 ad-hoc 签名预览
 - **Upstream:** [Javis603/token-monitor](https://github.com/Javis603/token-monitor) provides the core architecture, collectors, desktop widget, multi-device Hub, AI Tool Limits, and most product functionality.
 - **This repository:** [MarbleGateKeeper/token-monitor-ver.replica](https://github.com/MarbleGateKeeper/token-monitor-ver.replica) carries personal fixes and features that have not been incorporated upstream.
 - **Git remotes:** `upstream` normally tracks the original project and `origin` tracks this fork. Review upstream changes before merging and preserve the fork behavior documented below.
-- **Versioning:** releases use `<upstream-version>-replica.<revision>`, currently `0.45.0-replica.1`. Increment the replica revision on the same upstream base; restart at `replica.1` after adopting a new upstream version.
+- **Versioning:** releases use `<upstream-version>-replica.<revision>`, currently `0.45.0-replica.2`. Increment the replica revision on the same upstream base; restart at `replica.1` after adopting a new upstream version.
 - **Updates:** only this fork's `*-replica.N` Releases enter the fork update channel. The app also checks upstream independently to tell maintainers when the fork needs syncing. Both channels only open their matching Release page and never download or install updates.
 - **License and credit:** the upstream MIT license and Javis copyright notice are preserved, and packaged applications include the complete `LICENSE`.
 
 ### Functional changes in this fork
 
-#### 1. Kimi Code K3 model recognition
+#### 1. Expanded model-vendor recognition
 
-Upstream recognizes `kimi-k3` as Kimi, but the official Kimi Code tool can report these direct model IDs:
+Model lists, charts, and Home activity outlines classify the families below. The table intentionally shows representative IDs rather than a volatile complete catalog; collector output, Hub data, and cost calculation are not rewritten.
 
-- `k3`
-- `k3-256`
+| Vendor / family | Representative matches |
+|---|---|
+| Moonshot / Kimi | `kimi-*`, `moonshot-*`, plus the exact IDs `k3` and `k3-256` reported directly by Kimi Code |
+| Meituan / Tencent | [LongCat](https://github.com/meituan-longcat), with upstream [Hy3 / Hunyuan](https://github.com/Tencent-Hunyuan/Hy3) support retained |
+| Priority additions | [StepFun / Step](https://platform.stepfun.com/docs/zh/guides/models/overview), [NVIDIA / Nemotron](https://huggingface.co/nvidia/collections), [Huawei / Pangu](https://support.huaweicloud.com/productdesc-pangulm/pangulm_01_0033.html), and [RedNote / dots](https://huggingface.co/rednote-hilab/dots.llm1.inst) |
+| Other Chinese families | Baidu / ERNIE, 01.AI / Yi, Baichuan, InternLM / InternVL, OpenBMB / MiniCPM, InclusionAI / Ling / Ring, Kuaishou / KAT-Coder, Skywork, and SenseNova |
+| Other global families | Microsoft / Phi / WizardLM, Amazon / Nova / Titan, IBM / Granite, Perplexity / Sonar, Poolside / Laguna, Arcee / Trinity, Inception / Mercury, AI21 / Jamba, Ai2 / OLMo / Molmo / Tülu, and Liquid / LFM |
+| Existing-rule additions | Cohere Aya / Command A and NousResearch / Hermes |
 
-This fork classifies both exact IDs as Kimi models, keeping vendor colors, icon selection, and related presentation consistent with other Kimi models.
+Matching is case-insensitive and segment-aware. Publisher-specific derivatives take priority over base architectures such as Llama or Qwen, short terms require a publisher namespace or structured version prefix, and unknown models retain the stable fallback color. New vendors appear under **Settings → Appearance → Vendor colors**. Rows with a reliable mark use SVGs from fixed releases of the MIT-licensed [Lobe Icons](https://github.com/lobehub/lobe-icons), tinted with the active vendor color; the rest use color dots. Sources and license terms are recorded in [`assets/icons/THIRD_PARTY_NOTICES.md`](assets/icons/THIRD_PARTY_NOTICES.md). Ownership follows first-party model documentation; [OpenRouter](https://openrouter.ai/docs/guides/overview/models), [Ollama](https://ollama.com/search), and OpenCode's [Models.dev](https://github.com/anomalyco/models.dev) are used only to validate public availability and common aliases.
 
-#### 2. LongCat recognition with upstream Hy3 / Hunyuan support
-
-- The [Meituan LongCat](https://github.com/meituan-longcat) family, including names such as `LongCat-Flash-Chat`, `LongCat-Flash-Thinking-2601`, and `LongCat-2.0`, is classified as **Meituan**.
-- The [Tencent Hy3](https://github.com/Tencent-Hunyuan/Hy3) family, including `hy3` and `hy3-fp8`, plus Hunyuan-named models use the upstream `0.43.0` **Hunyuan** classification and icon instead of a parallel fork rule.
-
-LongCat matching is case-insensitive and requires the name to occupy a complete model-name segment, avoiding accidental substring matches. Meituan and Hunyuan have distinct defaults and appear under **Settings → Appearance → Vendor colors** for manual customization.
-
-Model rows use the LongCat and upstream Hunyuan marks as CSS masks tinted with the active vendor color, so both follow manual vendor-color overrides. The LongCat SVG comes from a fixed version of the MIT-licensed [Lobe Icons](https://github.com/lobehub/lobe-icons); its source, license text, and trademark-use notice are recorded in [`assets/icons/THIRD_PARTY_NOTICES.md`](assets/icons/THIRD_PARTY_NOTICES.md).
-
-#### 3. Manual model mappings
+#### 2. Manual model mappings
 
 Use **Settings → Collection → Model mappings** to merge equivalent model IDs into one canonical name:
 
@@ -241,13 +235,13 @@ Mapping behavior:
 - Collector output, Hub device records, and retained raw snapshots are not rewritten, so removing a mapping restores the original split.
 - Retained session archives are not scanned or repriced automatically; correcting old costs remains an explicit one-off migration.
 
-#### 4. New-tag notices without automatic updates
+#### 3. New-tag notices without automatic updates
 
 On startup and on manual checks, the app queries this repository's latest GitHub Release. The fork channel accepts only `<upstream-version>-replica.<revision>` tags: replica revisions are compared within the same upstream base, while different bases compare by upstream version first. Consequently a plain upstream `0.42.0` never outranks any `0.42.0-replica.N` build; only a higher replica revision or a replica Release based on a newer upstream version triggers the fork notice.
 
 The upstream [Javis603/token-monitor](https://github.com/Javis603/token-monitor) check has independent state and UI. It treats the higher base from the running build and the latest fork replica Release as the version already tracked by this branch. An orange Upstream notice appears only when upstream is genuinely newer, can be dismissed separately, and opens the upstream Release. The application updater, background downloads, and restart-to-install flow remain removed.
 
-#### 5. Distinct default vendor colors
+#### 4. Distinct default vendor colors
 
 This fork separates defaults that otherwise cluster around black and keeps client, model, and limits entries for the same vendor aligned:
 
@@ -261,15 +255,15 @@ These are new defaults only; saved overrides under **Settings → Appearance →
 
 OpenAI blue is used for charts, dots, and statistical data. Following the [OpenAI brand guidelines](https://openai.com/brand/), the Blossom mark itself stays monochrome and is rendered directly from the SVG instead of being colorized through a CSS mask; dark and light themes select the corresponding monochrome presentation.
 
-#### 6. Per-tool model usage lists
+#### 5. Per-tool model usage lists
 
 The **Tools** view lists every model used by each tool directly below its usage bar, ordered by token usage. Long model IDs are truncated in narrow windows while hover and assistive text retain the full ID and exact token count; manual model mappings merge equivalent IDs before the list is built. The list reuses the existing `clientModels` statistics without adding collection or Hub protocol fields, and reconciles rows by model ID so live refreshes do not rebuild an unchanged list.
 
-#### 7. Dominant-model outlines on Home activity
+#### 6. Dominant-model outlines on Home activity
 
 The Home activity heatmap keeps the selected token- or cost-intensity fill and adds a two-CSS-pixel outline using the color of the model with the most tokens on that day. Its hover tooltip also names that model. The outline is drawn in a dedicated top layer after the intensity fill and spotlight highlight, using the current vendor color or user override directly, so blue cells cannot cover it and hues such as Claude orange are not altered by contrast mixing. Colors travel through SVG attributes allowed by the app CSP rather than a rejected inline `style`; dates with the same color are combined into one SVG path to keep the node count bounded. Today uses live model totals, while past days use the existing daily model breakdown and cache their winner, adding no network payload and avoiding a full-year model scan on every stats refresh. Days without model detail remain unoutlined.
 
-#### 8. Project attribution for additional tools
+#### 7. Project attribution for additional tools
 
 Tokscale remains responsible for tokens, cost, models, and session IDs. This fork adds a separate local metadata layer that joins those session IDs to working directories already stored by the tools. Bounded directory layouts, at most 64 KiB of JSON/JSONL metadata prefixes, or read-only SQLite queries provide project attribution for Grok Build, ZCode, Pi / Oh My Pi, CodeBuddy, OpenCode, Hermes, WorkBuddy, Qwen Code, and Kimi Code. The layer neither parses nor recalculates token usage and adds no Tokscale subprocess, network request, or Hub field.
 
