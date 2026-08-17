@@ -1,18 +1,19 @@
 'use strict';
 
-const clientLabels = { claude: 'Claude Code', codex: 'Codex', hermes: 'Hermes Agent', gemini: 'Gemini', cursor: 'Cursor', opencode: 'OpenCode', openclaw: 'OpenClaw', antigravity: 'Antigravity', cline: 'Cline', kimi: 'Kimi', qwen: 'Qwen', grok: 'Grok Build', copilot: 'GitHub Copilot', pi: 'Pi', zed: 'Zed', kilocode: 'Kilo Code', micode: 'MiMo Code', zcode: 'ZCode', kiro: 'Kiro', codebuddy: 'CodeBuddy', workbuddy: 'WorkBuddy', proma: 'Proma', reasonix: 'Reasonix' };
+const clientLabels = { claude: 'Claude Code', codex: 'Codex', hermes: 'Hermes Agent', gemini: 'Gemini', cursor: 'Cursor', opencode: 'OpenCode', openclaw: 'OpenClaw', antigravity: 'Antigravity', cline: 'Cline', kimi: 'Kimi', qwen: 'Qwen', grok: 'Grok Build', copilot: 'GitHub Copilot', pi: 'Pi', zed: 'Zed', kilocode: 'Kilo Code', commandcode: 'Command Code', micode: 'MiMo Code', zcode: 'ZCode', kiro: 'Kiro', codebuddy: 'CodeBuddy', workbuddy: 'WorkBuddy', proma: 'Proma', qodercn: 'Qoder CN', reasonix: 'Reasonix' };
 const reasonixSessionGuard = window.TokenMonitorReasonixSessionGuard;
 const { clientColors, fallbackModelColors, modelVendorFor, modelColor } = window.TokenMonitorUsageCharts;
 const motionPreferenceApi = window.TokenMonitorMotionPreference;
 const windowsGlassApi = window.TokenMonitorWindowsGlass;
 const glassRenderingApi = window.TokenMonitorGlassRendering;
+const fontSettingsApi = window.TokenMonitorFontSettings;
 const wslStatusPresentationApi = window.TokenMonitorWslStatusPresentation;
 const statsRenderSchedulerApi = window.TokenMonitorStatsRenderScheduler;
 const tokenRateApi = window.TokenMonitorTokenRate;
 const { tokenRatePerSecond, tokenBurnPerMinute } = tokenRateApi;
 const reducedMotionMedia = window.matchMedia?.('(prefers-reduced-motion: reduce)');
 const clientsWithIcon = new Set([
-  'claude', 'codex', 'gemini', 'cursor', 'opencode', 'openclaw', 'hermes', 'antigravity', 'cline', 'kimi', 'qwen', 'grok', 'copilot', 'pi', 'zed', 'kilocode', 'micode', 'zcode', 'kiro', 'codebuddy', 'workbuddy', 'proma', 'reasonix',
+  'claude', 'codex', 'gemini', 'cursor', 'opencode', 'openclaw', 'hermes', 'antigravity', 'cline', 'kimi', 'qwen', 'grok', 'copilot', 'pi', 'zed', 'kilocode', 'commandcode', 'micode', 'zcode', 'kiro', 'codebuddy', 'workbuddy', 'proma', 'qodercn', 'reasonix',
   'xai', 'openrouter', 'deepseek', 'meta', 'mistral', 'qwen', 'moonshot', 'zai', 'zaiteam', 'cohere', 'xiaomi', 'mimo', 'minimax', 'doubao', 'meituan', 'hunyuan', 'volcengine', 'qoder', 'ollama', 'thirdparty'
 ]);
 
@@ -63,12 +64,14 @@ const KNOWN_CLIENTS = [
   { id: 'pi', label: 'Pi' },
   { id: 'zed', label: 'Zed' },
   { id: 'kilocode', label: 'Kilo Code' },
+  { id: 'commandcode', label: 'Command Code' },
   { id: 'micode', label: 'MiMo Code' },
   { id: 'zcode', label: 'ZCode' },
   { id: 'kiro', label: 'Kiro' },
   { id: 'codebuddy', label: 'CodeBuddy' },
   { id: 'workbuddy', label: 'WorkBuddy' },
   { id: 'proma', label: 'Proma' },
+  { id: 'qodercn', label: 'Qoder CN' },
   { id: 'reasonix', label: 'Reasonix' }
 ];
 const LIMIT_PROVIDERS = [
@@ -80,15 +83,16 @@ const LIMIT_PROVIDERS = [
   { id: 'kimi', label: 'Kimi' },
   { id: 'grok', label: 'Grok' },
   { id: 'copilot', label: 'GitHub Copilot' },
+  { id: 'commandcode', label: 'Command Code' },
   { id: 'mimo', label: 'MiMo' },
   { id: 'zai', label: 'GLM' },
   { id: 'zaiteam', label: 'GLM Team' },
   { id: 'kiro', label: 'Kiro' },
+  { id: 'qoder', label: 'Qoder' },
   { id: 'deepseek', label: 'DeepSeek' },
   { id: 'openrouter', label: 'OpenRouter' },
   { id: 'minimax', label: 'Minimax' },
   { id: 'volcengine', label: 'Volcengine' },
-  { id: 'qoder', label: 'Qoder' },
   { id: 'ollama', label: 'Ollama' },
   { id: 'thirdparty', label: 'Third-party APIs' }
 ];
@@ -107,6 +111,7 @@ const LIMIT_PROVIDER_ACCOUNT_GROUP_IDS = {
   minimax: 'minimaxAccountGroup',
   volcengine: 'volcengineAccountGroup',
   qoder: 'qoderAccountGroup',
+  commandcode: 'commandcodeAccountGroup',
   ollama: 'ollamaAccountGroup',
   thirdparty: 'thirdpartyAccountGroup'
 };
@@ -125,6 +130,7 @@ const LIMIT_PROVIDER_ACCOUNT_STATUS_IDS = {
   minimax: 'minimaxApiKeyStatus',
   volcengine: 'volcengineAccountStatus',
   qoder: 'qoderAccountStatus',
+  commandcode: 'commandcodeAccountStatus',
   ollama: 'ollamaAccountStatus',
   thirdparty: 'thirdpartyStatus'
 };
@@ -206,6 +212,7 @@ const LIMIT_CAPABILITY_TAG_KEYS = {
   'Manual login': 'settings.limits.capability.manualLogin',
   Web: 'settings.limits.capability.web',
   'Web/API': 'settings.limits.capability.webApi',
+  'API/Web': 'settings.limits.capability.apiWeb',
   'App/CLI must be open': 'settings.limits.capability.appMustBeOpen',
   RPC: 'settings.limits.capability.rpc',
   'Local/Zen': 'settings.limits.capability.localZen',
@@ -299,7 +306,7 @@ function normalizeInitialViewValue(value, allowed, fallback) {
   return allowed.has(raw) ? raw : fallback;
 }
 
-const state = { period: normalizeInitialViewValue(initialViewState.period, viewPeriodValues, 'today'), appUpdate: null, breakdown: normalizeInitialViewValue(initialViewState.breakdown, viewBreakdownValues, 'home'), viewSwitcherOpen: false, viewSwitcherHasOpened: false, limitDetailTooltipHasOpened: false, limitDetailTooltipActive: false, limitDetailTooltipRenderPending: false, settings: null, stats: null, homeHistory: null, homeHistoryBusy: false, homeHistoryRequested: false, homeHistorySignature: '', homeHistoryRetries: 0, homeHistoryRetryTimer: null, homeActivityScrollLeft: null, homeActivityFollowEnd: true, homeActivityResizeObserver: null, serviceStatus: null, serviceStatusBusy: false, serviceProvidersExpanded: false, trendSettingsExpanded: false, trendsActivating: false, homeSettingsExpanded: false, homeLimitSettingsExpanded: false, limitProviderSettingsExpanded: '', clientHealthExpanded: '', clientSources: clientSourceCacheApi.createClientSourceCache(), clientSourcesKey: '', clientSourcesRequest: 0, subscriptionEditingId: '', subscriptionTopUps: [], subscriptionFormBase: null, subscriptionEditorTransitionId: 0, serviceStatusTicker: null, refreshTimer: null, refreshBusy: false, refreshFeedbackTimer: null, currentTotal: 0, rowSignature: '', streamConnected: false, streamFailure: null, mode: 'idle', appInfo: null, tokscaleStatus: null, tokscaleCheck: null, tokscaleBusy: false, hubInfo: null, hubBuildStatus: null, cursorAccount: { status: null, error: '' }, cursorAccountExpanded: false, codexAccountExpanded: false, codexAccountError: '', codexSignInBusy: false, codexSignInFlowId: '', codexLoginUrl: '', codexLoginStatus: '', codexLoginOutput: '', codexWorkspaceChoices: [], codexWorkspaceId: '', codexActiveAccount: null, codexPendingActiveAccount: null, codexPendingActiveAccountUntil: 0, codexPendingActiveAccountTimer: null, codexSystemSwitchingAccountId: '', codexSystemSwitchErrorAccountId: '', codexSystemSwitchError: '', codexSwitchPopoverHasOpened: false, codexSwitchPopoverActive: false, codexSwitchPopoverRenderPending: false, modelMappingExpanded: false, customPricingExpanded: false, claudeAccountExpanded: false, claudePendingCheckSince: 0, opencodeProfileCount: 0, opencodeCookieExpanded: false, openrouterProfileCount: 0, openrouterAccountExpanded: false, thirdPartyProfileCount: 0, thirdPartyAccountExpanded: false, deepseekAccountExpanded: false, deepseekPendingCheckSince: 0, minimaxAccountExpanded: false, minimaxPendingCheckSince: 0, zaiAccountExpanded: false, zaiPendingCheckSince: 0, zaiteamAccountExpanded: false, zaiteamPendingCheckSince: 0, volcengineAccountExpanded: false, volcenginePendingCheckSince: 0, qoderAccountExpanded: false, qoderPendingCheckSince: 0, kimiAccountExpanded: false, kimiPendingCheckSince: 0, ollamaAccountExpanded: false, ollamaPendingCheckSince: 0, mimoAccountExpanded: false, mimoAccountError: '', copilotAccountExpanded: false, copilotManualExpanded: false, copilotPendingCheckSince: 0, copilotSignInBusy: false, copilotSignInCancelable: false, copilotSignInFlowId: '', copilotAuthorizeMessage: '', copilotLoginStatus: '', copilotErrorMessage: '', floatingBubble: initialFloatingBubble, suppressInitialNumberAnimation: window.__TOKEN_MONITOR_SUPPRESS_INITIAL_NUMBER_ANIMATION__ === true, openSession: null, detailSort: 'time', recordingWindowShortcut: false, windowShortcutInvalid: false };
+const state = { period: normalizeInitialViewValue(initialViewState.period, viewPeriodValues, 'today'), appUpdate: null, breakdown: normalizeInitialViewValue(initialViewState.breakdown, viewBreakdownValues, 'home'), viewSwitcherOpen: false, viewSwitcherHasOpened: false, limitDetailTooltipHasOpened: false, limitDetailTooltipActive: false, limitDetailTooltipRenderPending: false, settings: null, stats: null, homeHistory: null, homeHistoryBusy: false, homeHistoryRequested: false, homeHistorySignature: '', homeHistoryRetries: 0, homeHistoryRetryTimer: null, homeActivityScrollLeft: null, homeActivityFollowEnd: true, homeActivityResizeObserver: null, serviceStatus: null, serviceStatusBusy: false, serviceProvidersExpanded: false, trendSettingsExpanded: false, trendsActivating: false, homeSettingsExpanded: false, homeLimitSettingsExpanded: false, limitProviderSettingsExpanded: '', clientHealthExpanded: '', clientSources: clientSourceCacheApi.createClientSourceCache(), clientSourcesKey: '', clientSourcesRequest: 0, subscriptionEditingId: '', subscriptionTopUps: [], subscriptionFormBase: null, subscriptionEditorTransitionId: 0, serviceStatusTicker: null, refreshTimer: null, refreshBusy: false, refreshFeedbackTimer: null, currentTotal: 0, rowSignature: '', streamConnected: false, streamFailure: null, mode: 'idle', appInfo: null, systemDarkUi: false, tokscaleStatus: null, tokscaleCheck: null, tokscaleBusy: false, hubInfo: null, hubBuildStatus: null, cursorAccount: { status: null, error: '' }, cursorAccountExpanded: false, codexAccountExpanded: false, codexAccountError: '', codexSignInBusy: false, codexSignInFlowId: '', codexLoginUrl: '', codexLoginStatus: '', codexLoginOutput: '', codexWorkspaceChoices: [], codexWorkspaceId: '', codexActiveAccount: null, codexPendingActiveAccount: null, codexPendingActiveAccountUntil: 0, codexPendingActiveAccountTimer: null, codexSystemSwitchingAccountId: '', codexSystemSwitchErrorAccountId: '', codexSystemSwitchError: '', codexSwitchPopoverHasOpened: false, codexSwitchPopoverActive: false, codexSwitchPopoverRenderPending: false, modelMappingExpanded: false, customPricingExpanded: false, claudeAccountExpanded: false, claudePendingCheckSince: 0, opencodeProfileCount: 0, opencodeCookieExpanded: false, openrouterProfileCount: 0, openrouterAccountExpanded: false, thirdPartyProfileCount: 0, thirdPartyAccountExpanded: false, deepseekAccountExpanded: false, deepseekPendingCheckSince: 0, minimaxAccountExpanded: false, minimaxPendingCheckSince: 0, zaiAccountExpanded: false, zaiPendingCheckSince: 0, zaiteamAccountExpanded: false, zaiteamPendingCheckSince: 0, volcengineAccountExpanded: false, volcenginePendingCheckSince: 0, qoderAccountExpanded: false, qoderPendingCheckSince: 0, commandcodeAccountExpanded: false, commandcodePendingCheckSince: 0, kimiAccountExpanded: false, kimiPendingCheckSince: 0, ollamaAccountExpanded: false, ollamaPendingCheckSince: 0, mimoAccountExpanded: false, mimoAccountError: '', copilotAccountExpanded: false, copilotManualExpanded: false, copilotPendingCheckSince: 0, copilotSignInBusy: false, copilotSignInCancelable: false, copilotSignInFlowId: '', copilotAuthorizeMessage: '', copilotLoginStatus: '', copilotErrorMessage: '', floatingBubble: initialFloatingBubble, suppressInitialNumberAnimation: window.__TOKEN_MONITOR_SUPPRESS_INITIAL_NUMBER_ANIMATION__ === true, openSession: null, detailSort: 'time', recordingWindowShortcut: false, windowShortcutInvalid: false };
 state.clientRescans = clientRescanStateApi.createClientRescanState({
   onChange: (clientId) => {
     if (state.clientHealthExpanded === clientId) refillOpenClientHealthPanel();
@@ -340,7 +347,7 @@ let viewSwitcherLongPressTimer = null;
 let viewSwitcherLongPressTriggered = false;
 let viewSwitcherHoverCloseTimer = null;
 const els = {
-  shell: document.querySelector('.shell'), status: document.getElementById('status'), liveDot: document.getElementById('liveDot'), tokenRateReveal: document.getElementById('tokenRateReveal'), totalTokens: document.getElementById('totalTokens'), totalTokensCompact: document.getElementById('totalTokensCompact'), cost: document.getElementById('cost'), homePanel: document.getElementById('homePanel'), breakdown: document.getElementById('breakdown'), serviceStatusPanel: document.getElementById('serviceStatusPanel'), limitsPanel: document.getElementById('limitsPanel'), trendsPanel: document.getElementById('trendsPanel'), viewSwitcher: document.getElementById('viewSwitcher'), pinButton: document.getElementById('pinButton'), utilityActions: document.getElementById('utilityActions'), settingsButton: document.getElementById('settingsButton'), settingsPanel: document.getElementById('settingsPanel'), languageInput: document.getElementById('languageInput'), currencyInput: document.getElementById('currencyInput'), currencyRateRow: document.getElementById('currencyRateRow'), currencyRateModeAuto: document.getElementById('currencyRateModeAuto'), currencyRateModeManual: document.getElementById('currencyRateModeManual'), currencyRateManualField: document.getElementById('currencyRateManualField'), currencyRateOverrideInput: document.getElementById('currencyRateOverrideInput'), currencyRateStatus: document.getElementById('currencyRateStatus'), hubUrlInput: document.getElementById('hubUrlInput'), secretInput: document.getElementById('secretInput'), deviceIdInput: document.getElementById('deviceIdInput'), limitProviderCheckboxes: document.getElementById('limitProviderCheckboxes'), limitsRefreshInput: document.getElementById('limitsRefreshInput'), showLimitSourceInput: document.getElementById('showLimitSourceInput'), maskLimitAccountEmailsInput: document.getElementById('maskLimitAccountEmailsInput'), showLimitUsedInputs: Array.from(document.querySelectorAll('input[name="showLimitUsed"]')), liveDotInput: document.getElementById('liveDotInput'), toolIconsInput: document.getElementById('toolIconsInput'), floatingBubbleInput: document.getElementById('floatingBubbleInput'), floatingBubbleTriggerInputs: Array.from(document.querySelectorAll('input[name="floatingBubbleTrigger"]')), floatingBubbleTriggerRow: document.getElementById('floatingBubbleTriggerRow'), floatingBubbleContentInput: document.getElementById('floatingBubbleContentInput'), floatingBubbleContentRow: document.getElementById('floatingBubbleContentRow'), floatingBubbleComposer: document.getElementById('floatingBubbleComposer'), floatingBubbleContent: document.getElementById('floatingBubbleContent'), discordRpcInput: document.getElementById('discordRpcInput'), windowBehaviorInput: document.getElementById('windowBehaviorInput'), showTrayIconInput: document.getElementById('showTrayIconInput'), showTrayProviderBadgeInput: document.getElementById('showTrayProviderBadgeInput'), trayModeInput: document.getElementById('trayModeInput'), trayContentInput: document.getElementById('trayContentInput'), trayComposer: document.getElementById('trayComposer'), windowToggleShortcutValue: document.getElementById('windowToggleShortcutValue'), windowToggleShortcutClearButton: document.getElementById('windowToggleShortcutClearButton'), windowToggleShortcutNote: document.getElementById('windowToggleShortcutNote'), glassInput: document.getElementById('glassInput'), blurInput: document.getElementById('blurInput'), zoomInput: document.getElementById('zoomInput'), resetGlassButton: document.getElementById('resetGlassButton'), resetDepthButton: document.getElementById('resetDepthButton'), resetZoomButton: document.getElementById('resetZoomButton'), saveSettingsButton: document.getElementById('saveSettingsButton'), clientDisplayList: document.getElementById('clientDisplayList'), wslScanInput: document.getElementById('wslScanInput'), wslScanRow: document.getElementById('wslScanRow'), wslPanel: document.getElementById('wslPanel'), openConfigButton: document.getElementById('openConfigButton'), exportAutoInput: document.getElementById('exportAutoInput'), exportAutoDetails: document.getElementById('exportAutoDetails'), exportAutoStatus: document.getElementById('exportAutoStatus'), exportDirLabel: document.getElementById('exportDirLabel'), exportPickDirButton: document.getElementById('exportPickDirButton'), exportIntervalInput: document.getElementById('exportIntervalInput'), exportNowButton: document.getElementById('exportNowButton'), refreshButton: document.getElementById('refreshButton'), minButton: document.getElementById('minButton'), closeButton: document.getElementById('closeButton'), floatingBubbleTab: document.getElementById('floatingBubbleTab'),
+  shell: document.querySelector('.shell'), status: document.getElementById('status'), liveDot: document.getElementById('liveDot'), tokenRateReveal: document.getElementById('tokenRateReveal'), totalTokens: document.getElementById('totalTokens'), totalTokensCompact: document.getElementById('totalTokensCompact'), cost: document.getElementById('cost'), homePanel: document.getElementById('homePanel'), breakdown: document.getElementById('breakdown'), serviceStatusPanel: document.getElementById('serviceStatusPanel'), limitsPanel: document.getElementById('limitsPanel'), trendsPanel: document.getElementById('trendsPanel'), viewSwitcher: document.getElementById('viewSwitcher'), pinButton: document.getElementById('pinButton'), utilityActions: document.getElementById('utilityActions'), settingsButton: document.getElementById('settingsButton'), settingsPanel: document.getElementById('settingsPanel'), languageInput: document.getElementById('languageInput'), currencyInput: document.getElementById('currencyInput'), currencyRateRow: document.getElementById('currencyRateRow'), currencyRateModeAuto: document.getElementById('currencyRateModeAuto'), currencyRateModeManual: document.getElementById('currencyRateModeManual'), currencyRateManualField: document.getElementById('currencyRateManualField'), currencyRateOverrideInput: document.getElementById('currencyRateOverrideInput'), currencyRateStatus: document.getElementById('currencyRateStatus'), hubUrlInput: document.getElementById('hubUrlInput'), secretInput: document.getElementById('secretInput'), deviceIdInput: document.getElementById('deviceIdInput'), limitProviderCheckboxes: document.getElementById('limitProviderCheckboxes'), limitsRefreshInput: document.getElementById('limitsRefreshInput'), limitsRefreshAdaptiveNote: document.getElementById('limitsRefreshAdaptiveNote'), showLimitSourceInput: document.getElementById('showLimitSourceInput'), maskLimitAccountEmailsInput: document.getElementById('maskLimitAccountEmailsInput'), showLimitUsedInputs: Array.from(document.querySelectorAll('input[name="showLimitUsed"]')), liveDotInput: document.getElementById('liveDotInput'), toolIconsInput: document.getElementById('toolIconsInput'), floatingBubbleInput: document.getElementById('floatingBubbleInput'), floatingBubbleTriggerInputs: Array.from(document.querySelectorAll('input[name="floatingBubbleTrigger"]')), floatingBubbleTriggerRow: document.getElementById('floatingBubbleTriggerRow'), floatingBubbleContentInput: document.getElementById('floatingBubbleContentInput'), floatingBubbleContentRow: document.getElementById('floatingBubbleContentRow'), floatingBubbleComposer: document.getElementById('floatingBubbleComposer'), floatingBubbleContent: document.getElementById('floatingBubbleContent'), discordRpcInput: document.getElementById('discordRpcInput'), windowBehaviorInput: document.getElementById('windowBehaviorInput'), showTrayIconInput: document.getElementById('showTrayIconInput'), showTrayProviderBadgeInput: document.getElementById('showTrayProviderBadgeInput'), trayModeInput: document.getElementById('trayModeInput'), trayContentInput: document.getElementById('trayContentInput'), trayComposer: document.getElementById('trayComposer'), windowToggleShortcutValue: document.getElementById('windowToggleShortcutValue'), windowToggleShortcutClearButton: document.getElementById('windowToggleShortcutClearButton'), windowToggleShortcutNote: document.getElementById('windowToggleShortcutNote'), glassInput: document.getElementById('glassInput'), blurInput: document.getElementById('blurInput'), zoomInput: document.getElementById('zoomInput'), resetGlassButton: document.getElementById('resetGlassButton'), resetDepthButton: document.getElementById('resetDepthButton'), resetZoomButton: document.getElementById('resetZoomButton'), saveSettingsButton: document.getElementById('saveSettingsButton'), clientDisplayList: document.getElementById('clientDisplayList'), wslScanInput: document.getElementById('wslScanInput'), wslScanRow: document.getElementById('wslScanRow'), wslPanel: document.getElementById('wslPanel'), openConfigButton: document.getElementById('openConfigButton'), exportAutoInput: document.getElementById('exportAutoInput'), exportAutoDetails: document.getElementById('exportAutoDetails'), exportAutoStatus: document.getElementById('exportAutoStatus'), exportDirLabel: document.getElementById('exportDirLabel'), exportPickDirButton: document.getElementById('exportPickDirButton'), exportIntervalInput: document.getElementById('exportIntervalInput'), exportNowButton: document.getElementById('exportNowButton'), refreshButton: document.getElementById('refreshButton'), minButton: document.getElementById('minButton'), closeButton: document.getElementById('closeButton'), floatingBubbleTab: document.getElementById('floatingBubbleTab'),
   subscriptionList: document.getElementById('subscriptionList'), subscriptionAddForm: document.getElementById('subscriptionAddForm'), subscriptionAddToggle: document.getElementById('subscriptionAddToggle'), subscriptionAddDetails: document.getElementById('subscriptionAddDetails'), subscriptionProviderInput: document.getElementById('subscriptionProviderInput'), subscriptionAccountInput: document.getElementById('subscriptionAccountInput'), subscriptionPlanNameInput: document.getElementById('subscriptionPlanNameInput'), subscriptionAmountInput: document.getElementById('subscriptionAmountInput'), subscriptionCurrencyInput: document.getElementById('subscriptionCurrencyInput'), subscriptionIntervalCountInput: document.getElementById('subscriptionIntervalCountInput'), subscriptionIntervalInput: document.getElementById('subscriptionIntervalInput'), subscriptionStartDateInput: document.getElementById('subscriptionStartDateInput'), subscriptionAutoRenewInput: document.getElementById('subscriptionAutoRenewInput'), subscriptionNextRenewalInput: document.getElementById('subscriptionNextRenewalInput'), subscriptionNote: document.getElementById('subscriptionNote'), subscriptionOrphanNotice: document.getElementById('subscriptionOrphanNotice'), subscriptionOrphanText: document.getElementById('subscriptionOrphanText'), subscriptionOrphanAdopt: document.getElementById('subscriptionOrphanAdopt'), subscriptionOrphanDiscard: document.getElementById('subscriptionOrphanDiscard'), subscriptionSyncError: document.getElementById('subscriptionSyncError'), subscriptionNextRenewalLabel: document.getElementById('subscriptionNextRenewalLabel'), subscriptionNextRenewalNote: document.getElementById('subscriptionNextRenewalNote'), subscriptionSubmit: document.getElementById('subscriptionSubmit'), subscriptionCancelEdit: document.getElementById('subscriptionCancelEdit'), subscriptionTotalRow: document.getElementById('subscriptionTotalRow'), subscriptionErrorMessage: document.getElementById('subscriptionErrorMessage'), subscriptionPlanFields: document.getElementById('subscriptionPlanFields'), subscriptionTopUpFields: document.getElementById('subscriptionTopUpFields'), subscriptionTopUpList: document.getElementById('subscriptionTopUpList'), subscriptionTopUpDateInput: document.getElementById('subscriptionTopUpDateInput'), subscriptionTopUpAmountInput: document.getElementById('subscriptionTopUpAmountInput'), subscriptionTopUpAddButton: document.getElementById('subscriptionTopUpAddButton'), subscriptionAmountRow: document.getElementById('subscriptionAmountRow'), subscriptionTopUpHeadingRow: document.getElementById('subscriptionTopUpHeadingRow'), subscriptionKindInputs: [...document.querySelectorAll('input[name="subscriptionKind"]')]
 };
 Object.assign(els, {
@@ -456,6 +463,16 @@ Object.assign(els, {
   themeAdvancedGroup: document.getElementById('themeAdvancedGroup'),
   themeAdvancedToggle: document.getElementById('themeAdvancedToggle'),
   themeAdvancedDetails: document.getElementById('themeAdvancedDetails'),
+  interfaceFontPreset: document.getElementById('interfaceFontPreset'),
+  interfaceFontInput: document.getElementById('interfaceFontInput'),
+  interfaceFontCustomRow: document.getElementById('interfaceFontCustomRow'),
+  interfaceFontPreview: document.getElementById('interfaceFontPreview'),
+  displayFontPreset: document.getElementById('displayFontPreset'),
+  displayFontInput: document.getElementById('displayFontInput'),
+  displayFontCustomRow: document.getElementById('displayFontCustomRow'),
+  displayFontPreview: document.getElementById('displayFontPreview'),
+  resetInterfaceFontButton: document.getElementById('resetInterfaceFontButton'),
+  resetDisplayFontButton: document.getElementById('resetDisplayFontButton'),
   themeVendorGroup: document.getElementById('themeVendorGroup'),
   themeVendorToggle: document.getElementById('themeVendorToggle'),
   themeVendorDetails: document.getElementById('themeVendorDetails'),
@@ -667,6 +684,14 @@ function refreshIntervalLabel(value) {
   return t('settings.summary.minutes', { minutes });
 }
 
+// Adaptive is a scheduling policy rather than a duration, so the summary names
+// it instead of printing the fixed interval the user would return to.
+function limitsRefreshSummaryLabel(settings) {
+  return settings.limitsRefreshMode === 'adaptive'
+    ? t('settings.limits.refreshAdaptive')
+    : refreshIntervalLabel(settings.limitsRefreshMs);
+}
+
 function viewsSummary() {
   const visible = viewDisplayPreferencesApi.visibleViewCount({
     views: VIEW_DISPLAY_OPTIONS,
@@ -698,7 +723,7 @@ function settingsSectionSummary(section) {
   if (section === 'limits') {
     return t('settings.summary.limits', {
       enabled: enabledLimitProviderSet().size,
-      refresh: refreshIntervalLabel(state.settings.limitsRefreshMs)
+      refresh: limitsRefreshSummaryLabel(state.settings)
     });
   }
   if (section === 'subscriptions') {
@@ -3799,6 +3824,18 @@ function formatLimitCount(window, showUsed = false) {
   return `${trim(showUsed ? used : limit - used)}/${trim(limit)}`;
 }
 
+// Command Code credits are USD, so the count under the bar is money rather than
+// the raw units formatLimitCount prints: "$8.78 / $10.00", or nothing at all for
+// a pool with no allowance (the headline already carries its amount).
+function formatCommandcodeCreditsDetail(window) {
+  const remaining = Number(window?.remaining);
+  const limit = Number(window?.limit);
+  if (!Number.isFinite(remaining) || !Number.isFinite(limit) || limit <= 0) return '';
+  const showUsed = Boolean(state.settings?.showLimitUsed);
+  const value = showUsed ? Math.max(0, limit - remaining) : remaining;
+  return `${formatMoney(value, window?.currency)} / ${formatMoney(limit, window?.currency)}`;
+}
+
 // One-line Overage value: "12.5 credits · $3.20" (credits used, then est. cost).
 // Either piece may be absent; the row only renders when at least one is present.
 function formatKiroOverageValue(window) {
@@ -4877,6 +4914,37 @@ function renderProviderWindows(provider, color) {
       node.classList.add('limit-window-wide');
       windows.append(node);
     }
+  } else if (provider.provider === 'commandcode') {
+    // 5-hour and weekly are rate-limit windows (percent); the monthly grant and
+    // any rollover top-up are money, so they get the amount on the right of the
+    // reset line and span the row like Kimi's Monthly.
+    const fiveHour = windowForKind(provider, 'session');
+    const weekly = windowForKind(provider, 'weekly');
+    if (fiveHour) {
+      const node = limitWindowNode('5-hour', fiveHour, color, 0.95);
+      if (!weekly) node.classList.add('limit-window-wide');
+      windows.append(node);
+    }
+    if (weekly) {
+      const node = limitWindowNode('Weekly', weekly, color, 0.68);
+      if (!fiveHour) node.classList.add('limit-window-wide');
+      windows.append(node);
+    }
+    for (const credits of windowsForKind(provider, 'billing')) {
+      const node = limitWindowNode(
+        credits.label || 'Monthly',
+        credits,
+        color,
+        0.5,
+        null,
+        formatCommandcodeCreditsDetail(credits)
+      );
+      node.classList.add('limit-window-wide');
+      // A grant with no known plan allowance has no meter, so there is no bar
+      // for a reset line to sit under either.
+      if (credits.showMeter === false) node.classList.add('limit-window-no-reset');
+      windows.append(node);
+    }
   } else if (provider.provider === 'kimi') {
     const fiveHour = windowForKind(provider, 'session');
     const weekly = windowForKind(provider, 'weekly');
@@ -5083,6 +5151,10 @@ function renderMimoAccountGroup(label, providers, color) {
 
 function opencodeAccountTitle(provider, index) {
   const name = String(provider?.accountName || '').trim();
+  // The collector's canonical name is shown as-is. This column holds account
+  // names, which are user strings and almost never translated, so a localized
+  // phrase reads as a stray UI label among them — and the plan and source
+  // columns beside it are English for the same reason.
   if (name) return name;
   // Older synced clients put the user-defined profile name in accountLabel.
   // Keep those rows identifiable while new clients carry profile and plan in
@@ -7375,6 +7447,14 @@ function applyControlLayout(swapSettingsAndRefresh) {
   }
 }
 
+function applyFontSettings(settings) {
+  const source = { ...(state.settings || {}), ...(settings || {}) };
+  const root = document.documentElement.style;
+  const { interfaceFont, displayFont } = fontSettingsApi.resolveEffectiveFontSettings(source);
+  root.setProperty('--ui-font', interfaceFont);
+  root.setProperty('--display-font', displayFont);
+}
+
 function applyAppearanceSettings(settings) {
   const opacity = glassRenderingApi.renderedGlassOpacity(settings, {
     platform: state.appInfo?.platform,
@@ -7403,6 +7483,7 @@ function applyAppearanceSettings(settings) {
     els.windowsBackdropNote.classList.toggle('hidden', !windowsGlass.showAccentNote);
   }
   applyReduceMotionPreference(settings?.reduceMotion);
+  applyFontSettings(settings);
   // Only full settings objects carry themeColors; glass/zoom preview patches
   // omit it, so we must not wipe theme overrides mid-slider-drag.
   if (settings && 'themeColors' in settings) applyThemeColors(settings.themeColors);
@@ -8036,6 +8117,94 @@ function appearancePatchFromControls() {
   };
 }
 
+function fontControlsFor(role) {
+  return role === 'display'
+    ? { preset: els.displayFontPreset, input: els.displayFontInput, customRow: els.displayFontCustomRow }
+    : { preset: els.interfaceFontPreset, input: els.interfaceFontInput, customRow: els.interfaceFontCustomRow };
+}
+
+function syncFontCustomRow(role) {
+  const controls = fontControlsFor(role);
+  const isCustom = controls.preset?.value === 'custom';
+  controls.customRow?.classList.toggle('hidden', !isCustom);
+  if (controls.input) controls.input.disabled = !isCustom;
+  updateFontPreview(role);
+}
+
+function fontFamilyFromControls(role) {
+  const controls = fontControlsFor(role);
+  return fontSettingsApi.fontFamilyForPreset(controls.preset?.value || (role === 'display' ? 'follow' : 'app'), controls.input?.value, role);
+}
+
+function fontPreviewForControls(role) {
+  const resolved = fontSettingsApi.resolveEffectiveFontSettings({
+    interfaceFontFamily: fontFamilyFromControls('interface'),
+    displayFontFamily: fontFamilyFromControls('display')
+  });
+  return role === 'display' ? resolved.displayFont : resolved.interfaceFont;
+}
+
+function updateFontPreview(role) {
+  const preview = role === 'display' ? els.displayFontPreview : els.interfaceFontPreview;
+  if (preview) preview.style.fontFamily = fontPreviewForControls(role);
+}
+
+function fontPatchFromControls() {
+  return {
+    interfaceFontFamily: fontFamilyFromControls('interface'),
+    displayFontFamily: fontFamilyFromControls('display')
+  };
+}
+
+function previewFontSettings() {
+  syncFontCustomRow('interface');
+  syncFontCustomRow('display');
+  applyFontSettings(fontPatchFromControls());
+}
+
+async function saveFontSettingsFromControls() {
+  previewFontSettings();
+  await saveSettings(fontPatchFromControls());
+}
+
+function handleFontPresetChange(role) {
+  syncFontCustomRow(role);
+  const controls = fontControlsFor(role);
+  previewFontSettings();
+  if (controls.preset?.value === 'custom') {
+    controls.input?.focus();
+    if (!fontSettingsApi.normalizeFontFamily(controls.input?.value)) return;
+  }
+  void saveFontSettingsFromControls();
+}
+
+async function resetInterfaceFont() {
+  if (els.interfaceFontPreset) els.interfaceFontPreset.value = 'app';
+  if (els.interfaceFontInput) els.interfaceFontInput.value = '';
+  syncFontCustomRow('interface');
+  previewFontSettings();
+  await saveSettings({ interfaceFontFamily: '' });
+}
+
+async function resetDisplayFont() {
+  if (els.displayFontPreset) els.displayFontPreset.value = 'app';
+  if (els.displayFontInput) els.displayFontInput.value = '';
+  syncFontCustomRow('display');
+  previewFontSettings();
+  await saveSettings({ displayFontFamily: fontSettingsApi.DEFAULT_DISPLAY_FONT });
+}
+
+function syncFontSettingsControls() {
+  for (const [role, settingKey] of [['interface', 'interfaceFontFamily'], ['display', 'displayFontFamily']]) {
+    const controls = fontControlsFor(role);
+    const value = fontSettingsApi.normalizeFontFamily(state.settings?.[settingKey]);
+    const preset = fontSettingsApi.presetForFontFamily(value, role);
+    if (controls.preset) controls.preset.value = preset;
+    if (controls.input) controls.input.value = preset === 'custom' ? value : '';
+    syncFontCustomRow(role);
+  }
+}
+
 function syncSliderRow(input) {
   if (!input) return;
   const valueEl = input.closest('.settings-slider-item')?.querySelector('.slider-value');
@@ -8282,7 +8451,12 @@ function syncSettingsForm() {
   els.hubUrlInput.value = state.settings.hubUrl || '';
   els.secretInput.value = state.settings.secret || '';
   els.deviceIdInput.value = state.settings.deviceId || '';
-  els.limitsRefreshInput.value = String(LIMIT_REFRESH_OPTIONS.includes(Number(state.settings.limitsRefreshMs)) ? state.settings.limitsRefreshMs : 300000);
+  els.limitsRefreshInput.value = state.settings.limitsRefreshMode === 'adaptive'
+    ? 'adaptive'
+    : String(LIMIT_REFRESH_OPTIONS.includes(Number(state.settings.limitsRefreshMs)) ? state.settings.limitsRefreshMs : 300000);
+  if (els.limitsRefreshAdaptiveNote) {
+    els.limitsRefreshAdaptiveNote.classList.toggle('hidden', state.settings.limitsRefreshMode !== 'adaptive');
+  }
   els.showLimitSourceInput.checked = Boolean(state.settings.showLimitSource);
   els.maskLimitAccountEmailsInput.checked = Boolean(state.settings.maskLimitAccountEmails);
   renderSubscriptionSettings();
@@ -8335,6 +8509,7 @@ function syncSettingsForm() {
   if (els.compactTokenUnitsInput) {
     els.compactTokenUnitsInput.value = state.settings.compactTokenUnits === 'localized' ? 'localized' : 'western';
   }
+  syncFontSettingsControls();
   els.compactTokenUnitsRow?.classList.toggle(
     'hidden',
     !supportsLocalizedCompactTokenUnits(currentLocale())
@@ -8381,6 +8556,7 @@ function syncSettingsForm() {
   renderExternalProviderStatus('zaiteam');
   renderExternalProviderStatus('volcengine');
   renderExternalProviderStatus('qoder');
+  renderExternalProviderStatus('commandcode');
   renderExternalProviderStatus('kimi');
   renderExternalProviderStatus('ollama');
   renderMimoStatus();
@@ -9718,20 +9894,20 @@ function renderWslPanel() {
       row.append(name, tag);
       els.wslPanel.append(row);
     }
+  }
 
-    if (wslStatusPresentationApi.sqliteHelpClients(status).length > 0) {
-      const help = document.createElement('p');
-      help.className = 'settings-note wsl-panel-help';
-      const message = document.createElement('span');
-      message.textContent = t('settings.collection.wslPanel.sqliteHelp');
-      const guide = document.createElement('button');
-      guide.type = 'button';
-      guide.className = 'inline-link';
-      guide.textContent = t('settings.collection.wslPanel.setupGuide');
-      guide.addEventListener('click', () => window.tokenMonitor.openExternal?.(TOKEN_MONITOR_WSL_SQLITE_GUIDE_URL));
-      help.append(message, ' ', guide);
-      els.wslPanel.append(help);
-    }
+  if (wslStatusPresentationApi.shouldShowSqliteHelp(status)) {
+    const help = document.createElement('p');
+    help.className = 'settings-note wsl-panel-help';
+    const message = document.createElement('span');
+    message.textContent = t('settings.collection.wslPanel.sqliteHelp');
+    const guide = document.createElement('button');
+    guide.type = 'button';
+    guide.className = 'inline-link';
+    guide.textContent = t('settings.collection.wslPanel.setupGuide');
+    guide.addEventListener('click', () => window.tokenMonitor.openExternal?.(TOKEN_MONITOR_WSL_SQLITE_GUIDE_URL));
+    help.append(message, ' ', guide);
+    els.wslPanel.append(help);
   }
 }
 
@@ -10126,12 +10302,58 @@ function renderLimitProviderCheckboxesNow() {
     // destination must already be connected, so the row is mounted first.
     moveLimitProviderLiveNode(actions, accountStatus, disclosureIcon);
     moveLimitProviderLiveNode(optionsInner, accountGroup);
+    // OpenCode's one setting is an off-by-default fallback estimate. Rendered by
+    // the shared path it lands above the account list, reading as the first
+    // thing to set up; it belongs below the accounts, collapsed. Reparented
+    // rather than special-cased in the shared renderer so the setting keeps its
+    // change tracking and re-render signature.
+    if (id === 'opencode') moveOpenCodeLocalFallbackSetting();
   }
   for (const row of previousRows) row.remove();
   if (focusedId && document.activeElement === document.body) {
     document.getElementById(focusedId)?.focus({ preventScroll: true });
   }
   state.limitProviderRenderSignature = renderSignature;
+}
+
+// Moves the OpenCode local-DB toggle into its own collapsed group beneath the
+// account list, and keeps that group's status pill in sync with the setting.
+function moveOpenCodeLocalFallbackSetting() {
+  const target = document.getElementById('opencodeLocalFallbackInner');
+  const list = document.querySelector('#limitProviderOptions-opencode .limit-provider-settings-list');
+  if (!target) return;
+  if (list) {
+    if (list.parentElement !== target) moveLimitProviderLiveNode(target, list);
+    // The shared renderer builds a fresh settings list on every pass, so moving
+    // without clearing stacks one copy of the toggle per re-render.
+    for (const stale of [...target.children]) if (stale !== list) stale.remove();
+    // The group header already names the setting, so the item's own title would
+    // read twice. Dropping it alone leaves the label cell empty and the switch
+    // adrift, so the description moves into that cell and becomes the label.
+    for (const item of target.querySelectorAll('.settings-item')) {
+      item.querySelector('.settings-item-title')?.remove();
+      const cell = item.querySelector('.settings-item-text');
+      const desc = item.querySelector('.settings-item-desc');
+      if (cell && desc && desc.parentElement !== cell) cell.append(desc);
+    }
+  }
+
+  const pill = document.getElementById('opencodeLocalFallbackStatus');
+  if (pill) {
+    const on = (state.settings || {}).opencodeLocalLimitsEnabled === true;
+    pill.textContent = t(on ? 'settings.appearance.motion.on' : 'settings.appearance.motion.off');
+  }
+
+  const toggle = document.getElementById('opencodeLocalFallbackSettingsToggle');
+  if (toggle && !toggle.dataset.wired) {
+    toggle.dataset.wired = '1';
+    // The shared helper, so this collapses exactly like every other group
+    // instead of a second hand-rolled implementation of the same thing.
+    toggle.addEventListener('click', () => setAccountGroupExpanded(
+      'opencodeLocalFallback',
+      toggle.getAttribute('aria-expanded') !== 'true'
+    ));
+  }
 }
 
 function limitProviderAccountGroup(providerId) {
@@ -10645,7 +10867,26 @@ window.addEventListener('blur', () => {
 });
 
 async function init() {
+  // Subscribed before the app-info round trip, not after: a theme flipped while
+  // that call is in flight would otherwise be missed until the next flip. The
+  // seeded value then only fills in when no push has already answered.
+  let systemUiThemeSeeded = false;
+  const applySystemUiTheme = (dark) => {
+    systemUiThemeSeeded = true;
+    if (dark === state.systemDarkUi) return;
+    state.systemDarkUi = dark;
+    // Two caches carry baked-in ink and both go stale here: the generated bitmap
+    // for the current mode, and the provider bitmaps main holds for the usage
+    // modes. Repainting only the first leaves a black provider icon sitting on a
+    // taskbar that just turned dark.
+    void maybeUpdateBarsIcon();
+    void deliverTrayProviderIcons();
+  };
+  window.tokenMonitor.onSystemUiThemePush?.((payload) => applySystemUiTheme(payload?.dark === true));
   try { state.appInfo = await window.tokenMonitor.getAppInfo?.(); } catch (_) {}
+  // Seeding assigns directly: the rest of init delivers both icon sets anyway,
+  // and settings have not loaded yet, so repainting from here would only churn.
+  if (!systemUiThemeSeeded) state.systemDarkUi = state.appInfo?.systemDarkUi === true;
   if (els.aboutVersion) els.aboutVersion.textContent = state.appInfo?.version ? `v${state.appInfo.version}` : '—';
   state.settings = await window.tokenMonitor.getSettings();
   applyEffectiveCurrencyRates();
@@ -10917,7 +11158,12 @@ els.secretPasteButton?.addEventListener('click', async () => {
   } catch (_) {}
 });
 els.limitsRefreshInput.addEventListener('change', async () => {
-  await saveSettings({ limitsRefreshMs: Number(els.limitsRefreshInput.value) });
+  // Adaptive carries its own baseline, so the stored interval is left alone and
+  // comes back unchanged when a fixed option is selected again.
+  const value = els.limitsRefreshInput.value;
+  await saveSettings(value === 'adaptive'
+    ? { limitsRefreshMode: 'adaptive' }
+    : { limitsRefreshMode: 'fixed', limitsRefreshMs: Number(value) });
   await refreshStats({ force: true });
 });
 els.showLimitSourceInput.addEventListener('change', async () => {
@@ -11064,6 +11310,14 @@ els.blurInput.addEventListener('input', applyAppearanceFromControls);
 els.zoomInput.addEventListener('input', applyAppearanceFromControls);
 els.resetThemeColorsButton?.addEventListener('click', () => commitThemeColors({}));
 els.resetVendorColorsButton?.addEventListener('click', () => commitVendorColors({}));
+els.interfaceFontPreset?.addEventListener('change', () => handleFontPresetChange('interface'));
+els.displayFontPreset?.addEventListener('change', () => handleFontPresetChange('display'));
+els.interfaceFontInput?.addEventListener('input', previewFontSettings);
+els.displayFontInput?.addEventListener('input', previewFontSettings);
+els.interfaceFontInput?.addEventListener('change', saveFontSettingsFromControls);
+els.displayFontInput?.addEventListener('change', saveFontSettingsFromControls);
+els.resetInterfaceFontButton?.addEventListener('click', () => resetInterfaceFont());
+els.resetDisplayFontButton?.addEventListener('click', () => resetDisplayFont());
 els.applyThemeCodeButton?.addEventListener('click', () => { void pasteAndApplyThemeCode(); });
 els.copyThemeCodeButton?.addEventListener('click', () => { void copyCurrentThemeCode(); });
 els.themeCodeInput?.addEventListener('keydown', (event) => {
@@ -11389,6 +11643,7 @@ function renderStatsUpdate() {
   renderExternalProviderStatus('zaiteam');
   renderExternalProviderStatus('volcengine');
   renderExternalProviderStatus('qoder');
+  renderExternalProviderStatus('commandcode');
   renderExternalProviderStatus('kimi');
   renderExternalProviderStatus('ollama');
   renderCopilotStatus();
@@ -11498,8 +11753,15 @@ function providerImageOpticalSample(image) {
   ctx.drawImage(image, 0, 0, sampleSize, sampleSize);
 
   let bounds = { x: 0, y: 0, width: sampleSize, height: sampleSize };
+  // Whether the mark is drawn in one flat ink, i.e. authored `fill="currentColor"`
+  // and meant to be re-inked, as opposed to brand artwork that must be left alone.
+  // The rule itself lives in isFlatInkPixels so it can be tested against pixels
+  // directly; pixels we cannot read back (a future non-local image) leave it
+  // false, which means untinted.
+  let flatInk = false;
   try {
     const pixels = ctx.getImageData(0, 0, sampleSize, sampleSize).data;
+    flatInk = window.TokenMonitorTrayProviderIcons.isFlatInkPixels(pixels);
     let minX = sampleSize;
     let minY = sampleSize;
     let maxX = -1;
@@ -11525,7 +11787,7 @@ function providerImageOpticalSample(image) {
     // Keep the original frame if a future non-local image cannot be inspected.
   }
 
-  const sample = { canvas, bounds };
+  const sample = { canvas, bounds, flatInk };
   trayProviderImageOpticalSamples.set(image, sample);
   return sample;
 }
@@ -11560,6 +11822,21 @@ function paintProviderImage(ctx, image, x, y, size, templateColor = '') {
     maskCtx.fillRect(0, 0, maskSize, maskSize);
   }
   ctx.drawImage(mask, x, y, size, size);
+}
+
+// Which ink a provider mark is drawn in. An explicit colour always wins — the
+// menubar previews and the floating bubble pass their own, and the bubble
+// deliberately passes none to keep the artwork in colour. `trayInk` is set only
+// by the two paths that hand a bitmap to the system tray, where a monochrome
+// mark has to be re-inked for a dark taskbar (see trayProviderGlyphInk).
+function trayGlyphInk(options, image) {
+  if (options?.templateIconColor) return options.templateIconColor;
+  if (options?.trayInk !== true || !image) return '';
+  return window.TokenMonitorTrayText.trayProviderGlyphInk(
+    state.appInfo?.platform,
+    state.systemDarkUi,
+    providerImageOpticalSample(image).flatInk
+  );
 }
 
 function drawProviderImage(ctx, image, x, y, size, contrastHalo = false, templateColor = '') {
@@ -11598,7 +11875,7 @@ function renderBarsIcon(stats, height = 44, picker = pickWorstProvider, colors =
       layout.iconY,
       layout.iconSize,
       options.providerContrastHalo === true,
-      options.templateIconColor || ''
+      trayGlyphInk(options, providerImage)
     );
   }
 
@@ -11734,7 +12011,7 @@ function renderLimitSessionsIcon(stats, height = 44, configOrder, colors = {}, o
     if (entry.image) {
       drawProviderImage(ctx, entry.image, x, layout.iconY, iconSize,
         options.providerContrastHalo === true,
-        options.templateIconColor || ''
+        trayGlyphInk(options, entry.image)
       );
       x += iconSize + gap;
     }
@@ -11922,7 +12199,7 @@ function drawCustomTrayProviderImage(ctx, img, provider, x, y, size, options = {
     y + inset,
     imageSize,
     options.providerContrastHalo === true,
-    options.templateIconColor || ''
+    trayGlyphInk(options, img)
   );
   if (showBadge) {
     drawCustomTrayProviderBadge(
@@ -12189,7 +12466,11 @@ async function maybeUpdateBarsIcon(options = {}) {
   const mode = state.settings?.trayContent;
   if (!window.TokenMonitorTrayText.isGeneratedTrayIconMode(mode)) return;
   if (!window.tokenMonitor.setTrayIcons) return;
-  const dataUrl = trayDataUrlForMode(mode, 44);
+  // Ink follows the surface the shell will draw this on, not the app's own theme
+  // (see trayGeneratedIconColors) — on a dark taskbar the historical black made
+  // the icon invisible.
+  const colors = window.TokenMonitorTrayText.trayGeneratedIconColors(state.appInfo?.platform, state.systemDarkUi);
+  const dataUrl = trayDataUrlForMode(mode, 44, colors, { trayInk: true });
   try { await window.tokenMonitor.setTrayIcons({ [mode]: dataUrl || null }); } catch (_) {}
 }
 
@@ -12527,7 +12808,7 @@ function providerImageToPngDataUrl(img, size, showBadge = false, options = {}) {
     imageInset,
     imageSize,
     false,
-    showBadge ? '' : options.templateColor || ''
+    trayGlyphInk({ templateIconColor: options.templateColor, trayInk: options.trayInk }, img)
   );
 
   if (!showBadge) return canvas.toDataURL('image/png');
@@ -12571,7 +12852,7 @@ async function deliverTrayProviderIcons(showBadge = state.settings?.showTrayProv
       const img = await loadImage(path);
       trayProviderImages[id] = img;
       trayProviderImageIds.set(img, id);
-      icons[id] = providerImageToPngDataUrl(img, 44, showBadge);
+      icons[id] = providerImageToPngDataUrl(img, 44, showBadge, { trayInk: true });
     } catch (_) { /* skip missing */ }
   }
   if (!trayProviderIconDeliveryGuard.isCurrent(deliveryId)) return;
@@ -13101,6 +13382,11 @@ const externalLimitAccountConfig = {
     sourceKey: 'qoderCookieSource',
     pendingKey: 'qoderPendingCheckSince'
   },
+  commandcode: {
+    configuredKey: 'commandcodeCookieConfigured',
+    sourceKey: 'commandcodeCookieSource',
+    pendingKey: 'commandcodePendingCheckSince'
+  },
   kimi: {
     configuredKey: 'kimiCredentialConfigured',
     sourceKey: 'kimiCredentialSource',
@@ -13282,6 +13568,13 @@ function ollamaPlatformUrl() {
   return 'https://ollama.com/settings';
 }
 
+function commandcodePlatformUrl() {
+  // Account-scoped in the address bar (/<username>/settings/usage), but this
+  // path resolves to it and bounces through signin?returnTo= when signed out,
+  // so it is the one link that works without knowing the username.
+  return 'https://commandcode.ai/settings/usage';
+}
+
 function ollamaValidationError(provider) {
   if (provider?.status === 'unauthorized') return t('settings.ollama.validationInvalid');
   if (provider?.status === 'rateLimited' || provider?.status === 'sourceRateLimited') {
@@ -13432,11 +13725,11 @@ function renderOpenCodeProfiles() {
 
   const api = window.tokenMonitor.opencode;
 
-  api.getProfiles().then(({ profiles, hasEnvVar }) => {
+  api.getProfiles().then(({ profiles, hasEnvVar, hasAmbientKey, ambientEnabled = true }) => {
     listEl.innerHTML = '';
     const entries = Object.entries(profiles);
 
-    if (entries.length === 0 && !hasEnvVar) {
+    if (entries.length === 0 && !hasEnvVar && !hasAmbientKey) {
       listEl.innerHTML = '<div class="opencode-empty">' + t('settings.opencode.emptyList') + '</div>';
       state.opencodeProfileCount = 0;
       renderOpenCodeProfilesStatusSummary({});
@@ -13444,7 +13737,107 @@ function renderOpenCodeProfiles() {
       return;
     }
 
-    state.opencodeProfileCount = entries.length;
+    // The auto-detected key counts as an account: it is what the limits card is
+    // reading, so leaving it out of the total reports "not set up" next to live
+    // quota. It has no toggle or delete because Token Monitor does not own that
+    // credential — OpenCode does — but naming it does belong here: a name is
+    // what lets it join an account, and typing an existing account's name is
+    // how a user says the two are the same OpenCode account.
+    if (hasAmbientKey) {
+      const item = document.createElement('div');
+      item.className = 'opencode-profile-item';
+      // Switchable like any other account, even without a name. Turning it off
+      // is a device preference rather than a stored credential, so the row keeps
+      // rendering with its box clear instead of disappearing along with the only
+      // control that could bring it back.
+      const ambientToggle = document.createElement('input');
+      ambientToggle.className = 'profile-toggle';
+      ambientToggle.type = 'checkbox';
+      ambientToggle.checked = ambientEnabled;
+      ambientToggle.title = t('settings.opencode.ambientDetail');
+      ambientToggle.addEventListener('change', async () => {
+        await window.tokenMonitor.opencode.setAmbientEnabled(ambientToggle.checked);
+        renderOpenCodeProfiles();
+        updateOpenCodeProfilesStatus();
+        renderSettingsSummaries();
+      });
+      const nameBox = document.createElement('span');
+      nameBox.className = 'profile-name-box';
+      // An editable field rather than a label behind an edit button: this row
+      // has no name yet, and naming it is the only thing a user can do here, so
+      // hiding that behind a hover-revealed pencil hides the whole feature. The
+      // placeholder carries the label the row used to show.
+      const nameInput = document.createElement('input');
+      nameInput.className = 'profile-name-input is-placeholder';
+      nameInput.type = 'text';
+      nameInput.placeholder = t('settings.opencode.ambientName');
+      nameInput.title = t('settings.opencode.nameAmbient');
+
+      // Typing an existing account's name binds the auto-detected key into that
+      // account. That claim is confirmed, never inferred: the main process
+      // refuses it without `merge`, so a blur landing on a name that happens to
+      // exist offers the button instead of quietly merging.
+      const mergeBtn = document.createElement('button');
+      mergeBtn.className = 'credential-merge-btn hidden';
+      const offer = opencodeMergeOffer(mergeBtn, (name) => applyNaming(name, true));
+      const applyNaming = async (name, merge) => {
+        const at = offer.revision();
+        // 'ambient' stores a reference rather than the key, so a key rotated
+        // inside OpenCode keeps being read live.
+        const result = await window.tokenMonitor.opencode.saveProfile(name, '', 'ambient', { merge });
+        if (!result.ok) {
+          if (result.nameTaken) {
+            offer.offer(at, name, t('settings.opencode.mergeInto', { name }));
+            return;
+          }
+          if (offer.stale(at)) return;
+          const errorEl = document.getElementById('opencodeErrorMessage');
+          errorEl.textContent = opencodeSaveErrorText(result);
+          errorEl.classList.remove('hidden');
+          return;
+        }
+        renderOpenCodeProfiles();
+        updateOpenCodeProfilesStatus();
+        renderSettingsSummaries();
+      };
+      const endNaming = async (save) => {
+        const name = nameInput.value.trim();
+        if (!save || !name) {
+          nameInput.value = '';
+          offer.withdraw();
+          return;
+        }
+        await applyNaming(name, false);
+      };
+      // Editing the name withdraws the offer: the confirmation names one account,
+      // and it must be the one on screen when the user clicks it.
+      nameInput.addEventListener('input', () => offer.withdraw());
+      nameInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') endNaming(true);
+        if (e.key === 'Escape') endNaming(false);
+      });
+      nameInput.addEventListener('blur', () => endNaming(true));
+
+      const detail = document.createElement('span');
+      detail.className = 'profile-detail';
+      detail.textContent = t('settings.opencode.ambientDetail');
+      nameBox.append(nameInput, mergeBtn, detail);
+
+      const rightBox = document.createElement('span');
+      rightBox.className = 'profile-right';
+      const infoSpan = document.createElement('span');
+      infoSpan.className = 'profile-info';
+      // Not `opencode-info-<name>`: that shape is generated from user-chosen
+      // account names, so a profile named the same as any sentinel would take
+      // this row's status.
+      infoSpan.id = 'opencodeAmbientInfo';
+      infoSpan.textContent = ambientEnabled ? '...' : t('settings.opencode.disabled');
+      rightBox.append(infoSpan);
+      item.append(ambientToggle, nameBox, rightBox);
+      listEl.appendChild(item);
+    }
+
+    state.opencodeProfileCount = entries.length + (hasAmbientKey ? 1 : 0);
     renderSettingsSummaries();
 
     for (const [name, profile] of entries) {
@@ -13489,18 +13882,43 @@ function renderOpenCodeProfiles() {
         nameInput.focus();
         nameInput.select();
       }
-      function endRename(save) {
+      // Renaming onto an existing account merges the two, which asserts they are
+      // the same OpenCode account. That claim gets a visible button rather than
+      // a repeated keypress: confirming should be something the user chooses,
+      // not something they discover by pressing Enter again.
+      const mergeBtn = document.createElement('button');
+      mergeBtn.className = 'credential-merge-btn hidden';
+      const offer = opencodeMergeOffer(mergeBtn, (next) => applyRename(next, true));
+      const applyRename = async (next, merge) => {
+        const at = offer.revision();
+        const errorEl = document.getElementById('opencodeErrorMessage');
+        const result = await api.renameProfile(name, next, { merge });
+        if (!result.ok) {
+          if (result.nameTaken) {
+            offer.offer(at, next, t('settings.opencode.mergeInto', { name: next }));
+            return;
+          }
+          if (offer.stale(at)) return;
+          errorEl.textContent = opencodeSaveErrorText(result);
+          errorEl.classList.remove('hidden');
+          return;
+        }
+        errorEl.classList.add('hidden');
+        renderOpenCodeProfiles();
+        updateOpenCodeProfilesStatus();
+        renderSettingsSummaries();
+      };
+      // Retyping withdraws the offer, so the button can only ever confirm the
+      // name the user is currently proposing.
+      nameInput.addEventListener('input', () => offer.withdraw());
+      async function endRename(save) {
         if (!editing) return;
         editing = false;
         nameInput.classList.add('hidden');
         nameSpan.classList.remove('hidden');
-        if (save && nameInput.value.trim() && nameInput.value.trim() !== name) {
-          api.renameProfile(name, nameInput.value.trim()).then(() => {
-            renderOpenCodeProfiles();
-            updateOpenCodeProfilesStatus();
-            renderSettingsSummaries();
-          });
-        }
+        const next = nameInput.value.trim();
+        if (!save || !next || next === name) return;
+        await applyRename(next, false);
       }
       renameBtn.addEventListener('click', beginRename);
       nameInput.addEventListener('keydown', (e) => {
@@ -13509,14 +13927,54 @@ function renderOpenCodeProfiles() {
       });
       nameInput.addEventListener('blur', () => endRename(true));
 
-      nameBox.append(nameSpan, nameInput, renameBtn);
+      // Which credentials this account holds. Two of them under one name is the
+      // user's assertion that they are the same OpenCode account, and that
+      // assertion decides which source answers for quota and which identity the
+      // account is published under, so it stays visible. Acting on them lives in
+      // the expanded section rather than inline: a click that unbinds an account
+      // should not sit one pixel from the account's own controls.
+      // A reference the collector has stopped using says so on its own row.
+      // Otherwise an account that also holds a cookie shows the credential as
+      // present, keeps reporting fine from the cookie, and nothing anywhere
+      // reveals that its Go quota is no longer coming from the detected key.
+      const ambientLabel = profile.ambientStale
+        ? `${t('settings.opencode.ambientName')} · ${t('settings.opencode.needsRebind')}`
+        : t('settings.opencode.ambientName');
+      const credentials = [
+        ['ambient', profile.usesAmbientKey, ambientLabel],
+        ['api', profile.hasApiKey, t('settings.opencode.kindApi')],
+        ['cookie', profile.hasCookie, t('settings.opencode.kindCookie')]
+      ].filter(([, present]) => present);
+
+      // The summary line is the control that expands it: clicking the thing you
+      // want to see beats a separate chevron stranded between the status text
+      // and the delete button.
+      const multiCredential = credentials.length > 1;
+      const detail = document.createElement(multiCredential ? 'button' : 'span');
+      detail.className = 'profile-detail';
+      let chevron = null;
+      if (multiCredential) {
+        detail.type = 'button';
+        detail.classList.add('is-expandable');
+        detail.setAttribute('aria-expanded', 'false');
+        detail.title = t('settings.opencode.showCredentials');
+        // The same disclosure chevron every other group uses, so it animates and
+        // reads the same; only the direction differs, pointing right when closed.
+        chevron = document.createElement('span');
+        chevron.className = 'cursor-disclosure-icon';
+        chevron.setAttribute('aria-hidden', 'true');
+      }
+      detail.textContent = credentials.map(([, , label]) => label).join(' + ');
+      if (chevron) detail.append(chevron);
+
+      nameBox.append(nameSpan, nameInput, renameBtn, mergeBtn, detail);
 
       const rightBox = document.createElement('span');
       rightBox.className = 'profile-right';
 
       const infoSpan = document.createElement('span');
       infoSpan.className = 'profile-info';
-      infoSpan.id = 'opencode-info-' + name.replace(/[^a-zA-Z0-9_-]/g, '_');
+      infoSpan.id = opencodeRowId('opencode-info-', name);
       infoSpan.textContent = profile.enabled ? '...' : t('settings.opencode.disabled');
 
       const deleteBtn = document.createElement('button');
@@ -13538,8 +13996,32 @@ function renderOpenCodeProfiles() {
         renderSettingsSummaries();
       });
 
+      // Expanding is only worth offering once an account holds more than one
+      // credential — with a single one the row already says everything.
+      let credentialList = null;
+      if (multiCredential) {
+        credentialList = document.createElement('div');
+        credentialList.className = 'opencode-credential-list accordion-animated-container hidden';
+        credentialList.id = opencodeRowId('opencode-credentials-', name);
+        // The shared accordion squeezes one inner wrapper, so the rows go inside
+        // it rather than on the container, which cannot shrink.
+        const credentialInner = document.createElement('div');
+        credentialInner.className = 'accordion-animation-inner';
+        for (const [kind, , label] of credentials) {
+          credentialInner.append(opencodeCredentialRow(name, kind, label));
+        }
+        credentialList.append(credentialInner);
+        detail.setAttribute('aria-controls', credentialList.id);
+        detail.addEventListener('click', () => {
+          const open = credentialList.classList.toggle('hidden') === false;
+          detail.setAttribute('aria-expanded', String(open));
+          detail.classList.toggle('is-open', open);
+        });
+      }
+
       rightBox.append(infoSpan, deleteBtn);
       item.append(toggle, nameBox, rightBox);
+      if (credentialList) item.append(credentialList);
       listEl.appendChild(item);
     }
 
@@ -13547,17 +14029,200 @@ function renderOpenCodeProfiles() {
   });
 }
 
+// A merge that would land two credentials of the same kind on one account is
+// refused rather than resolved: confirming that two accounts are the same is a
+// different question from choosing which of two cookies to keep.
+function opencodeSaveErrorText(result) {
+  if (result?.credentialConflict) {
+    return t('settings.opencode.credentialConflict', {
+      kind: t(result.kind === 'cookie' ? 'settings.opencode.kindCookie'
+        : result.kind === 'ambient' ? 'settings.opencode.ambientName'
+          : 'settings.opencode.kindApi')
+    });
+  }
+  return result?.error || t('settings.opencode.saveFailedShort');
+}
+
+// A merge confirmation names one specific proposal: this credential, into this
+// account. Editing the field withdraws it, so the click the main process
+// receives is consent to what the user is looking at.
+//
+// Hiding the button is not enough on its own, because the answer that offers it
+// arrives after an await: an edit made while that request is in flight is
+// overtaken by the reply, and the button comes back describing the proposal the
+// user has just moved on from. So a withdrawal advances a revision the reply is
+// checked against, and a reply from a superseded revision is dropped rather
+// than shown. The same rule reached four call sites by copy, which is why it
+// lives in one place now.
+//
+// There is deliberately one way to take an offer down. A plain hide looks
+// harmless on the cancel paths (Escape, a blur onto nothing) but leaves the
+// revision where it was, so the reply to the request the user just cancelled
+// still matched and put the button back — the original bug, reached through the
+// other door. Everything that ends an offer withdraws it.
+function opencodeMergeOffer(button, confirm) {
+  let revision = 0;
+  let pending = '';
+  button.addEventListener('click', () => {
+    if (pending !== '') confirm(pending);
+  });
+  return {
+    // Captured before the await, compared after it.
+    revision: () => revision,
+    stale: (at) => at !== revision,
+    withdraw: () => {
+      revision += 1;
+      pending = '';
+      button.classList.add('hidden');
+    },
+    offer: (at, name, label) => {
+      if (at !== revision) return;
+      pending = name;
+      button.textContent = label;
+      button.classList.remove('hidden');
+    }
+  };
+}
+
+// Element ids for a row, from the account name.
+//
+// Reversible rather than sanitized. Replacing everything outside a safe set with
+// `_` is not injective, so two accounts a user is perfectly entitled to name —
+// `a b` and `a_b`, or `a/b` and `a_b` — landed on one id, and whichever rendered
+// first collected the other's status. `encodeURIComponent` is injective and
+// leaves no whitespace, which is the only thing an id may not contain.
+//
+// A counter would work too, but these two call sites are independent: one
+// renders the row, the other looks it up from a later status reply. A pure
+// function of the name cannot drift between them the way a shared table can.
+function opencodeRowId(prefix, name) {
+  return `${prefix}${encodeURIComponent(name)}`;
+}
+
+// One credential inside an expanded account. Renaming moves it to another
+// account name, which is what splits a binding apart or forms a new one;
+// deleting drops just this credential and leaves the rest of the account.
+function opencodeCredentialRow(accountName, kind, label) {
+  const api = window.tokenMonitor.opencode;
+  const errorEl = () => document.getElementById('opencodeErrorMessage');
+  const refresh = () => {
+    renderOpenCodeProfiles();
+    updateOpenCodeProfilesStatus();
+    renderSettingsSummaries();
+  };
+
+  const row = document.createElement('div');
+  row.className = 'opencode-credential-row';
+
+  const labelSpan = document.createElement('span');
+  labelSpan.className = 'credential-label';
+  labelSpan.textContent = label;
+
+  // The account name is shown on every credential rather than hidden behind an
+  // edit button, because seeing the same name twice is the explanation for why
+  // these are one account. Typing a different one moves that credential out.
+  const nameInput = document.createElement('input');
+  nameInput.className = 'credential-name-input';
+  nameInput.type = 'text';
+  nameInput.value = accountName;
+  nameInput.title = t('settings.opencode.moveCredential', { kind: label });
+  nameInput.placeholder = t('settings.opencode.profileNamePlaceholder');
+
+  const actions = document.createElement('span');
+  actions.className = 'credential-actions';
+
+  // A merge is a claim that two credentials belong to one OpenCode account, so
+  // it is confirmed with a visible button rather than by pressing the same key
+  // twice and hoping the user reads why.
+  const mergeBtn = document.createElement('button');
+  mergeBtn.className = 'credential-merge-btn hidden';
+  const offer = opencodeMergeOffer(mergeBtn, (target) => finishMove(target, true));
+
+  const finishMove = async (target, merge) => {
+    const at = offer.revision();
+    const result = await api.moveCredential(accountName, kind, target, { merge });
+    if (!result.ok) {
+      if (result.nameTaken) {
+        offer.offer(at, target, t('settings.opencode.mergeInto', { name: target }));
+        return;
+      }
+      if (offer.stale(at)) return;
+      errorEl().textContent = opencodeSaveErrorText(result);
+      errorEl().classList.remove('hidden');
+      return;
+    }
+    refresh();
+  };
+  const endMove = async (save) => {
+    const target = nameInput.value.trim();
+    if (!save || !target || target === accountName) {
+      nameInput.value = accountName;
+      offer.withdraw();
+      return;
+    }
+    await finishMove(target, false);
+  };
+
+  // Same rule as everywhere else: retyping the target withdraws the pending
+  // confirmation rather than leaving a button that would move it somewhere the
+  // user is no longer proposing.
+  nameInput.addEventListener('input', () => offer.withdraw());
+  nameInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') endMove(true);
+    if (e.key === 'Escape') endMove(false);
+  });
+  nameInput.addEventListener('blur', () => endMove(true));
+
+  const removeBtn = document.createElement('button');
+  removeBtn.className = 'profile-delete';
+  removeBtn.textContent = '✕';
+  removeBtn.title = t('settings.opencode.removeCredential', { kind: label });
+  // Two-step, like deleting an account: unbinding is not undoable from here.
+  let confirming = false;
+  removeBtn.addEventListener('click', async () => {
+    if (!confirming) {
+      confirming = true;
+      removeBtn.classList.add('confirming');
+      removeBtn.textContent = '✓';
+      return;
+    }
+    const result = await api.removeCredential(accountName, kind);
+    if (result.ok) refresh();
+  });
+
+  actions.append(removeBtn);
+  // The merge label carries the target account name and never fits beside the
+  // input, so it trails the row and wraps onto its own line when it appears.
+  row.append(labelSpan, nameInput, actions, mergeBtn);
+  return row;
+}
+
 async function updateOpenCodeProfilesStatus() {
   const api = window.tokenMonitor.opencode;
   const status = await api.status();
   const profiles = status.profiles || {};
 
-  for (const [name, s] of Object.entries(profiles)) {
-    const safeName = name.replace(/[^a-zA-Z0-9_-]/g, '_');
-    const infoEl = document.getElementById('opencode-info-' + safeName);
+  // The auto-detected key has no account name, so it arrives in its own field
+  // and lands on its own element rather than one keyed by a name a user could
+  // also type.
+  const entries = Object.entries(profiles).map(([name, s]) => [
+    opencodeRowId('opencode-info-', name),
+    s
+  ]);
+  if (status.ambient) entries.push(['opencodeAmbientInfo', status.ambient]);
+
+  for (const [elementId, s] of entries) {
+    const infoEl = document.getElementById(elementId);
     if (!infoEl) continue;
 
-    if (s.expired) {
+    if (s.disabled) {
+      infoEl.textContent = t('settings.opencode.disabled');
+    } else if (s.needsRebind) {
+      // Said once, on the credential line, which has room for it and is the
+      // thing that needs re-attaching. This cell is a fixed narrow column and
+      // would only repeat it truncated.
+      infoEl.textContent = '';
+    } else if (s.expired) {
       infoEl.textContent = t('settings.opencode.statusExpired');
     } else if (s.linked) {
       const parts = [];
@@ -13575,15 +14240,19 @@ async function updateOpenCodeProfilesStatus() {
     }
   }
 
-  renderOpenCodeProfilesStatusSummary(profiles);
+  renderOpenCodeProfilesStatusSummary(profiles, status.ambient);
 }
 
-function renderOpenCodeProfilesStatusSummary(profiles) {
+// `ambient` counts toward both halves: it is a row in the list and it is what
+// the limits card reads on a machine with nothing configured, so leaving it out
+// reports "0/0" beside live quota.
+function renderOpenCodeProfilesStatusSummary(profiles, ambient = null) {
   const totalEl = document.getElementById('opencodeCookieStatus');
   if (totalEl) {
-    const linkedCount = Object.values(profiles).filter(s => s.linked).length;
+    const statuses = [...Object.values(profiles), ...(ambient ? [ambient] : [])];
+    const linkedCount = statuses.filter(s => s.linked).length;
     const configuredProfileCount = state.opencodeProfileCount || 0;
-    const totalCount = Math.max(Object.keys(profiles).length, configuredProfileCount);
+    const totalCount = Math.max(statuses.length, configuredProfileCount);
     if (totalCount > 0) {
       totalEl.textContent = t('settings.opencode.connected', { linked: linkedCount, total: totalCount });
     } else {
@@ -14541,26 +15210,112 @@ function setupCursorAccountUI() {
       window.tokenMonitor.openExternal('https://opencode.ai/auth');
     });
 
+    // API key is the default: it needs no browser round trip. The cookie stays
+    // selectable because it is the only thing that reaches the Zen balance.
+    const kindSelect = document.getElementById('opencodeCredentialKind');
+    // The merge confirmation is about one specific proposal: this name, this
+    // credential. Editing any part of the form makes the offer on screen stale,
+    // and a confirmation the user gives has to be a confirmation of what they
+    // are looking at, so any edit withdraws it.
+    const addMergeButton = document.getElementById('opencodeCredentialMerge');
+    // Confirming re-runs the submit handler's own closure, which is what holds
+    // the name and credential the offer was made for.
+    let confirmOpenCodeMerge = () => {};
+    const addMergeOffer = addMergeButton
+      ? opencodeMergeOffer(addMergeButton, () => confirmOpenCodeMerge())
+      : null;
+    const clearOpenCodeMergeOffer = () => addMergeOffer?.withdraw();
+    for (const id of ['opencodeProfileName', 'opencodeApiKeyInput', 'opencodeCookieInput']) {
+      document.getElementById(id)?.addEventListener('input', clearOpenCodeMergeOffer);
+    }
+    const applyOpenCodeCredentialKind = () => {
+      const isCookie = kindSelect?.value === 'cookie';
+      document.getElementById('opencodeApiFields')?.classList.toggle('hidden', isCookie);
+      document.getElementById('opencodeCookieFields')?.classList.toggle('hidden', !isCookie);
+      // One button for both modes; only what it is fetching differs. The keys
+      // page itself lives under a workspace id we do not have, so both land on
+      // the console sign-in.
+      const browserButton = document.getElementById('opencodeOpenBrowser');
+      if (browserButton) {
+        const key = isCookie ? 'settings.opencode.openBrowser' : 'settings.opencode.openBrowserKeys';
+        browserButton.dataset.i18n = key;
+        browserButton.textContent = t(key);
+      }
+      // Clear the field being hidden so a value typed under one credential type
+      // can never be submitted as the other.
+      const stale = document.getElementById(isCookie ? 'opencodeApiKeyInput' : 'opencodeCookieInput');
+      if (stale) stale.value = '';
+      document.getElementById('opencodeErrorMessage')?.classList.add('hidden');
+      clearOpenCodeMergeOffer();
+    };
+    kindSelect?.addEventListener('change', applyOpenCodeCredentialKind);
+    applyOpenCodeCredentialKind();
+
     document.getElementById('opencodeCookieSubmit').addEventListener('click', async () => {
-      const input = document.getElementById('opencodeCookieInput');
+      const opencodeCredentialKind = kindSelect?.value === 'cookie' ? 'cookie' : 'api';
+      const input = document.getElementById(opencodeCredentialKind === 'cookie'
+        ? 'opencodeCookieInput'
+        : 'opencodeApiKeyInput');
       const nameInput = document.getElementById('opencodeProfileName');
       const errorEl = document.getElementById('opencodeErrorMessage');
-      const name = (nameInput.value || '').trim() || 'default';
+      const name = (nameInput.value || '').trim();
       const cookie = input.value;
 
       errorEl.classList.add('hidden');
 
-      const result = await window.tokenMonitor.opencode.saveProfile(name, cookie);
-      if (result.ok) {
-        input.value = '';
-        nameInput.value = '';
-        renderOpenCodeProfiles();
-        updateOpenCodeProfilesStatus();
-        renderSettingsSummaries();
-      } else {
-        errorEl.textContent = result.error || t('settings.opencode.saveFailedShort');
+      // The name is required rather than defaulted. Saving one credential keeps
+      // the other under the same name, and the collector reads that as "these
+      // are the same account", so a blank name silently becoming `default`
+      // could attach one account's key to another account's cookie. Making the
+      // user type the name is what keeps the association explicit.
+      if (!name) {
+        errorEl.textContent = t('settings.opencode.nameRequired');
         errorEl.classList.remove('hidden');
+        nameInput.focus();
+        return;
       }
+
+      // A name that already holds a different credential kind binds the two into
+      // one account, so the main process refuses it and the form asks first.
+      // The confirmation replaces the submit button rather than appearing beside
+      // it: the next click has different consequences from the one just made.
+      const submit = async (merge) => {
+        const at = addMergeOffer?.revision();
+        confirmOpenCodeMerge = () => submit(true);
+        const result = await window.tokenMonitor.opencode.saveProfile(
+          name,
+          cookie,
+          opencodeCredentialKind,
+          { merge }
+        );
+        // Whether or not the form still shows this proposal, a save that landed
+        // has to reach the list. Only the fields are left alone, so an edit made
+        // while the request was in flight is not wiped by its reply.
+        const stale = addMergeOffer ? addMergeOffer.stale(at) : false;
+        if (result.ok) {
+          // Only this proposal's own offer is taken down. Two saves can overlap,
+          // and the newer one can answer first: clearing unconditionally let an
+          // older success wipe a merge confirmation the user was looking at and
+          // that was still correct.
+          if (!stale) {
+            input.value = '';
+            nameInput.value = '';
+            addMergeOffer?.withdraw();
+          }
+          renderOpenCodeProfiles();
+          updateOpenCodeProfilesStatus();
+          renderSettingsSummaries();
+          return;
+        }
+        if (stale) return;
+        if (result.nameTaken && addMergeOffer) {
+          addMergeOffer.offer(at, name, t('settings.opencode.mergeInto', { name }));
+          return;
+        }
+        errorEl.textContent = opencodeSaveErrorText(result);
+        errorEl.classList.remove('hidden');
+      };
+      await submit(false);
     });
   }
 
@@ -15083,6 +15838,57 @@ function setupCursorAccountUI() {
     });
   }
 
+  const commandcodeToggle = document.getElementById('commandcodeSettingsToggle');
+  if (commandcodeToggle) {
+    commandcodeToggle.addEventListener('click', () => setExternalAccountExpanded('commandcode', !state.commandcodeAccountExpanded));
+    setExternalAccountExpanded('commandcode', false);
+    renderExternalProviderStatus('commandcode');
+
+    document.getElementById('commandcodeOpenBrowser').addEventListener('click', () => {
+      window.tokenMonitor.openExternal(commandcodePlatformUrl());
+    });
+
+    document.getElementById('commandcodeLogoutButton').addEventListener('click', async () => {
+      await saveSettings({ commandcodeCookie: '' });
+      clearExternalProviderCheckPending('commandcode');
+      clearExternalProviderPendingStatus('commandcode');
+      renderExternalProviderStatus('commandcode');
+      await refreshStats({ force: true });
+    });
+
+    document.getElementById('commandcodeRefreshButton').addEventListener('click', async () => {
+      await refreshStats({ force: true });
+    });
+
+    document.getElementById('commandcodeCookieSubmit').addEventListener('click', async () => {
+      const input = document.getElementById('commandcodeCookieInput');
+      const errorEl = document.getElementById('commandcodeErrorMessage');
+      errorEl.classList.add('hidden');
+      if (!String(input.value || '').trim()) {
+        errorEl.textContent = t('settings.commandcode.statusNotSet');
+        errorEl.classList.remove('hidden');
+        return;
+      }
+      try {
+        markExternalProviderCheckPending('commandcode');
+        await saveSettings({
+          commandcodeCookie: input.value,
+          limitProviders: limitProviderSelectionIncluding('commandcode'),
+          limitsEnabled: true
+        });
+        input.value = '';
+        renderExternalProviderStatus('commandcode');
+        await refreshStats({ force: true });
+        setExternalAccountExpanded('commandcode', !externalProviderAccountLinked('commandcode'));
+        renderExternalProviderStatus('commandcode');
+      } catch (err) {
+        clearExternalProviderCheckPending('commandcode');
+        errorEl.textContent = t('settings.commandcode.saveFailed', { message: err.message });
+        errorEl.classList.remove('hidden');
+      }
+    });
+  }
+
   const ollamaToggle = document.getElementById('ollamaSettingsToggle');
   if (ollamaToggle) {
     ollamaToggle.addEventListener('click', () => setExternalAccountExpanded('ollama', !state.ollamaAccountExpanded));
@@ -15444,6 +16250,7 @@ function initSettingsAnimationWrappers() {
     '#zaiteamManualPanel',
     '#volcengineManualPanel',
     '#qoderManualPanel',
+    '#commandcodeManualPanel',
     '#kimiManualPanel',
     '#ollamaManualPanel'
   ].join(', ');

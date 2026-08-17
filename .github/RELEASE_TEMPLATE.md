@@ -4,18 +4,20 @@
 
 <!-- app-update-notes:en:start -->
 ### Added
-- **Usage ranges:** Clicking Home's `MONTH` tab opens a menu with `This week`, `Last 7 days`, and `Last 30 days`. After switching, `Tools`, `Models`, and `Devices` show token-component and cost details for the selected period; usage whose components cannot be reconstructed is grouped under `Unclassified`. (#393, #398)
-- **Hub deployment status:** `Connect to a hub` now reports whether the remote `Hub`, `Node Hub`, or `Worker` is current, needs redeployment, was deployed by a newer Token Monitor version, or has unrecognized build information. (#399)
-- **Tray activity source:** Tray icons and `Tokens`/`Cost` items can follow the `Most recently active tool`, while their values continue to use the selected period aggregates. (#397)
-
-### Improved
-- **Tray cost display:** Each tray cost item can use `Cost format` (`Compact` or `Full number`) and `Decimal places` (`Automatic` or 0–4). New cost items default to compact two-decimal display; existing layouts keep their previous full-number presentation. (#396)
-- **Windows installer:** Locally built installers now let users choose the installation directory. (#390)
+- **Command Code usage:** Command Code usage now appears in the usage views. (#411)
+- **Qoder CN usage:** Turn on `Qoder CN` in `Settings → Tools` to see Qoder CN usage. (#301)
+- **OpenCode Go quotas:** Go accounts signed in on this computer are detected automatically, so their quotas appear without copying a Cookie by hand. (#406, #414, #416)
+- **Command Code limits:** `AI Tool Limits` now shows Command Code's 5-hour, weekly, monthly, and top-up credits. (#421)
+- **Adaptive refresh:** Choose `Adaptive` to update percentage-based limits more often when usage is high. (#405)
+- **Custom fonts:** Choose separate `Interface font` and `Display font` settings in `Appearance → Advanced customization`. (#432)
 
 ### Fixed
-- **Proma usage:** Assistant messages with incomplete IDs are still counted instead of disappearing from usage totals. (#392)
-- **Tray composer:** Open picker menus stay attached to the active composer item during live updates, so an in-progress selection is not lost. (#395)
-- **macOS compatibility:** The host app now supports macOS 12+, while the optional native Widget remains gated to macOS 14+. (#394)
+- **Trends dates:** Today's activity and streaks now follow the date on the device that produced the data, even when the Hub is in another time zone. (#428)
+- **WSL detection guidance:** When WSL detects a tool such as CLI-only ZCode but cannot read its usage, the settings panel now prompts you to run the headless agent inside WSL. (#431)
+- **Windows tray icons:** Tray icons stay visible when switching between light and dark themes. (#420)
+- **Linux tray menu:** The Linux tray context menu is available again. (#413)
+- **Proma cost estimates:** Known-model cost estimates remain available when online pricing cannot be reached. (#418)
+- **AI Tool Limits with system proxy:** Limits can load through the operating system proxy without an extra shell proxy setting. (#380)
 <!-- app-update-notes:en:end -->
 
 ## Build from source
@@ -30,18 +32,20 @@ This repository does not publish prebuilt installers or application archives. To
 
 <!-- app-update-notes:zh:start -->
 ### 新增
-- **用量范围：**在主页顶部点击 `MONTH` 标签，会打开期间菜单，可切换到“本周”“最近 7 天”和“最近 30 天”。切换后，可按所选期间查看“工具”“模型”和“设备”的 Token 组成及成本明细；无法还原组成的用量会归入“未分类”。（#393、#398）
-- **Hub 部署状态：**“连接到 Hub”现在会显示远程 `Hub`、`Node Hub` 或 `Worker` 是否为最新版本、需要重新部署、由较新的 Token Monitor 版本部署，或部署版本无法识别。（#399）
-- **托盘活动来源：**托盘图标以及 Tokens/费用项目现在可以跟随“最近有活动的工具”，显示数值仍使用所选期间的聚合数据。（#397）
-
-### 改进
-- **托盘费用显示：**每个托盘费用项目都可选择“缩写”或“完整数字”，并选择“自动”或 0–4 位小数。新费用项目默认使用两位小数的缩写显示；现有布局保留之前的完整数字显示。（#396）
-- **Windows 安装版：**本地构建的安装包现在允许选择安装目录。（#390）
+- **Command Code 用量：** 现在可以在用量视图中查看 Command Code 用量。（#411）
+- **Qoder CN 用量：** 在“设置 → 工具”中启用 `Qoder CN` 后，即可查看 Qoder CN 用量。（#301）
+- **OpenCode Go 额度：** 本机已登录的 Go 账号会自动检测并显示额度，不再需要手动复制 Cookie。（#406、#414、#416）
+- **Command Code 额度：** “AI 工具额度”现在会显示 Command Code 的 5 小时、每周、月度和加购额度。（#421）
+- **自适应刷新：** 选择“自适应”后，额度消耗较快时会更及时更新。（#405）
+- **自定义字体：** 在“外观 → 高级自定义”中分别设置“界面字体”和“显示字体”。（#432）
 
 ### 修复
-- **Proma 用量：**ID 信息不完整的助手消息现在也会计入用量，不再从统计总量中消失。（#392）
-- **托盘编辑器：**实时更新期间，打开的选择菜单会继续附着在当前编辑项目上，不会丢失正在进行的选择。（#395）
-- **macOS 兼容性：**主应用现在支持 macOS 12 及以上版本，可选原生 Widget 仍只在 macOS 14 及以上版本启用。（#394）
+- **趋势日期：** “趋势”按产生数据的设备日期计算今日活动和连续天数，即使 Hub 位于其他时区也不会错位。（#428）
+- **WSL 检测提示：** 当 WSL 检测到 CLI 版 ZCode 等工具但无法读取用量时，设置面板现在会提示你在 WSL 内运行 headless agent。（#431）
+- **Windows 托盘图标：** Windows 切换浅色和深色主题后，托盘图标仍会保持可见。（#420）
+- **Linux 托盘菜单：** Linux 托盘右键菜单恢复可用。（#413）
+- **Proma 成本估算：** 在线价格查询不可用时，Proma 仍会使用本地价格信息显示已知模型的成本估算。（#418）
+- **系统代理下的 AI 工具额度：** 应用会使用操作系统代理加载额度，不需要另外设置 shell 代理。（#380）
 <!-- app-update-notes:zh:end -->
 
 ## 从源码构建
@@ -51,7 +55,7 @@ This repository does not publish prebuilt installers or application archives. To
 ---
 
 <details>
-<summary><strong>Full Changelog:</strong> <a href="https://github.com/MarbleGateKeeper/token-monitor-ver.replica/compare/0.43.0-replica.1...v0.44.0-replica.1">0.43.0-replica.1...v0.44.0-replica.1</a></summary>
+<summary><strong>Full Changelog:</strong> <a href="https://github.com/MarbleGateKeeper/token-monitor-ver.replica/compare/0.44.0-replica.1...v0.45.0-replica.1">0.44.0-replica.1...v0.45.0-replica.1</a></summary>
 
 <!-- github-generated-release-notes -->
 
@@ -69,18 +73,20 @@ This repository does not publish prebuilt installers or application archives. To
 
 <!-- app-update-notes:zh-TW:start -->
 ### 新增
-- **用量範圍：**主頁的 `MONTH` 選單可切換「本星期」「最近 7 日」與「最近 30 日」，並在工具、模型與裝置檢視中顯示所選期間的 Token 組成及成本；無法還原組成的用量會歸入「未分類」。（#393、#398）
-- **Hub 部署狀態：**「連接到 Hub」會顯示遠端 Hub、Node Hub 或 Worker 是否為最新版本、需要重新部署、來自較新的版本，或部署資訊無法辨識。（#399）
-- **系統匣活動來源：**系統匣圖示與 Tokens/成本項目可以跟隨「最近有活動的工具」。（#397）
-
-### 改進
-- **系統匣成本顯示：**每個成本項目可選擇縮寫或完整數字，以及自動或 0–4 位小數。（#396）
-- **Windows 安裝程式：**本機建置的安裝程式現在允許選擇安裝目錄。（#390）
+- **Command Code 用量：** 現在可以在用量檢視中查看 Command Code 用量。（#411）
+- **Qoder CN 用量：** 在「設定 → 工具」中啟用 `Qoder CN` 後，即可查看 Qoder CN 用量。（#301）
+- **OpenCode Go 額度：** 本機已登入的 Go 帳號會自動偵測並顯示額度，不再需要手動複製 Cookie。（#406、#414、#416）
+- **Command Code 額度：** 「AI 工具額度」現在會顯示 Command Code 的 5 小時、每週、每月和加購額度。（#421）
+- **自適應更新：** 選擇「自適應」後，額度消耗較快時會更及時更新。（#405）
+- **自訂字體：** 在「外觀 → 進階自訂」中分別設定「介面字體」和「顯示字體」。（#432）
 
 ### 修復
-- **Proma 用量：**ID 資訊不完整的助理訊息也會計入用量。（#392）
-- **系統匣編輯器：**即時更新期間，開啟的選單會保持附著在目前項目上。（#395）
-- **macOS 相容性：**主 App 支援 macOS 12+，可選 Widget 仍要求 macOS 14+。（#394）
+- **趨勢日期：** 「趨勢」按產生資料的裝置日期計算今日活動和連續天數，即使 Hub 位於其他時區也不會錯位。（#428）
+- **WSL 偵測提示：** 當 WSL 偵測到 CLI 版 ZCode 等工具但無法讀取用量時，設定面板現在會提示你在 WSL 內執行 headless agent。（#431）
+- **Windows 托盤圖示：** Windows 切換淺色和深色主題後，托盤圖示仍會保持可見。（#420）
+- **Linux 托盤選單：** Linux 托盤右鍵選單恢復可用。（#413）
+- **Proma 成本估算：** 線上價格查詢不可用時，Proma 仍會使用本機價格資訊顯示已知模型的成本估算。（#418）
+- **系統代理下的 AI 工具額度：** 應用程式會使用作業系統代理載入額度，不需要另外設定 shell 代理。（#380）
 <!-- app-update-notes:zh-TW:end -->
 
 ## 從原始碼建置
@@ -98,18 +104,20 @@ This repository does not publish prebuilt installers or application archives. To
 
 <!-- app-update-notes:ko:start -->
 ### 추가
-- **사용량 기간:** 홈의 `MONTH` 메뉴에서 이번 주, 최근 7일, 최근 30일을 선택하고 도구, 모델, 기기별 토큰 구성과 비용을 볼 수 있습니다. 복원할 수 없는 구성은 미분류로 표시됩니다. (#393, #398)
-- **Hub 배포 상태:** 원격 Hub, Node Hub 또는 Worker가 최신인지, 재배포가 필요한지, 더 최신 버전에서 배포되었는지, 정보를 인식할 수 없는지 표시합니다. (#399)
-- **트레이 활동 소스:** 트레이 아이콘과 토큰/비용 항목이 최근 활동한 도구를 따를 수 있습니다. (#397)
-
-### 개선
-- **트레이 비용 표시:** 각 비용 항목에서 축약/전체 숫자 형식과 자동 또는 0–4자리 소수를 설정할 수 있습니다. (#396)
-- **Windows 설치 프로그램:** 로컬에서 빌드한 설치 프로그램의 설치 디렉터리를 선택할 수 있습니다. (#390)
+- **Command Code 사용량:** 사용량 보기에서 Command Code 사용량을 확인할 수 있습니다. (#411)
+- **Qoder CN 사용량:** `설정 → 도구`에서 `Qoder CN`을 켜면 Qoder CN 사용량을 확인할 수 있습니다. (#301)
+- **OpenCode Go 한도:** 이 컴퓨터에 로그인된 Go 계정을 자동으로 감지해 한도를 표시하므로 Cookie를 수동으로 복사할 필요가 없습니다. (#406, #414, #416)
+- **Command Code 한도:** `AI 도구 한도`에 Command Code의 5시간, 주간, 월간 및 추가 크레딧이 표시됩니다. (#421)
+- **적응형 새로 고침:** `적응형`을 선택하면 한도가 빠르게 소진될 때 더 자주 업데이트합니다. (#405)
+- **글꼴 사용자 지정:** `외관 → 고급 사용자 지정`에서 `인터페이스 글꼴`과 `표시 글꼴`을 따로 설정할 수 있습니다. (#432)
 
 ### 수정
-- **Proma 사용량:** ID가 불완전한 어시스턴트 메시지도 사용량에 포함됩니다. (#392)
-- **트레이 편집기:** 실시간 업데이트 중에도 열린 선택 메뉴가 현재 항목에 유지됩니다. (#395)
-- **macOS 호환성:** 호스트 앱은 macOS 12+, 선택형 Widget은 macOS 14+를 요구합니다. (#394)
+- **추이 날짜:** `추이`의 오늘 활동과 연속 기록이 데이터를 만든 기기의 날짜를 기준으로 계산되어 Hub가 다른 시간대에 있어도 어긋나지 않습니다. (#428)
+- **WSL 감지 안내:** WSL에서 CLI 전용 ZCode 같은 도구를 감지했지만 사용량을 읽지 못하면, 설정 패널에 WSL 안에서 headless agent를 실행하라는 안내가 표시됩니다. (#431)
+- **Windows 트레이 아이콘:** 밝은 테마와 어두운 테마를 바꿔도 트레이 아이콘이 계속 표시됩니다. (#420)
+- **Linux 트레이 메뉴:** Linux 트레이 오른쪽 메뉴를 다시 사용할 수 있습니다. (#413)
+- **Proma 비용 추정:** 온라인 가격 조회를 사용할 수 없어도 알려진 모델의 비용 추정을 표시합니다. (#418)
+- **시스템 프록시의 AI 도구 한도:** 별도의 shell 프록시 설정 없이 운영체제 프록시를 통해 한도를 불러옵니다. (#380)
 <!-- app-update-notes:ko:end -->
 
 ## 소스에서 빌드
@@ -127,18 +135,20 @@ This repository does not publish prebuilt installers or application archives. To
 
 <!-- app-update-notes:ja:start -->
 ### 追加
-- **使用期間:** ホームの `MONTH` メニューから今週、過去 7 日間、過去 30 日間を選択し、ツール、モデル、デバイスごとのトークン構成とコストを確認できます。復元できない構成は未分類になります。（#393、#398）
-- **Hub デプロイ状態:** リモート Hub、Node Hub、Worker が最新か、再デプロイが必要か、より新しいバージョンからデプロイされたか、情報を認識できないかを表示します。（#399）
-- **トレイのアクティブソース:** トレイアイコンとトークン／コスト項目が最近使用したツールに追従できます。（#397）
-
-### 改善
-- **トレイのコスト表示:** 各コスト項目で省略／完全な数値形式と、自動または 0～4 桁の小数を設定できます。（#396）
-- **Windows インストーラー:** ローカルビルドしたインストーラーでインストール先を選択できます。（#390）
+- **Command Code 使用量:** 使用量ビューで Command Code の使用量を確認できます。（#411）
+- **Qoder CN 使用量:** `設定 → ツール` で `Qoder CN` を有効にすると、Qoder CN の使用量を確認できます。（#301）
+- **OpenCode Go の上限:** このコンピューターでログイン中の Go アカウントを自動検出して上限を表示するため、Cookie を手動でコピーする必要がありません。（#406、#414、#416）
+- **Command Code の制限:** `AIツール制限` に Command Code の 5時間・週次・月次・追加クレジットが表示されます。（#421）
+- **自動調整の更新:** `自動調整` を選ぶと、上限の消費が速いときに更新頻度が上がります。（#405）
+- **フォントのカスタマイズ:** `外観 → 詳細カスタマイズ` で `インターフェースフォント` と `表示フォント` を個別に設定できます。（#432）
 
 ### 修正
-- **Proma の使用量:** ID が不完全なアシスタントメッセージも使用量に含まれます。（#392）
-- **トレイエディター:** ライブ更新中も開いた選択メニューが現在の項目に維持されます。（#395）
-- **macOS 互換性:** ホストアプリは macOS 12+、任意の Widget は macOS 14+ が必要です。（#394）
+- **トレンドの日付:** `トレンド` の今日のアクティビティと連続日数がデータを作成したデバイスの日付を基準に計算され、Hub が別のタイムゾーンでもずれません。（#428）
+- **WSL 検出の案内:** WSL で CLI 版 ZCode などのツールを検出しても使用量を読み取れない場合、設定パネルに WSL 内で headless agent を実行する案内が表示されます。（#431）
+- **Windows のトレイアイコン:** 明るいテーマと暗いテーマを切り替えてもトレイアイコンが表示されます。（#420）
+- **Linux のトレイメニュー:** Linux でトレイの右クリックメニューを再び使えます。（#413）
+- **Proma のコスト推定:** オンラインの価格取得が使えなくても、既知のモデルのコスト推定を表示します。（#418）
+- **システムプロキシでの AIツール制限:** 別の shell プロキシ設定なしで、OS のプロキシ経由で制限を読み込めます。（#380）
 <!-- app-update-notes:ja:end -->
 
 ## ソースからビルド
