@@ -24,7 +24,7 @@ test('curated model families match bare and publisher-scoped ids', () => {
     stepfun: ['STEP-3.5-Flash', 'stepfun-ai/Step-R1-V-Mini'],
     nvidia: ['Llama-3.1-Nemotron-Ultra-253B-v1', 'nvidia/Nemotron-3-Super'],
     huawei: ['pangu-nlp-n2-reasoner-32k', 'HuaweiCloud/Pangu-Pro-MoE'],
-    rednote: ['dots.llm1.inst', 'rednote-hilab/dots.vlm1.inst'],
+    rednote: ['dots.llm1.inst', 'dots3-note-prev', 'dots-next', 'rednote-hilab/dots.vlm1.inst'],
     baidu: ['ERNIE-4.5-300B-A47B', 'baidu/Qianfan-Code-Latest'],
     yi: ['Yi-1.5-34B-Chat', '01-ai/Yi-Coder-9B-Chat'],
     baichuan: ['Baichuan2-13B-Chat', 'baichuan-inc/Baichuan-M2-32B'],
@@ -78,7 +78,7 @@ test('publisher-specific derivatives win over their base architecture', () => {
 test('short or ordinary words do not create accidental vendor matches', () => {
   for (const modelId of [
     'nextstep', 'step-by-step', 'polkadot', 'ringtone', 'linguist',
-    'nova', 'mercury', 'longcaterpillar', 'holiday-dots', 'yi'
+    'nova', 'mercury', 'longcaterpillar', 'holiday-dots', 'holiday-dots3-note-prev', 'yi'
   ]) {
     assert.equal(modelVendorFor(modelId), null, modelId);
   }
@@ -107,6 +107,7 @@ test('charts and appearance settings consume every registry color and label', ()
   }
   assert.equal(modelColor('step-3.5-flash'), clientColors.stepfun);
   assert.equal(modelColor('llama-3.1-nemotron-ultra'), clientColors.nvidia);
+  assert.equal(modelColor('dots3-note-prev'), clientColors.rednote);
 });
 
 test('pinned Lobe model-vendor icons have an asset, CSS mask, and notice', () => {

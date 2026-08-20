@@ -7,7 +7,7 @@
   </p>
   <p>
     <a href="https://github.com/MarbleGateKeeper/token-monitor-ver.replica/releases"><img src="https://img.shields.io/github/v/release/MarbleGateKeeper/token-monitor-ver.replica?include_prereleases&style=flat-square&label=replica&color=22c55e" alt="Replica release"></a>
-    <img src="https://img.shields.io/badge/version-0.46.0--replica.1-64748b?style=flat-square" alt="Version 0.46.0-replica.1">
+    <img src="https://img.shields.io/badge/version-0.46.0--replica.2-64748b?style=flat-square" alt="Version 0.46.0-replica.2">
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-A855F7?style=flat-square" alt="MIT License"></a>
   </p>
   <img src=".github/assets/demo.gif" alt="Token Monitor demo">
@@ -25,7 +25,7 @@
 - **上游项目：** [Javis603/token-monitor](https://github.com/Javis603/token-monitor)，提供 Token Monitor 的主体架构、采集器、桌面组件、多设备 Hub、AI 工具额度和绝大多数功能。
 - **本仓库：** [MarbleGateKeeper/token-monitor-ver.replica](https://github.com/MarbleGateKeeper/token-monitor-ver.replica)，用于保留个人需要但尚未进入上游的修复与功能。
 - **Git 远程：** 通常以 `upstream` 跟踪原项目，以 `origin` 跟踪本 fork。同步上游时应先审阅差异，再保留下文列出的 fork 功能。
-- **版本规则：** 使用 `<上游版本>-replica.<修订号>`，例如当前版本 `0.46.0-replica.1`。同一上游版本继续发布时递增修订号；同步到新的上游版本后从 `replica.1` 重新开始。
+- **版本规则：** 使用 `<上游版本>-replica.<修订号>`，例如当前版本 `0.46.0-replica.2`。同一上游版本继续发布时递增修订号；同步到新的上游版本后从 `replica.1` 重新开始。
 - **更新来源：** 应用只把本 fork 的 `*-replica.N` Release 当作可用版本；同时独立查询上游最新 Release，用于提醒维护者何时需要同步上游。两类提醒都只打开对应 Release 页面，不会下载或安装更新。
 - **许可与署名：** 代码继续使用上游的 MIT 许可证，保留原作者 Javis 的版权声明；打包产物会携带完整 `LICENSE`。
 
@@ -39,7 +39,7 @@
 |---|---|
 | Moonshot / Kimi | `kimi-*`、`moonshot-*`，以及 Kimi Code 直接上报的精确 ID `k3`、`k3-256` |
 | Meituan / Tencent | [LongCat](https://github.com/meituan-longcat)；沿用上游的 [Hy3 / Hunyuan](https://github.com/Tencent-Hunyuan/Hy3) 支持 |
-| 重点新增 | [StepFun / Step](https://platform.stepfun.com/docs/zh/guides/models/overview)、[NVIDIA / Nemotron](https://huggingface.co/nvidia/collections)、[Huawei / Pangu](https://support.huaweicloud.com/productdesc-pangulm/pangulm_01_0033.html)、[RedNote / dots](https://huggingface.co/rednote-hilab/dots.llm1.inst) |
+| 重点新增 | [StepFun / Step](https://platform.stepfun.com/docs/zh/guides/models/overview)、[NVIDIA / Nemotron](https://huggingface.co/nvidia/collections)、[Huawei / Pangu](https://support.huaweicloud.com/productdesc-pangulm/pangulm_01_0033.html)、[RedNote / dots](https://huggingface.co/rednote-hilab/dots.llm1.inst)（匹配 `dots*`，包括 `dots3-note-prev`） |
 | 中国其他模型 | Baidu / ERNIE、01.AI / Yi、Baichuan、InternLM / InternVL、OpenBMB / MiniCPM、InclusionAI / Ling / Ring、Kuaishou / KAT-Coder、Skywork、SenseNova |
 | 国际其他模型 | Microsoft / Phi / WizardLM、Amazon / Nova / Titan、IBM / Granite、Perplexity / Sonar、Poolside / Laguna、Arcee / Trinity、Inception / Mercury、AI21 / Jamba、Ai2 / OLMo / Molmo / Tülu、Liquid / LFM |
 | 既有规则补充 | Cohere 的 Aya / Command A，以及 NousResearch / Hermes |
@@ -198,7 +198,7 @@ npm run pack:mac:widget # macOS 原生 Widget 的本地 ad-hoc 签名预览
 - **Upstream:** [Javis603/token-monitor](https://github.com/Javis603/token-monitor) provides the core architecture, collectors, desktop widget, multi-device Hub, AI Tool Limits, and most product functionality.
 - **This repository:** [MarbleGateKeeper/token-monitor-ver.replica](https://github.com/MarbleGateKeeper/token-monitor-ver.replica) carries personal fixes and features that have not been incorporated upstream.
 - **Git remotes:** `upstream` normally tracks the original project and `origin` tracks this fork. Review upstream changes before merging and preserve the fork behavior documented below.
-- **Versioning:** releases use `<upstream-version>-replica.<revision>`, currently `0.46.0-replica.1`. Increment the replica revision on the same upstream base; restart at `replica.1` after adopting a new upstream version.
+- **Versioning:** releases use `<upstream-version>-replica.<revision>`, currently `0.46.0-replica.2`. Increment the replica revision on the same upstream base; restart at `replica.1` after adopting a new upstream version.
 - **Updates:** only this fork's `*-replica.N` Releases enter the fork update channel. The app also checks upstream independently to tell maintainers when the fork needs syncing. Both channels only open their matching Release page and never download or install updates.
 - **License and credit:** the upstream MIT license and Javis copyright notice are preserved, and packaged applications include the complete `LICENSE`.
 
@@ -212,7 +212,7 @@ Model lists, charts, and Home activity outlines classify the families below. The
 |---|---|
 | Moonshot / Kimi | `kimi-*`, `moonshot-*`, plus the exact IDs `k3` and `k3-256` reported directly by Kimi Code |
 | Meituan / Tencent | [LongCat](https://github.com/meituan-longcat), with upstream [Hy3 / Hunyuan](https://github.com/Tencent-Hunyuan/Hy3) support retained |
-| Priority additions | [StepFun / Step](https://platform.stepfun.com/docs/zh/guides/models/overview), [NVIDIA / Nemotron](https://huggingface.co/nvidia/collections), [Huawei / Pangu](https://support.huaweicloud.com/productdesc-pangulm/pangulm_01_0033.html), and [RedNote / dots](https://huggingface.co/rednote-hilab/dots.llm1.inst) |
+| Priority additions | [StepFun / Step](https://platform.stepfun.com/docs/zh/guides/models/overview), [NVIDIA / Nemotron](https://huggingface.co/nvidia/collections), [Huawei / Pangu](https://support.huaweicloud.com/productdesc-pangulm/pangulm_01_0033.html), and [RedNote / dots](https://huggingface.co/rednote-hilab/dots.llm1.inst), matching `dots*` including `dots3-note-prev` |
 | Other Chinese families | Baidu / ERNIE, 01.AI / Yi, Baichuan, InternLM / InternVL, OpenBMB / MiniCPM, InclusionAI / Ling / Ring, Kuaishou / KAT-Coder, Skywork, and SenseNova |
 | Other global families | Microsoft / Phi / WizardLM, Amazon / Nova / Titan, IBM / Granite, Perplexity / Sonar, Poolside / Laguna, Arcee / Trinity, Inception / Mercury, AI21 / Jamba, Ai2 / OLMo / Molmo / Tülu, and Liquid / LFM |
 | Existing-rule additions | Cohere Aya / Command A and NousResearch / Hermes |

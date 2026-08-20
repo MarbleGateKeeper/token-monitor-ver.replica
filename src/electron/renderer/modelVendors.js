@@ -36,7 +36,7 @@
     ], 'huawei', LOBE_ICON_SOURCE),
     vendor('rednote', 'RedNote / dots', '#FF2442', [
       /(?:^|[/:])rednote(?:-hilab)?(?:$|[/:])/,
-      /(?:^|[/:])dots[._-](?:llm|vlm|ocr|mocr)(?:\d|$|[._-])/
+      /(?:^|[/:])dots/
     ]),
     vendor('baidu', 'Baidu / ERNIE', '#2932E1', [
       /(?:^|[/:_.-])baidu(?:$|[/:_.-])/,
