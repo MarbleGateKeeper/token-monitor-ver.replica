@@ -74,7 +74,8 @@ const supportedToolOrder = [
   'Proma',
   'Qoder',
   'Reasonix',
-  'DeepSeek',
+  'DeepSeek / DeepSeek Harness',
+  'Cherry Studio',
   'OpenRouter',
   'Minimax',
   'Volcengine',
@@ -108,6 +109,7 @@ const supportedToolIdOrder = [
   'qoder',
   'reasonix',
   'deepseek',
+  'cherrystudio',
   'openrouter',
   'minimax',
   'volcengine',
@@ -229,7 +231,7 @@ test('WSL SQLite guides keep English and Chinese entry points connected', () => 
 test('WSL SQLite guides state and verify the Node.js prerequisite', () => {
   for (const file of ['docs/wsl-sqlite-setup.md', 'docs/wsl-sqlite-setup.zh-CN.md']) {
     const guide = read(file);
-    assert.match(guide, /Node\.js 22\.13\.0/, file);
+    assert.match(guide, /Node\.js 22\.15\.0/, file);
     assert.match(guide, /node --version\nnpm --version\n/, file);
   }
 });

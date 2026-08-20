@@ -9,6 +9,8 @@
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { claudeSessionRoots } = require('./claudePaths');
+const { indexDshSessionHeaders, readDshSessionHeader, resolveDshSessionsRoot } = require('./dshSessionFiles');
 const { findSessionFiles, codexSessionFile } = require('./sessionFiles');
 const { discoverDbPaths: discoverOpenCodeDbPaths } = require('./opencodeLimits');
 const { discoverHermesProfileScanPaths, resolveHermesHome } = require('./hermesProfiles');
@@ -25,6 +27,13 @@ const SUPPORTED_PROJECT_CLIENTS = new Set([
   'claude', 'codex', 'opencode', 'grok', 'kimi', 'pi', 'codebuddy',
   'workbuddy', 'qwen', 'zcode', 'hermes'
 ]);
+
+// DSH session ids do not contain timestamps, so their transcript paths must be
+// discovered separately. Keep this cache process-wide: collectUsageOnce can
+// construct a fresh metadata resolver on each call, while a known DSH session's
+// file path remains stable across ticks. The resolved root is part of every key
+// so native and WSL homes carrying the same session id cannot collide.
+const dshSessionFileCache = new Map();
 
 // ---------------------------------------------------------------------------
 // Identity and conflict handling
@@ -728,7 +737,7 @@ function createSessionMetadataResolver(baseDeps = {}) {
     return out;
   }
 
-  function applyClaudeAndCodex(byClient, home, metadata, resolved, resolveProjects) {
+  function applyClaudeAndCodex(byClient, home, metadata, resolved, resolveProjects, deps) {
     const applyFile = (client, sessionId, filePath) => {
       const startedAt = timestampFromSessionId(sessionId);
       const lastUsedAt = lastJsonlTimestamp(filePath) || startedAt;
@@ -738,8 +747,17 @@ function createSessionMetadataResolver(baseDeps = {}) {
       if (identity.projectId) resolved.add(key);
     };
 
-    const claudeFiles = findSessionFiles(path.join(home, '.claude', 'projects'), byClient.get('claude') || []);
+    const claudeRoots = claudeSessionRoots({
+      homeDir: home,
+      env: deps.env || baseDeps.env,
+      useEnvRoots: !deps.scopedHome
+    });
+    const claudeIds = byClient.get('claude') || new Set();
+    const claudeFiles = findSessionFiles(claudeRoots.projects, claudeIds);
     for (const [sessionId, filePath] of claudeFiles) applyFile('claude', sessionId, filePath);
+    const missingClaudeIds = new Set([...claudeIds].filter((sessionId) => !claudeFiles.has(sessionId)));
+    const transcriptFiles = findSessionFiles(claudeRoots.transcripts, missingClaudeIds);
+    for (const [sessionId, filePath] of transcriptFiles) applyFile('claude', sessionId, filePath);
 
     const codexIds = byClient.get('codex') || new Set();
     const missingCodexIds = new Set();
@@ -750,6 +768,63 @@ function createSessionMetadataResolver(baseDeps = {}) {
     }
     const codexFiles = findSessionFiles(path.join(home, '.codex', 'sessions'), missingCodexIds);
     for (const [sessionId, filePath] of codexFiles) applyFile('codex', sessionId, filePath);
+  }
+
+  function applyDshSessions(byClient, home, metadata, deps) {
+    const ids = byClient.get('dsh') || new Set();
+    if (ids.size === 0) return;
+
+    const fileCache = deps.dshSessionFileCache || baseDeps.dshSessionFileCache || dshSessionFileCache;
+    const env = deps.scopedHome ? {} : (deps.env || baseDeps.env || process.env);
+    const platform = deps.platform || baseDeps.platform;
+    const sessionsRoot = resolveDshSessionsRoot({ homeDir: home, env, platform });
+    const cacheKey = (sessionId) => `${sessionsRoot}\u0000${sessionId}`;
+    const unresolved = [...ids].filter((sessionId) => !fileCache.has(cacheKey(sessionId)));
+
+    if (unresolved.length > 0) {
+      const buildIndex = deps.indexDshSessionHeaders || baseDeps.indexDshSessionHeaders || indexDshSessionHeaders;
+      const index = buildIndex({ homeDir: home, env, platform });
+      for (const [sessionId, entry] of index) {
+        const key = cacheKey(sessionId);
+        if (fileCache.has(key)) continue;
+        let statFingerprint = '';
+        try {
+          const stat = fs.statSync(entry.filePath);
+          statFingerprint = `${stat.size}:${stat.mtimeMs}`;
+        } catch (_) { /* file vanished during discovery */ }
+        fileCache.set(key, { ...entry, statFingerprint });
+      }
+    }
+
+    for (const sessionId of ids) {
+      const key = cacheKey(sessionId);
+      let entry = fileCache.get(key);
+      if (!entry) continue;
+      let lastUsedAt = '';
+      let statFingerprint = '';
+      try {
+        const stat = fs.statSync(entry.filePath);
+        lastUsedAt = isoFromDate(stat.mtime);
+        statFingerprint = `${stat.size}:${stat.mtimeMs}`;
+      } catch (_) { /* file vanished after discovery */ }
+
+      // A torn initial write can leave only the directory-name fallback. Once
+      // the file changes, retry the bounded header read to recover createdAt.
+      if (entry.createdAt === undefined && statFingerprint && statFingerprint !== entry.statFingerprint) {
+        const readHeader = deps.readDshSessionHeader || baseDeps.readDshSessionHeader || readDshSessionHeader;
+        const refreshed = readHeader(entry.filePath);
+        if (refreshed) entry = { filePath: entry.filePath, createdAt: refreshed.createdAt, statFingerprint };
+        else entry = { ...entry, statFingerprint };
+        fileCache.set(key, entry);
+      }
+
+      const startedAt = isoFromDate(Number(entry.createdAt));
+      if (!startedAt && !lastUsedAt) continue;
+      metadata.set(`dsh:${sessionId}`, {
+        startedAt: startedAt || lastUsedAt,
+        lastUsedAt: lastUsedAt || startedAt
+      });
+    }
   }
 
   function resolve(periods, home = os.homedir(), deps = {}) {
@@ -774,7 +849,8 @@ function createSessionMetadataResolver(baseDeps = {}) {
       byClient.get(ref.client).add(ref.sessionId);
     }
 
-    applyClaudeAndCodex(byClient, home, metadata, resolved, resolveProjects);
+    applyClaudeAndCodex(byClient, home, metadata, resolved, resolveProjects, deps);
+    applyDshSessions(byClient, home, metadata, deps);
 
     const changedPathsByClient = deps.changedPathsByClient || {};
     const reconciledClients = deps.reconciledClients || new Set();
@@ -838,7 +914,7 @@ function createSessionMetadataResolver(baseDeps = {}) {
       if (resolved.has(key) || metadata.has(key)) continue;
       const timestamp = timestampFromSessionId(ref.sessionId);
       if (timestamp) metadata.set(key, { startedAt: timestamp, lastUsedAt: timestamp });
-      if (!SUPPORTED_PROJECT_CLIENTS.has(ref.client)) resolved.add(key);
+      if (!SUPPORTED_PROJECT_CLIENTS.has(ref.client) && ref.client !== 'dsh') resolved.add(key);
     }
     for (const ref of refs.values()) attempted.add(`${ref.client}:${ref.sessionId}`);
     return metadata;

@@ -376,7 +376,7 @@
     ...modelVendorColors,
     antigravity: modelVendorColors.gemini || '#4285f4', cline: '#323B43', grok: '#64748B', copilot: '#000000', openrouter: '#6566F1',
     openclaw: '#ff4d4d', pi: '#000', zed: '#4173e7', kilocode: '#F8F676', commandcode: '#8C4EDD', micode: '#000000', zcode: '#3859FF', kiro: '#9046FF',
-    codebuddy: '#6C4DFF', workbuddy: '#0DC8A5', proma: '#000000', qodercn: '#2ADB5C', reasonix: '#4d6bfe',
+    codebuddy: '#6C4DFF', workbuddy: '#0DC8A5', proma: '#000000', qodercn: '#2ADB5C', reasonix: '#4d6bfe', dsh: modelVendorColors.deepseek || '#4d6bfe', cherrystudio: '#EA5E5D',
     moonshot: modelVendorColors.kimi || '#1783FF', zaiteam: modelVendorColors.zai || '#3859FF', volcengine: '#006EFF', qoder: '#2ADB5C', ollama: '#888888', thirdparty: '#DD2E57',
     default: '#6ab4f0'
   };
@@ -516,6 +516,10 @@
   function heatmapSvg(model, options) {
     const o = Object.assign({ titleOf: () => '', monthLabel: (m) => m.label, radius: 3, glowFilterId: '', spotlightId: '', spotlightRadius: 86, initialHidden: false }, options || {});
     const botPad = 16;
+    const modelWidth = Math.max(0, Number(model.width) || 0);
+    const modelHeight = Math.max(0, Number(model.height) || 0);
+    // Keep model geometry flush with the SVG. Interactive effects must not
+    // reserve layout space or change the source coordinates.
     const pitch = (model.cell || 11) + (model.gap || 2);
     const glowFilterId = String(o.glowFilterId || '');
     const spotlightId = String(o.spotlightId || '');
@@ -527,7 +531,7 @@
       defsParts.push(`<filter id="${escapeXml(glowFilterId)}" x="-80%" y="-80%" width="260%" height="260%" color-interpolation-filters="sRGB"><feDropShadow dx="0" dy="0" stdDeviation="2.1" flood-color="rgb(120, 190, 255)" flood-opacity="0.95"></feDropShadow><feDropShadow dx="0" dy="0" stdDeviation="4.2" flood-color="rgb(120, 190, 255)" flood-opacity="0.42"></feDropShadow></filter>`);
     }
     if (spotlightId) {
-      defsParts.push(`<radialGradient id="${escapeXml(spotlightGradientId)}" gradientUnits="userSpaceOnUse" cx="-200" cy="-200" r="${radius}"><stop offset="0" stop-color="white" stop-opacity="1"></stop><stop offset="0.35" stop-color="white" stop-opacity="0.62"></stop><stop offset="0.75" stop-color="white" stop-opacity="0"></stop></radialGradient><mask id="${escapeXml(spotlightMaskId)}"><rect x="0" y="0" width="${svgRound(model.width)}" height="${svgRound(model.height)}" fill="url(#${escapeXml(spotlightGradientId)})"></rect></mask>`);
+      defsParts.push(`<radialGradient id="${escapeXml(spotlightGradientId)}" gradientUnits="userSpaceOnUse" cx="-200" cy="-200" r="${radius}"><stop offset="0" stop-color="white" stop-opacity="1"></stop><stop offset="0.35" stop-color="white" stop-opacity="0.62"></stop><stop offset="0.75" stop-color="white" stop-opacity="0"></stop></radialGradient><mask id="${escapeXml(spotlightMaskId)}"><rect x="0" y="0" width="${svgRound(modelWidth)}" height="${svgRound(modelHeight)}" fill="url(#${escapeXml(spotlightGradientId)})"></rect></mask>`);
     }
     const defs = defsParts.length ? `<defs>${defsParts.join('')}</defs>` : '';
     const initialVisibility = o.initialHidden ? ' data-motion-hidden="true" opacity="0"' : '';
@@ -594,11 +598,11 @@
     // Month labels sit BELOW the grid, left-anchored at the column where each month
     // starts — so the current month naturally lands on whichever column its 1st falls in
     // (no special-casing), and the first month sits flush at the left edge.
-    const labelY = model.height + 12;
+    const labelY = modelHeight + 12;
     const months = (model.monthLabels || []).map((m) =>
       `<text class="heat-month" x="${svgRound(m.col * pitch)}" y="${svgRound(labelY)}" text-anchor="start">${escapeXml(o.monthLabel(m))}</text>`
     ).join('');
-    return `<svg class="dash-heatmap" viewBox="0 0 ${model.width} ${model.height + botPad}" width="${model.width}" height="${model.height + botPad}">${defs}<g class="heat-base-layer">${cells}</g>${brightLayer}${outlineLayer}${months}</svg>`;
+    return `<svg class="dash-heatmap" viewBox="0 0 ${svgRound(modelWidth)} ${svgRound(modelHeight + botPad)}" width="${svgRound(modelWidth)}" height="${svgRound(modelHeight + botPad)}">${defs}<g class="heat-base-layer">${cells}</g>${brightLayer}${outlineLayer}${months}</svg>`;
   }
 
   function statsCardsHtml(cards, options) {

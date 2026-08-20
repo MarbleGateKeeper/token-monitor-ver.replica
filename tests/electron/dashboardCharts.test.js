@@ -27,6 +27,7 @@ test('clientColors carries the known palette and a default', () => {
   assert.equal(clientColors.claude, '#cc7c5e');
   assert.equal(clientColors.codex, '#007CCB');
   assert.equal(clientColors.cline, '#323B43');
+  assert.equal(clientColors.cherrystudio, '#EA5E5D');
   assert.equal(clientColors.commandcode, '#8C4EDD');
   assert.equal(clientColors.volcengine, '#006EFF');
   assert.equal(clientColors.meituan, '#FFD100');
