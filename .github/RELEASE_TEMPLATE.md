@@ -3,8 +3,20 @@
 ## What's changed
 
 <!-- app-update-notes:en:start -->
+### Added
+- **WorkBuddy Credits:** Track Credits from the signed-in WorkBuddy desktop app on macOS and Windows; headless deployments can use the documented environment fallback. (#378)
+- **Trae CN Credits:** Track Trae CN and SOLO credit balances with a Trae CN access token. (#483)
+
+### Improved
+- **Tray balance display:** Credits-backed tray items can show the balance-meter percentage, while Balance remains the default. (#470)
+- **Tool tracking toggles:** Changing tracked tools no longer starts a redundant usage scan.
+- **Unknown model artwork:** Unrecognized models now use the Token Monitor mark instead of a generic dot.
+
 ### Fixed
-- **RedNote model recognition:** Model IDs whose model-name segment starts with `dots`, including `dots3-note-prev`, are now classified as RedNote / dots.
+- **Codex limits:** OAuth quota and reset-count data are preferred when available, with the managed account's workspace mapping preserved. (#473)
+- **Targeted usage refreshes:** Refreshing one or more tools no longer clears unrelated usage when the targeted result is incomplete. (#467)
+- **AI Tool Limits refreshes:** Provider process failures now finish cleanly, with supported fallback paths still available where applicable. (#464)
+- **Trae account setup:** The account setup controls and status now stay aligned with the provider's access-token flow.
 <!-- app-update-notes:en:end -->
 
 ## Build from source
@@ -18,8 +30,20 @@ This repository does not publish prebuilt installers or application archives. To
 ## 更新内容
 
 <!-- app-update-notes:zh:start -->
+### 新增
+- **WorkBuddy Credits：** 支持在 macOS 和 Windows 上读取已登录的 WorkBuddy 桌面应用 Credits；无界面部署可使用文档中的环境变量后备配置。（#378）
+- **Trae CN Credits：** 支持使用 Trae CN access token 读取 Trae CN 与 SOLO Credits。（#483）
+
+### 改进
+- **托盘余额显示：** Credits 项目可选择显示余额或额度条百分比，默认仍显示余额。（#470）
+- **工具追踪开关：** 修改追踪工具时不再触发一次多余的用量扫描。
+- **未知模型图标：** 无法识别厂商的模型现在使用 Token Monitor 标志，不再显示通用圆点。
+
 ### 修复
-- **小红书 dots 模型识别：** 模型名段以 `dots` 开头的 ID（包括 `dots3-note-prev`）现在会正确归为 RedNote / dots。
+- **Codex 额度：** 优先读取 OAuth 账号的额度与重置次数，并保留管理账号的工作区对应关系。（#473）
+- **定向用量刷新：** 刷新一个或多个工具时，即使返回结果不完整，也不会清除其他工具的用量。（#467）
+- **AI 工具额度刷新：** 提供商进程异常时，额度刷新会正常收尾；支持后备路径的提供商会继续尝试后备方案。（#464）
+- **Trae 账号设置：** 账号设置控件和状态现已与 access token 流程保持一致。
 <!-- app-update-notes:zh:end -->
 
 ## 从源码构建
@@ -29,7 +53,7 @@ This repository does not publish prebuilt installers or application archives. To
 ---
 
 <details>
-<summary><strong>Full Changelog:</strong> <a href="https://github.com/MarbleGateKeeper/token-monitor-ver.replica/compare/0.46.0-replica.1...v0.46.0-replica.2">0.46.0-replica.1...v0.46.0-replica.2</a></summary>
+<summary><strong>Full Changelog:</strong> <a href="https://github.com/MarbleGateKeeper/token-monitor-ver.replica/compare/0.46.0-replica.2...v0.47.0-replica.1">0.46.0-replica.2...v0.47.0-replica.1</a></summary>
 
 <!-- github-generated-release-notes -->
 
@@ -46,8 +70,20 @@ This repository does not publish prebuilt installers or application archives. To
 ## 更新內容
 
 <!-- app-update-notes:zh-TW:start -->
+### 新增
+- **WorkBuddy Credits：** 支援在 macOS 與 Windows 上讀取已登入的 WorkBuddy 桌面應用程式 Credits；無介面部署可使用文件中的環境變數後備設定。（#378）
+- **Trae CN Credits：** 支援使用 Trae CN access token 讀取 Trae CN 與 SOLO Credits。（#483）
+
+### 改進
+- **托盤餘額顯示：** Credits 項目可選擇顯示餘額或額度條百分比，預設仍顯示餘額。（#470）
+- **工具追蹤開關：** 變更追蹤工具時不再觸發多餘的用量掃描。
+- **未知模型圖示：** 無法辨識供應商的模型現在使用 Token Monitor 標誌，不再顯示通用圓點。
+
 ### 修復
-- **小紅書 dots 模型辨識：** 模型名稱區段以 `dots` 開頭的 ID（包括 `dots3-note-prev`）現在會正確歸類為 RedNote / dots。
+- **Codex 額度：** 優先讀取 OAuth 帳號的額度與重置次數，並保留管理帳號的工作區對應關係。（#473）
+- **定向用量重新整理：** 重新整理一個或多個工具時，即使回傳結果不完整，也不會清除其他工具的用量。（#467）
+- **AI 工具額度重新整理：** 提供者程序異常時，額度重新整理會正常收尾；支援後備路徑的提供者會繼續嘗試後備方案。（#464）
+- **Trae 帳號設定：** 帳號設定控制項與狀態現在和 access token 流程保持一致。
 <!-- app-update-notes:zh-TW:end -->
 
 ## 從原始碼建置
@@ -64,8 +100,20 @@ This repository does not publish prebuilt installers or application archives. To
 ## 업데이트 내용
 
 <!-- app-update-notes:ko:start -->
+### 추가
+- **WorkBuddy Credits:** macOS와 Windows에서 로그인된 WorkBuddy 데스크톱 앱의 Credits를 추적합니다. 헤드리스 배포에서는 문서화된 환경 변수 대체 설정을 사용할 수 있습니다. (#378)
+- **Trae CN Credits:** Trae CN access token으로 Trae CN 및 SOLO Credits를 추적합니다. (#483)
+
+### 개선
+- **트레이 잔액 표시:** Credits 기반 트레이 항목에서 잔액 또는 미터 백분율을 선택할 수 있으며, 기본값은 잔액입니다. (#470)
+- **도구 추적 토글:** 추적 도구를 변경할 때 중복 사용량 스캔을 더 이상 시작하지 않습니다.
+- **알 수 없는 모델 아이콘:** 공급자를 인식할 수 없는 모델은 일반 점 대신 Token Monitor 마크를 사용합니다.
+
 ### 수정
-- **RedNote dots 모델 인식:** 모델 이름 구간이 `dots`로 시작하는 ID(`dots3-note-prev` 포함)를 이제 RedNote / dots로 올바르게 분류합니다.
+- **Codex 한도:** OAuth 계정의 한도와 리셋 횟수를 우선 사용하고, 관리 계정의 워크스페이스 연결을 유지합니다. (#473)
+- **대상 사용량 새로 고침:** 하나 이상의 도구를 새로 고칠 때 결과가 불완전해도 다른 도구의 사용량을 지우지 않습니다. (#467)
+- **AI 도구 한도 새로 고침:** 공급자 프로세스 오류가 발생해도 새로 고침이 정상적으로 마무리되며, 지원되는 경우 대체 경로를 계속 시도합니다. (#464)
+- **Trae 계정 설정:** 계정 설정 컨트롤과 상태가 access token 흐름과 일치하도록 정리되었습니다.
 <!-- app-update-notes:ko:end -->
 
 ## 소스에서 빌드
@@ -82,8 +130,20 @@ This repository does not publish prebuilt installers or application archives. To
 ## 更新内容
 
 <!-- app-update-notes:ja:start -->
+### 追加
+- **WorkBuddy Credits：** macOSとWindowsで、ログイン済みのWorkBuddyデスクトップアプリからCreditsを追跡できます。ヘッドレス環境では、ドキュメントに記載された環境変数のフォールバックを利用できます。（#378）
+- **Trae CN Credits：** Trae CN access tokenを使用して、Trae CNとSOLO Creditsを追跡できます。（#483）
+
+### 改善
+- **トレイの残高表示：** Credits対応のトレイ項目で残高とメーターの割合を選択でき、初期値は残高です。（#470）
+- **ツール追跡の切り替え：** 追跡対象のツールを変更しても、重複した使用量スキャンを開始しなくなりました。
+- **不明なモデルのアイコン：** プロバイダーを認識できないモデルには、汎用の点ではなくToken Monitorのマークを表示します。
+
 ### 修正
-- **RedNote dots モデルの認識：** モデル名の区切りが `dots` で始まる ID（`dots3-note-prev` を含む）を RedNote / dots として正しく分類するようにしました。
+- **Codexの制限：** OAuthアカウントの制限とリセット回数を優先して使用し、管理アカウントのワークスペースとの対応関係を維持します。（#473）
+- **対象を絞った使用量の更新：** 1つ以上のツールを更新したとき、結果が不完全でも他のツールの使用量を消去しません。（#467）
+- **AIツール制限の更新：** プロバイダーのプロセスでエラーが起きても更新を正常に終了し、対応するフォールバック経路がある場合は引き続き試行します。（#464）
+- **Traeアカウント設定：** アカウント設定のコントロールと状態をaccess tokenフローに合わせました。
 <!-- app-update-notes:ja:end -->
 
 ## ソースからビルド

@@ -377,10 +377,13 @@
     antigravity: modelVendorColors.gemini || '#4285f4', cline: '#323B43', grok: '#64748B', copilot: '#000000', openrouter: '#6566F1',
     openclaw: '#ff4d4d', pi: '#000', zed: '#4173e7', kilocode: '#F8F676', commandcode: '#8C4EDD', micode: '#000000', zcode: '#3859FF', kiro: '#9046FF',
     codebuddy: '#6C4DFF', workbuddy: '#0DC8A5', proma: '#000000', qodercn: '#2ADB5C', reasonix: '#4d6bfe', dsh: modelVendorColors.deepseek || '#4d6bfe', cherrystudio: '#EA5E5D',
-    moonshot: modelVendorColors.kimi || '#1783FF', zaiteam: modelVendorColors.zai || '#3859FF', volcengine: '#006EFF', qoder: '#2ADB5C', ollama: '#888888', thirdparty: '#DD2E57',
+    moonshot: modelVendorColors.kimi || '#1783FF', zaiteam: modelVendorColors.zai || '#3859FF', volcengine: '#006EFF', qoder: '#2ADB5C', trae: '#32F08C', ollama: '#888888', thirdparty: '#DD2E57',
     default: '#6ab4f0'
   };
-  const fallbackModelColors = ['#6ab4f0', '#cc7c5e', '#a57df0', '#49a3b0', '#f0d66a', '#f06a7b'];
+  // Kept distinct from every named provider color above — sharing a hex with a real
+  // vendor (as '#cc7c5e'/'#49a3b0' used to, colliding with claude/codex) makes an
+  // unrelated unrecognized model look like it belongs to that vendor.
+  const fallbackModelColors = ['#6ab4f0', '#5fbf8a', '#a57df0', '#d97bc4', '#f0d66a', '#f06a7b'];
 
   function modelColor(model) {
     const vendor = modelVendorFor(model);

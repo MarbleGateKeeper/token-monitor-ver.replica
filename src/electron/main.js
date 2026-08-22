@@ -24,6 +24,10 @@ const fontSettingsApi = require('../shared/fontSettings');
 const motionPreferenceApi = require('./motionPreference');
 const { createClientSourceIpcHandlers } = require('./clientSourceIpc');
 const { createClaudeWebFetch } = require('./claudeWebFetch');
+const {
+  createWorkbuddyLocalAuth,
+  isSupportedWorkbuddyLocalAppPlatform
+} = require('./workbuddyLocalAuth');
 const { createElectronLimitsFetch } = require('./limitsFetch');
 const {
   expandedBoundsForCollapse,
@@ -43,6 +47,9 @@ const {
 // event and Electron pops a "JavaScript error in the main process" dialog.
 installSafeStdout();
 const electronClaudeWebFetch = createClaudeWebFetch(net);
+const electronWorkbuddyLocalAuth = createWorkbuddyLocalAuth({
+  fetch: electronLimitsFetch()
+});
 // One transport for every widget provider call that resolves through
 // `deps.fetch` — see limitsFetch.js for why the branch and the request options
 // are what they are. Probes that build their own transport inherit neither
@@ -73,11 +80,12 @@ const { customPricingPath } = require('../shared/tokscaleConfig');
 const { normalizeCustomPricingSetting, syncMappedPricing } = require('../shared/tokscaleCustomPricing');
 const { createHub } = require('../hub/server');
 const { probeHubBuild } = require('./hubBuildStatus');
-const { claudeWebCookie, deepseekToken, fetchClaudeLimits, normalizeClaudeWebCookieInput, normalizeLimitsRefreshMode, normalizeLimitsRefreshMs, parseBoolean, parseLimitProviders, runCodexLogin, minimaxToken, copilotToken, zaiToken, zaiRegion, zaiTeamToken, volcengineCredentials, qoderCookie, commandcodeCookie, kimiToken, kimiWebToken, ollamaSessionCookie } = require('../shared/limitCollector');
+const { claudeWebCookie, deepseekToken, fetchClaudeLimits, normalizeClaudeWebCookieInput, normalizeLimitsRefreshMode, normalizeLimitsRefreshMs, parseBoolean, parseLimitProviders, runCodexLogin, minimaxToken, copilotToken, zaiToken, zaiRegion, zaiTeamToken, volcengineCredentials, qoderCookie, traeAccessToken, traeDeviceId, commandcodeCookie, kimiToken, kimiWebToken, ollamaSessionCookie } = require('../shared/limitCollector');
 const { fetchOllamaLimits, rememberOllamaValidation } = require('../shared/ollamaLimits');
 const { copilotLoginErrorMessage, isAllowedVerificationUrl, runCopilotDeviceFlowLogin } = require('../shared/copilotDeviceFlow');
 const {
   codexAuthIdentity,
+  codexAccountKey,
   codexManagedAccountIdentityKey,
   codexManagedAccountMatchesIdentity,
   hashAccountKey,
@@ -85,12 +93,9 @@ const {
   upgradeCodexManagedAccountIdentity
 } = require('../shared/codexAuth');
 const { codexLoginUrlFromOutput, isAllowedCodexLoginUrl } = require('../shared/codexLogin');
+const { listCodexWorkspaces, normalizeWorkspaceId } = require('../shared/codexWorkspaces');
 const {
-  authWithSelectedCodexWorkspace,
-  listCodexWorkspaces,
-  normalizeWorkspaceId
-} = require('../shared/codexWorkspaces');
-const {
+  codexAuthMaterialForWorkspace,
   codexAccountMatchesIdentity,
   liveCodexAuthPath,
   readCodexAuthMaterial,
@@ -548,6 +553,8 @@ function defaultSettings() {
     volcengineRegion: '',
     qoderCookie: '',
     qoderSite: 'global',
+    traeAccessToken: '',
+    traeDeviceId: '',
     commandcodeCookie: '',
     kimiApiKey: '',
     kimiWebAccessToken: '',
@@ -667,8 +674,16 @@ function electronUsagePipeline(errorPrefix) {
 }
 
 function electronLimitsConfig() {
+  const workbuddyEnabled = settings?.limitsEnabled !== false
+    && parseLimitProviders(settings?.limitProviders).includes('workbuddy');
+  const workbuddyDesktopSessionSupported = isSupportedWorkbuddyLocalAppPlatform();
+  const workbuddyDesktopSessionEnabled = workbuddyEnabled && workbuddyDesktopSessionSupported;
   return limitsConfigFromSettings(settings, {
     env: process.env,
+    workbuddyDesktopSessionOnly: true,
+    workbuddyDesktopSessionSupported,
+    workbuddyDesktopSessionEnabled,
+    workbuddyLocalSession: workbuddyDesktopSessionEnabled ? electronWorkbuddyLocalAuth.getSessionInfo() : {},
     defaultLimitProviders: defaultLimitProviders(),
     codexManagedAccounts: codexManagedAccountsForCollector(),
     mimoManagedAccounts: mimoManagedAccountsForCollector()
@@ -720,6 +735,14 @@ function electronLimitsDeps() {
   return {
     fetch: electronLimitsFetch(),
     claudeWebFetch: electronClaudeWebFetch,
+    workbuddyFetch: async (url, init = {}, expectedSession = null) => {
+      const result = await electronWorkbuddyLocalAuth.request(url, init, expectedSession);
+      return {
+        status: result.status,
+        ok: result.ok,
+        json: () => result.json()
+      };
+    },
     resolveConfigSnapshot: () => electronLimitsConfig(),
     onClaudeWebCookieRenewed: persistClaudeWebCookieRenewal
   };
@@ -802,6 +825,18 @@ function normalizeQoderSite(value) {
 
 function currentQoderCookie() {
   return settings?.qoderCookie || qoderCookie(process.env);
+}
+
+function normalizeTraeAccessToken(value) {
+  return traeAccessToken({}, { traeAccessToken: String(value || '') });
+}
+
+function normalizeTraeDeviceId(value) {
+  return traeDeviceId({}, { traeDeviceId: String(value || '') });
+}
+
+function currentTraeAccessToken() {
+  return settings?.traeAccessToken || traeAccessToken(process.env);
 }
 
 function normalizeCommandcodeCookie(value) {
@@ -977,18 +1012,18 @@ function hydrateCodexManagedWorkspaceLabels() {
     let changed = false;
     const accounts = normalizeCodexManagedAccounts(settings?.codexManagedAccounts).map((account) => {
       const resolved = labels.get(account.id);
-      if (
-        !resolved
-        || account.workspaceLabel
-        || account.workspaceKind
-        || account.enabled === false
-        || account.workspaceAccountId !== resolved.workspaceAccountId
-      ) return account;
+      if (!resolved || account.enabled === false || account.workspaceAccountId !== resolved.workspaceAccountId) {
+        return account;
+      }
+      const shouldHydrateLabel = !account.workspaceLabel && !account.workspaceKind;
+      if (!shouldHydrateLabel) return account;
       changed = true;
       return {
         ...account,
-        workspaceLabel: resolved.label,
-        workspaceKind: resolved.workspaceKind,
+        ...(shouldHydrateLabel ? {
+          workspaceLabel: resolved.label,
+          workspaceKind: resolved.workspaceKind
+        } : {}),
         updatedAt: new Date().toISOString()
       };
     });
@@ -1327,7 +1362,7 @@ async function rollbackCodexManagedHome(homePath, backupHomePath, movedToFinal) 
   if (backupHomePath) await fs.promises.rename(backupHomePath, homePath);
 }
 
-async function resolveCodexWorkspaceAfterLogin(auth, homePath, options = {}) {
+async function resolveCodexWorkspaceAfterLogin(auth, _homePath, options = {}) {
   const initialIdentity = codexAuthIdentity(auth);
   let workspaces;
   try {
@@ -1361,15 +1396,14 @@ async function resolveCodexWorkspaceAfterLogin(auth, homePath, options = {}) {
   }
   if (!selected) return { auth, identity: initialIdentity };
 
-  const selectedAuth = authWithSelectedCodexWorkspace(auth, selected.id);
-  await writeCodexAuthFile(
-    path.join(homePath, 'auth.json'),
-    `${JSON.stringify(selectedAuth, null, 2)}\n`
-  );
+  const workspaceAccountId = normalizeWorkspaceId(selected.id);
   return {
-    auth: selectedAuth,
+    auth,
     identity: {
-      ...codexAuthIdentity(selectedAuth),
+      ...initialIdentity,
+      providerAccountId: workspaceAccountId,
+      workspaceAccountId,
+      accountKey: codexAccountKey(initialIdentity.email, workspaceAccountId),
       workspaceLabel: selected.label,
       workspaceKind: selected.workspaceKind
     }
@@ -1531,6 +1565,17 @@ async function switchCodexSystemAccount(id) {
   if (!hasCodexIdentity(targetMaterial.identity)) {
     return { ok: false, error: 'Could not identify the selected Codex account credentials.' };
   }
+  let selectedMaterial;
+  try {
+    selectedMaterial = codexAuthMaterialForWorkspace(targetMaterial, account.workspaceAccountId);
+  } catch (error) {
+    return { ok: false, error: error?.message || 'Could not prepare the selected Codex workspace.' };
+  }
+  const targetIdentity = {
+    ...selectedMaterial.identity,
+    workspaceLabel: account.workspaceLabel,
+    workspaceKind: account.workspaceKind
+  };
 
   const previousAccounts = normalizeCodexManagedAccounts(settings.codexManagedAccounts);
   const liveAuthPath = liveCodexAuthPath(process.env);
@@ -1542,16 +1587,16 @@ async function switchCodexSystemAccount(id) {
   }
   let preservedLiveAccount = null;
   try {
-    preservedLiveAccount = await preserveLiveCodexAuthAsManagedAccount(targetMaterial.identity);
-    await writeCodexAuthFile(liveAuthPath, targetMaterial.data);
+    preservedLiveAccount = await preserveLiveCodexAuthAsManagedAccount(targetIdentity);
+    await writeCodexAuthFile(liveAuthPath, selectedMaterial.data);
     const refreshedAccounts = normalizeCodexManagedAccounts(settings.codexManagedAccounts);
     const refreshed = refreshedAccounts.find((entry) => entry.id === account.id) || account;
-    commitCodexManagedAccount(targetMaterial.identity, refreshed.homePath, refreshed, {
+    commitCodexManagedAccount(targetIdentity, refreshed.homePath, refreshed, {
       enabled: refreshed.enabled !== false,
       restart: false
     });
     void queueLimitInvalidation({ provider: 'codex' }, 'system-account-switch');
-    const activeAccountId = codexAccountId(targetMaterial.identity, refreshed);
+    const activeAccountId = codexAccountId(targetIdentity, refreshed);
     const accountsForRenderer = codexAccountsForRenderer();
     return {
       ok: true,
@@ -2140,6 +2185,7 @@ function readSettings() {
     merged.showHomeLimitBars = parseBoolean(merged.showHomeLimitBars, false);
     merged.showHomeLimitProviderNames = parseBoolean(merged.showHomeLimitProviderNames, false);
     merged.opencodeLocalLimitsEnabled = parseBoolean(merged.opencodeLocalLimitsEnabled, false);
+    delete merged.workbuddyLocalAppEnabled;
     merged.windowMaximized = parseBoolean(merged.windowMaximized, false);
     // Removed in the source-only release channel. Ignore legacy preferences so
     // old settings files cannot re-enable the retired download/install path.
@@ -2197,6 +2243,7 @@ function readSettings() {
     merged.currencyRates = normalizeCurrencyOverrides(merged.currencyRates);
     merged.hubHostPort = normalizeHubPort(merged.hubHostPort);
     merged.hubHostSecret = typeof merged.hubHostSecret === 'string' ? merged.hubHostSecret : '';
+    delete merged.workbuddyEndpoint;
     merged.floatingBubbleEnabled = parseBoolean(merged.floatingBubbleEnabled ?? merged.edgeDrawerEnabled, false);
     merged.archivedClientUsage = normalizeArchivedClientUsage(merged.archivedClientUsage);
     merged.modelMappings = normalizeModelMappings(merged.modelMappings);
@@ -4322,6 +4369,11 @@ function settingsForRenderer() {
     : qoderCookie(process.env)
       ? 'env'
       : '';
+  const traeAccessTokenSource = settings?.traeAccessToken
+    ? 'settings'
+    : traeAccessToken(process.env)
+      ? 'env'
+      : '';
   const commandcodeCookieSource = settings?.commandcodeCookie
     ? 'settings'
     : commandcodeCookie(process.env)
@@ -4348,8 +4400,17 @@ function settingsForRenderer() {
   const redactedCredentials = credentialSettingsForRenderer(settings, {
     expose: ['hubHostSecret', 'secret']
   });
+  const rendererSettings = { ...settings };
+  for (const key of [
+    'workbuddyAccessToken',
+    'workbuddyUserId',
+    'workbuddyEnterpriseId',
+    'workbuddyLocale',
+    'workbuddyDomain',
+    'workbuddyDepartmentInfo'
+  ]) delete rendererSettings[key];
   return {
-    ...settings,
+    ...rendererSettings,
     locale: trayMenuLocale(),
     ...redactedCredentials,
     // On a hub the shared list is the truth; settings.subscriptions is only the
@@ -4369,6 +4430,8 @@ function settingsForRenderer() {
     volcengineAccessKeyId: settings?.volcengineAccessKeyId ? 'set' : '',
     claudeWebCookie: settings?.claudeWebCookie ? 'set' : '',
     qoderCookie: settings?.qoderCookie ? 'set' : '',
+    traeAccessToken: settings?.traeAccessToken ? 'set' : '',
+    traeDeviceId: settings?.traeDeviceId ? 'set' : '',
     commandcodeCookie: settings?.commandcodeCookie ? 'set' : '',
     ollamaCookie: settings?.ollamaCookie ? 'set' : '',
     // Never ship OpenCode session cookies to the renderer; the UI only needs to
@@ -4403,6 +4466,8 @@ function settingsForRenderer() {
     volcengineCredentialsSource,
     qoderCookieConfigured: Boolean(currentQoderCookie()),
     qoderCookieSource,
+    traeAccessTokenConfigured: Boolean(currentTraeAccessToken()),
+    traeAccessTokenSource,
     commandcodeCookieConfigured: Boolean(currentCommandcodeCookie()),
     commandcodeCookieSource,
     ollamaCookieConfigured: Boolean(currentOllamaCookie()),
@@ -5500,6 +5565,7 @@ function isAllowedExternalUrl(value) {
   if (parsed.hostname === 'bigmodel.cn' || parsed.hostname === 'www.bigmodel.cn') return true;
   if (parsed.hostname === 'www.volcengine.com' || parsed.hostname === 'console.volcengine.com') return true;
   if (parsed.hostname === 'qoder.com' || parsed.hostname === 'www.qoder.com' || parsed.hostname === 'qoder.com.cn' || parsed.hostname === 'www.qoder.com.cn') return true;
+  if (parsed.hostname === 'trae.cn' || parsed.hostname === 'www.trae.cn') return true;
   if (parsed.hostname === 'commandcode.ai' || parsed.hostname === 'www.commandcode.ai') return true;
   if ((parsed.hostname === 'ollama.com' || parsed.hostname === 'www.ollama.com') && (parsed.pathname === '/settings' || parsed.pathname === '/signin')) return true;
   if ((parsed.hostname === 'kimi.com' || parsed.hostname === 'www.kimi.com') && parsed.pathname.startsWith('/code')) return true;
@@ -5964,6 +6030,14 @@ app.whenReady().then(async () => {
     delete normalizedPatch.windowMaximized;
     delete normalizedPatch.codexManagedAccounts;
     delete normalizedPatch.mimoManagedAccounts;
+    delete normalizedPatch.workbuddyAccessToken;
+    delete normalizedPatch.workbuddyUserId;
+    delete normalizedPatch.workbuddyEnterpriseId;
+    delete normalizedPatch.workbuddyEndpoint;
+    delete normalizedPatch.workbuddyLocale;
+    delete normalizedPatch.workbuddyDomain;
+    delete normalizedPatch.workbuddyDepartmentInfo;
+    delete normalizedPatch.workbuddyLocalAppEnabled;
     delete normalizedPatch.openrouterProfiles;
     delete normalizedPatch.thirdPartyProfiles;
     delete normalizedPatch.customModelPricing;
@@ -5999,6 +6073,8 @@ app.whenReady().then(async () => {
     if (patch.volcengineRegion !== undefined) normalizedPatch.volcengineRegion = normalizeVolcengineRegion(patch.volcengineRegion);
     if (patch.qoderCookie !== undefined) normalizedPatch.qoderCookie = normalizeQoderCookie(patch.qoderCookie);
     if (patch.qoderSite !== undefined) normalizedPatch.qoderSite = normalizeQoderSite(patch.qoderSite);
+    if (patch.traeAccessToken !== undefined) normalizedPatch.traeAccessToken = normalizeTraeAccessToken(patch.traeAccessToken);
+    if (patch.traeDeviceId !== undefined) normalizedPatch.traeDeviceId = normalizeTraeDeviceId(patch.traeDeviceId);
     if (patch.commandcodeCookie !== undefined) normalizedPatch.commandcodeCookie = normalizeCommandcodeCookie(patch.commandcodeCookie);
     if (patch.kimiApiKey !== undefined) normalizedPatch.kimiApiKey = normalizeKimiApiKey(patch.kimiApiKey);
     if (patch.kimiWebAccessToken !== undefined) normalizedPatch.kimiWebAccessToken = normalizeKimiWebAccessToken(patch.kimiWebAccessToken);
@@ -6120,6 +6196,8 @@ app.whenReady().then(async () => {
       volcengineRegion: patch.volcengineRegion !== undefined ? normalizeVolcengineRegion(patch.volcengineRegion) : (settings.volcengineRegion || ''),
       qoderCookie: patch.qoderCookie !== undefined ? normalizeQoderCookie(patch.qoderCookie) : (settings.qoderCookie || ''),
       qoderSite: patch.qoderSite !== undefined ? normalizeQoderSite(patch.qoderSite) : normalizeQoderSite(settings.qoderSite || 'global'),
+      traeAccessToken: patch.traeAccessToken !== undefined ? normalizeTraeAccessToken(patch.traeAccessToken) : (settings.traeAccessToken || ''),
+      traeDeviceId: patch.traeDeviceId !== undefined ? normalizeTraeDeviceId(patch.traeDeviceId) : (settings.traeDeviceId || ''),
       commandcodeCookie: patch.commandcodeCookie !== undefined ? normalizeCommandcodeCookie(patch.commandcodeCookie) : (settings.commandcodeCookie || ''),
       ollamaCookie: patch.ollamaCookie !== undefined ? normalizeOllamaCookie(patch.ollamaCookie) : (settings.ollamaCookie || ''),
       modelMappings: patch.modelMappings !== undefined
@@ -7441,6 +7519,7 @@ app.on('before-quit', () => {
   if (rateRefreshTimer) clearInterval(rateRefreshTimer);
   if (appUpdateBackgroundTimer) clearInterval(appUpdateBackgroundTimer);
   unregisterWindowToggleShortcut();
+  electronWorkbuddyLocalAuth.dispose();
   performQuit();
 });
 for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP']) {

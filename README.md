@@ -7,7 +7,7 @@
   </p>
   <p>
     <a href="https://github.com/MarbleGateKeeper/token-monitor-ver.replica/releases"><img src="https://img.shields.io/github/v/release/MarbleGateKeeper/token-monitor-ver.replica?include_prereleases&style=flat-square&label=replica&color=22c55e" alt="Replica release"></a>
-    <img src="https://img.shields.io/badge/version-0.46.0--replica.2-64748b?style=flat-square" alt="Version 0.46.0-replica.2">
+    <img src="https://img.shields.io/badge/version-0.47.0--replica.1-64748b?style=flat-square" alt="Version 0.47.0-replica.1">
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-A855F7?style=flat-square" alt="MIT License"></a>
   </p>
   <img src=".github/assets/demo.gif" alt="Token Monitor demo">
@@ -25,7 +25,7 @@
 - **上游项目：** [Javis603/token-monitor](https://github.com/Javis603/token-monitor)，提供 Token Monitor 的主体架构、采集器、桌面组件、多设备 Hub、AI 工具额度和绝大多数功能。
 - **本仓库：** [MarbleGateKeeper/token-monitor-ver.replica](https://github.com/MarbleGateKeeper/token-monitor-ver.replica)，用于保留个人需要但尚未进入上游的修复与功能。
 - **Git 远程：** 通常以 `upstream` 跟踪原项目，以 `origin` 跟踪本 fork。同步上游时应先审阅差异，再保留下文列出的 fork 功能。
-- **版本规则：** 使用 `<上游版本>-replica.<修订号>`，例如当前版本 `0.46.0-replica.2`。同一上游版本继续发布时递增修订号；同步到新的上游版本后从 `replica.1` 重新开始。
+- **版本规则：** 使用 `<上游版本>-replica.<修订号>`，例如当前版本 `0.47.0-replica.1`。同一上游版本继续发布时递增修订号；同步到新的上游版本后从 `replica.1` 重新开始。
 - **更新来源：** 应用只把本 fork 的 `*-replica.N` Release 当作可用版本；同时独立查询上游最新 Release，用于提醒维护者何时需要同步上游。两类提醒都只打开对应 Release 页面，不会下载或安装更新。
 - **许可与署名：** 代码继续使用上游的 MIT 许可证，保留原作者 Javis 的版权声明；打包产物会携带完整 `LICENSE`。
 
@@ -114,7 +114,7 @@ Tokscale 继续负责 Token、费用、模型和会话 ID；本 fork 在本机�
 
 ### 功能概览
 
-Token Monitor 是一个本地优先的 Electron 桌面组件，用于汇总 AI 编程工具的 token、成本、会话、模型和账号额度。下方工具表列出 31 种工具，其中 26 种提供 token 用量，19 种提供 AI 工具额度。
+Token Monitor 是一个本地优先的 Electron 桌面组件，用于汇总 AI 编程工具的 token、成本、会话、模型和账号额度。下方工具表列出 32 种工具，其中 26 种提供 token 用量，21 种提供 AI 工具额度。
 
 - 实时扫描本机日志，并在数秒内刷新用量。
 - 按工具、设备、模型、会话、项目和账号拆分。
@@ -124,6 +124,7 @@ Token Monitor 是一个本地优先的 Electron 桌面组件，用于汇总 AI �
 - 支持本地模式、内置 Hub、Node Hub 和 Cloudflare Worker 多设备同步。
 - 客户端模式会显示远端 Hub / Node Hub / Worker 的部署版本状态。
 - 支持 Command Code 用量与额度、Qoder CN 本地用量，以及本机 OpenCode Go 账号的自动额度检测。
+- 支持在 macOS 和 Windows 上从已登录的 WorkBuddy 桌面应用读取 Credits，并支持 Trae CN / SOLO Credits；无界面 WorkBuddy 部署可使用环境变量后备配置。
 - 支持 DeepSeek Harness 用量与本机会话明细，以及 Cherry Studio 用量。
 - AI 工具额度可按消耗速度自适应刷新；外观设置可分别选择界面字体与展示字体。
 - 托盘项目可跟随最近活动工具，并可独立设置费用缩写格式与小数位数；本地 Windows 安装包允许选择安装目录。
@@ -198,7 +199,7 @@ npm run pack:mac:widget # macOS 原生 Widget 的本地 ad-hoc 签名预览
 - **Upstream:** [Javis603/token-monitor](https://github.com/Javis603/token-monitor) provides the core architecture, collectors, desktop widget, multi-device Hub, AI Tool Limits, and most product functionality.
 - **This repository:** [MarbleGateKeeper/token-monitor-ver.replica](https://github.com/MarbleGateKeeper/token-monitor-ver.replica) carries personal fixes and features that have not been incorporated upstream.
 - **Git remotes:** `upstream` normally tracks the original project and `origin` tracks this fork. Review upstream changes before merging and preserve the fork behavior documented below.
-- **Versioning:** releases use `<upstream-version>-replica.<revision>`, currently `0.46.0-replica.2`. Increment the replica revision on the same upstream base; restart at `replica.1` after adopting a new upstream version.
+- **Versioning:** releases use `<upstream-version>-replica.<revision>`, currently `0.47.0-replica.1`. Increment the replica revision on the same upstream base; restart at `replica.1` after adopting a new upstream version.
 - **Updates:** only this fork's `*-replica.N` Releases enter the fork update channel. The app also checks upstream independently to tell maintainers when the fork needs syncing. Both channels only open their matching Release page and never download or install updates.
 - **License and credit:** the upstream MIT license and Javis copyright notice are preserved, and packaged applications include the complete `LICENSE`.
 
@@ -287,7 +288,7 @@ Full scans also use the same local resolver to backfill the retained-session arc
 
 ### Highlights
 
-Token Monitor is a local-first Electron widget for AI coding-tool tokens, cost, sessions, models, and account limits. The table below lists 31 tools: 26 provide token usage and 19 provide AI Tool Limits.
+Token Monitor is a local-first Electron widget for AI coding-tool tokens, cost, sessions, models, and account limits. The table below lists 32 tools: 26 provide token usage and 21 provide AI Tool Limits.
 
 - Live local-log collection with updates appearing within seconds.
 - Breakdowns by tool, device, model, session, project, and account.
@@ -297,6 +298,7 @@ Token Monitor is a local-first Electron widget for AI coding-tool tokens, cost, 
 - Local mode plus embedded, Node, or Cloudflare Worker hubs for multi-device sync.
 - Client mode reports the deployment status of the remote Hub, Node Hub, or Worker.
 - Command Code usage and limits, local Qoder CN usage, and automatic quota detection for local OpenCode Go accounts.
+- Credits from the signed-in WorkBuddy desktop app on macOS and Windows, plus Trae CN / SOLO Credits, with an environment fallback for headless WorkBuddy deployments.
 - DeepSeek Harness usage and local Session Detail, plus Cherry Studio usage.
 - Adaptive AI Tool Limits refresh based on burn rate, plus separate interface and display font controls.
 - Tray items can follow the most recently active tool and configure compact cost formatting and decimal precision independently; locally built Windows installers allow choosing the installation directory.
@@ -379,9 +381,9 @@ Runtime and packaging scripts explicitly prepare the pinned Tokscale binary on t
 | <img src=".github/assets/tools-icon/zcode.png" width="28" alt="ZCode" /> | ZCode / GLM | `~/.zcode/projects/`、`~/.zcode/cli/db/db.sqlite` 与 Z.ai API | ✅ | ✅ | — |
 | <img src=".github/assets/tools-icon/kiro.png" width="28" alt="Kiro" /> | Kiro | Kiro CLI sessions, IDE globalStorage, and CLI database | ✅ | ✅ | — |
 | <img src=".github/assets/tools-icon/codebuddy.png" width="28" alt="CodeBuddy" /> | CodeBuddy | Project data plus IDE and VS Code extension logs | ✅ | — | — |
-| <img src=".github/assets/tools-icon/workbuddy.png" width="28" alt="WorkBuddy" /> | WorkBuddy | `~/.workbuddy/projects/`, `~/.workbuddy/workbuddy.db` | ✅ | — | — |
+| <img src=".github/assets/tools-icon/workbuddy.png" width="28" alt="WorkBuddy" /> | WorkBuddy | `~/.workbuddy/projects/`, `~/.workbuddy/workbuddy.db` | ✅ | ✅ | — |
 | <img src=".github/assets/tools-icon/proma.png" width="28" alt="Proma" /> | Proma | `~/.proma/agent-sessions/*.jsonl` | ✅ | — | — |
-| <img src=".github/assets/tools-icon/qoder.png" width="28" alt="Qoder" /> | Qoder | Qoder CN 本地 SQLite 数据库与 Qoder dashboard cookie / usage API | ✅ | ✅ | — |
+| <img src=".github/assets/tools-icon/qoder.png" width="28" alt="Qoder" /> | Qoder | Qoder CN 本地 SQLite 数据库 | ✅ | ✅ | — |
 | <img src=".github/assets/tools-icon/reasonix.png" width="28" alt="Reasonix" /> | Reasonix | `~/.reasonix/` 中的 `stats/`、`sessions/` 与 `projects/*/sessions/` | ✅ | — | — |
 | <img src=".github/assets/tools-icon/deepseek.png" width="28" alt="DeepSeek" /> | DeepSeek / DeepSeek Harness | DeepSeek API key，以及 `$DSH_HOME/sessions/` 或 `~/.dsh/sessions/` | ✅ | ✅ | ✅ |
 | <img src=".github/assets/tools-icon/cherrystudio.png" width="28" alt="Cherry Studio" /> | Cherry Studio | 平台应用数据目录下 `CherryStudio/Data/Agents/.claude/projects/`（V2）或 `.claude/projects/`（旧版） | ✅ | — | — |
@@ -389,6 +391,7 @@ Runtime and packaging scripts explicitly prepare the pinned Tokscale binary on t
 | <img src=".github/assets/tools-icon/minimax.png" width="28" alt="Minimax" /> | Minimax | Minimax API key and Token Plan API | — | ✅ | — |
 | <img src=".github/assets/tools-icon/volcengine.png" width="28" alt="Volcengine" /> | Volcengine | Ark API key or Volcengine AK/SK | — | ✅ | — |
 | <img src=".github/assets/tools-icon/ollama.png" width="28" alt="Ollama" /> | Ollama | Ollama Cloud cookie and settings usage | — | ✅ | — |
+| <img src=".github/assets/tools-icon/trae.png" width="28" alt="Trae CN" /> | Trae CN | Trae CN access token and Credits API | — | ✅ | — |
 | <img src=".github/assets/tools-icon/newapi.png" width="28" alt="Third-party APIs" /> | Third-party APIs | New API and compatible One API forks, API-key mode, or a declarative Custom balance endpoint | — | ✅ | — |
 
 表中路径是默认值；Token Monitor 会遵循 Tokscale 支持的 `$XDG_DATA_HOME`，以及 `$CLAUDE_CONFIG_DIR`、`$CODEX_HOME`、`$GROK_HOME`、`$HERMES_HOME`、`$KIMI_CODE_HOME`、`$DSH_HOME`、`$REASONIX_STATE_HOME`、`$REASONIX_HOME` 和 `$CLINE_*` 等工具专用环境变量。

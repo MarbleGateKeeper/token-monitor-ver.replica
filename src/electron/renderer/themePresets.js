@@ -65,7 +65,7 @@
   // synthetic "default" fallback is shown last.
   const TRACKED_VENDOR_ORDER = [
     'claude', 'codex', 'hermes', 'opencode', 'openrouter', 'openclaw', 'cline', 'cursor',
-    'gemini', 'antigravity', 'kimi', 'qwen', 'grok', 'copilot', 'pi', 'zed', 'kilocode', 'commandcode', 'micode', 'zcode', 'kiro', 'codebuddy', 'workbuddy', 'proma', 'qodercn', 'qoder', 'reasonix', 'dsh', 'cherrystudio'
+    'gemini', 'antigravity', 'kimi', 'qwen', 'grok', 'copilot', 'pi', 'zed', 'kilocode', 'commandcode', 'micode', 'zcode', 'kiro', 'codebuddy', 'workbuddy', 'proma', 'qodercn', 'qoder', 'reasonix', 'dsh', 'cherrystudio', 'trae'
   ];
   const VENDOR_ORDER = [...new Set([
     ...TRACKED_VENDOR_ORDER,
@@ -102,6 +102,7 @@
     zaiteam: 'GLM Team',
     volcengine: 'Volcengine',
     qoder: 'Qoder',
+    trae: 'Trae CN',
     ollama: 'Ollama',
     thirdparty: 'Third-party APIs',
     default: 'Default'
